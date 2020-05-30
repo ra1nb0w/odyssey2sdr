@@ -1,0 +1,191 @@
+#+startup: showeverything
+
+* MCU firmware for PCI16F1827
+
+*NOTE*: this firmware has been developed on board v1.2 therefore if
+you are using an early version and you notice something wrong don't
+esitate to open an issue or a pull request. thank you.
+
+** Changes from N7DDC
+
+- 100% free software. This was the main reason to start the
+  project since I would a fully open source and future proof platform
+  and the N7DCC's mcu firmware is only available in binary form.
+- use a by-directional ASYNC protocol between MCU and FPGA that can
+  send ANY command at ANY time (probably we can implement a remote
+  update of the MCU)
+- each radio's status is displayed on the screen; for example when you
+  attach the power you see the STANBY screen or when you change the
+  power amplifier status you get a message with the actual value.
+- every configuration parameter is stored on the FPGA eeprom and not
+  half on the MCU and half on the FPGA.
+- full status on the bootloader screen
+- amplifier values can be modified from the programmer (no mic needed)
+- code comments everywhere
+- free available PIC compiler (maybe move to SDCC)
+
+** Functionalities
+
+|--------------------+--------------------------------------------------------------------------------------------------------------------------+------------------------------|
+| function           | description                                                                                                              | availability                 |
+|--------------------+--------------------------------------------------------------------------------------------------------------------------+------------------------------|
+| radio power        | the MCU manage the ON/OFF of the radio. You can power on/off with power button or MIC FST button                         | any time                     |
+| display            | manage the SSD1306 display printing the radio's status (standby, bootloader, ready, PTT, ecc.) and the parameters        | any time                     |
+| fpga               | an ASYNC UART channel between MCU and FPGA permits to exchange status and parameters (like, IP, version, slot)           | any time                     |
+| 1W power amplifier | manage the line that enable/disable the 1W power amplifier; configured by FPGA or a long press of MIC DOWN button (flip) | any time except transmitting |
+| audio amplifier    | manage the line that enable/disable the audio amplifier; configured by FPGA or a long press of MIC UP button (flip)      | any time except transmitting |
+| auto power on      | you can power the radio the the power source is enable therefore without touching any button; good for remote operation  | only at bootloader           |
+| change slot        | permits to change the slot to boot with a short press of MIC DOWN or MIC UP                                              | only at bootloader           |
+|--------------------+--------------------------------------------------------------------------------------------------------------------------+------------------------------|
+
+All configurations can be seen on the screen at bootloader and changed
+with the MIC or the programmer.
+
+** PIN connections
+
+|-----+------------------------------------------------------------------------------|
+| PIN | description                                                                  |
+|-----+------------------------------------------------------------------------------|
+| RA0 | not connected                                                                |
+| RA1 | not connected                                                                |
+| RA2 | 1W Power Amplifier 1 = ON; 0 = OFF (enabled only during PTT)                 |
+| RA3 | MIC FST long press power on the radio (like power on button)                 |
+| RA4 | not connected                                                                |
+| RA5 | MCLR used for programming reset                                              |
+| RA6 | Audio Amplifier 1 = OFF; 0 = ON                                              |
+| RA7 | MIC UP (pull-up) --> NO Interrupt on Change available                        |
+| RB0 | power on button (pull-up) pressed when 0                                     |
+| RB1 | i2c SDA display (pull-up)                                                    |
+| RB2 | TPS62140 enable line (board 5V) 1 = ON; 0 = OFF                              |
+| RB3 | MIC DOWN (pull-up)                                                           |
+| RB4 | i2c SCL display (pull-up)                                                    |
+| RB5 | not used - connected to FPGA J22                                             |
+| RB6 | UART TX to FPGA L22 and CLK programmer (pull-up only when radio board is on) |
+| RB7 | UART RX to FPGA L21 and DAT programmer (pull-up only when radio board is on) |
+|-----+------------------------------------------------------------------------------|
+
+** MCU-FPGA protocol
+
+The protocol uses an ASYNC UART (pins RB6 and RB7) with the following
+parameters: /19200-8N1/. The message exchange is half-duplex.
+The first byte sent is always a command. The next bytes are optional
+and depends on the command.
+An "FPGA ERROR" is shown in the display if the /STAGE/ is not received.
+Each command that require an /ACK/ must acknowledged before sending
+another command; in an another way, no multiple commands requiring ACK
+could be sent at the same time.
+
+*** command byte (8 bits)
+
+#+BEGIN_EXAMPLE
+X X X X X X X X
+| | | | | | | |
+| | | | + + + + --> 4 bits for optional parameters
+| | | |
++ + + +--> 4 bits that indicate the command
+#+END_EXAMPLE
+
+|------+----------+-------------+------------------+-------------+---------------+-----------------------------------+--------------------------------------------------------------------|
+|  HEX | command  | direction   | stage            | require ACK | next bytes    | parameters                        | description                                                        |
+|------+----------+-------------+------------------+-------------+---------------+-----------------------------------+--------------------------------------------------------------------|
+| 0x00 | reserved |             | none             |             |               |                                   | reserved command                                                   |
+|------+----------+-------------+------------------+-------------+---------------+-----------------------------------+--------------------------------------------------------------------|
+| 0x1X | ACK      | both        | any              | no          | no            | 0x? is the command to acknowledge | acknowledge command                                                |
+|------+----------+-------------+------------------+-------------+---------------+-----------------------------------+--------------------------------------------------------------------|
+| 0x2X | STAGE    | fpga to MCU | any              | no          | no            | 0x0 = reserved                    | fpga inform the MCU in which state it is                           |
+|      |          |             |                  |             |               | 0x1 = booting                     |                                                                    |
+|      |          |             |                  |             |               | 0x2 = bootloader                  |                                                                    |
+|      |          |             |                  |             |               | 0x3 = radio                       |                                                                    |
+|      |          |             |                  |             |               | 0x4 = PTT                         |                                                                    |
+|      |          |             |                  |             |               | 0x5 = CRC error                   |                                                                    |
+|------+----------+-------------+------------------+-------------+---------------+-----------------------------------+--------------------------------------------------------------------|
+| 0x3X | VERSION  | both        | bootloader/radio | no          | yes, 8 bytes  | 0x0 = reserved                    | send the software version                                          |
+|      |          |             |                  |             |               | 0x1 = MCU (not implemented)       |                                                                    |
+|      |          |             |                  |             |               | 0x2 = bootloader                  |                                                                    |
+|      |          |             |                  |             |               | 0x3 = radio                       |                                                                    |
+|------+----------+-------------+------------------+-------------+---------------+-----------------------------------+--------------------------------------------------------------------|
+| 0x40 | IP       | fpga to MCU | bootloader/radio | no          | yes, 16 bytes | no                                | send the IP address to MCU                                         |
+|      |          |             |                  |             |               |                                   |                                                                    |
+|------+----------+-------------+------------------+-------------+---------------+-----------------------------------+--------------------------------------------------------------------|
+| 0x5X | STATUS   | both        | bootloader       | no          | no            | see below                         | send the status (see below)                                        |
+|------+----------+-------------+------------------+-------------+---------------+-----------------------------------+--------------------------------------------------------------------|
+| 0x6X | POWER ON | both        | bootloader       | no          | no            | 0x0 = request data                | mcu power on the radio just after the power connector is connected |
+|      |          |             |                  |             |               | 0x1 = enabled                     |                                                                    |
+|      |          |             |                  |             |               | 0x2 = disabled                    |                                                                    |
+|------+----------+-------------+------------------+-------------+---------------+-----------------------------------+--------------------------------------------------------------------|
+
+**** STATUS command
+
+the optional parameters of the /STATUS/ command have the following values
+
+|-----+-------+-----------------------------|
+| bit | value | description                 |
+|-----+-------+-----------------------------|
+| 3:2 |    00 | request the status          |
+|     |    01 | slot1                       |
+|     |    10 | slot2                       |
+|     |    11 | slot3                       |
+|-----+-------+-----------------------------|
+|   1 |     0 | 1W power amplifier disabled |
+|     |     1 | 1W power amplifier enabled  |
+|-----+-------+-----------------------------|
+|   0 |     0 | audio amplifier disabled    |
+|     |     1 | audio amplifier enabled     |
+|-----+-------+-----------------------------|
+
+** How to build and flash the firmware
+
+*** Requirements
+
+To build the software you only need two software:
+
+- Microchip [[https://www.microchip.com/mplab/compilers][MPLAB XC8]] available for Windows, macOS and Linux
+- make (Posix compliant should be enough like, GNU make or BSD make)
+
+*** Build
+
+If you have installed correctly the software above and /xc8/ is
+available in you shell you only need to run one command:
+
+#+BEGIN_SRC shell
+make
+#+END_SRC
+
+At the end, you can see the "Memory Summary" and the firmware will be
+available at /dist/default/production/mcu.production.hex/
+
+You can also use MPLAB X IDE if you would like to use an integrated
+environment to build and flash the firmware.
+
+*** Flash
+
+There are many in-circuit programmer in the market that you can select
+to flash the /.hex/ the only requirements is to use ones that support
+low voltage programming. This is very important otherwise you can
+damage the FPGA (see the 4.5V zener in the layout). I used the
+following:
+
+- [[https://www.microchip.com/DevelopmentTools/ProductDetails/pg164130][PICkit™ 3 In-Circuit Debugger]]
+- [[https://github.com/jaromir-sukuba/a-p-prog][a-p-prog]] for arduino (remember to use delay ~-s 1700~)
+
+Just pay attention on which device powers the MCU and if something
+fails double check the wire connections.
+
+** License
+
+#+BEGIN_SRC
+Copyright (C) 2020 Davide Gerhard IV3CVE
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#+END_SRC
