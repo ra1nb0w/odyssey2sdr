@@ -1,0 +1,114 @@
+* Odyssey 2 Bootloader Programmer
+
+This is a fully C89 POSIX compliant terminal programmer for the
+Odyssey 2 Bootloader. It runs fine also on Microsoft Windows using
+mingw64 as toolchain to build the binary. It is compatible with N7DDC
+protocol but adds a few more commands.
+
+** Changes from N7DDC
+
+- future proof: since it is written in C89 it works everywhere and
+  /forever/
+- change settings without MIC: you can change the parameters like, 1W
+  power amplifier, audio amplifier and slot without connecting the MIC to
+  the port and press keys. In this way it is fully remote usable.
+- get the radio status with versions and parameters
+- enter into the bootloader from remote
+- for many other options see the next section
+
+** Help screen
+
+Just to avoid repeat the work, these are the features available from
+remote.
+
+#+BEGIN_SRC
+Odyssey 2 Bootloader Programmer - Version: 0.1.0
+
+Usage:
+./programmer ACTIONS [OPTIONS]
+
+Actions: all require -d
+	-t			test if the IP address is alive
+	-a			get the bootloader status
+	-n			set the new IP address; require -e
+	-p			program a new firmware
+				require -f and -o optionally; use slot 1 as default
+	-x			erase the slot without programming (require -o)
+	-b			stop the radio at the bootloader
+	-r			reset the device
+	-z			boot the radio firmware
+	-s			set which slot to boot (require -o)
+	-y [0/1]		disable or enable the auto power-on functionality
+	-g [0/1]		disable or enable the 1W power amplifier
+	-c [0/1]		disable or enable the audio amplifier
+
+Options:
+	-d [IP]			set the device IP
+	-e [NEW IP]		set the new IP for the device
+	-f [RBF]		firmware file with extension .rbf
+	-o [SLOT]		which slot to use; from 0 to 3
+
+Notes:
+  [IP] must be in form 192.168.1.100 without subnet or CIDR
+  [SLOT] is a number from 0 to 3. 0 is the bootloader, so pay attention ;-)
+#+END_SRC
+
+** Build
+
+*** *NIX
+
+**** Requirements
+
+- any C compiler that support C89 and it is POSIX compliant
+  GNU gcc or clang for example.
+- ~make~
+  GNU make or BSD make for example.
+
+**** Build
+
+Quite easy, run the following command ;-)
+
+#+BEGIN_SRC shell
+make
+#+END_SRC
+
+Then you can run the programmer with /./programmer/ and read the help.
+
+*** Windows
+
+You can build the windows version in any *NIX or Windows that it is
+supported by the requirements.
+
+**** Requirements
+
+- MinGW-w64 or MinGW
+- make (GNU make or BSD make)
+
+**** Build
+
+Quite easy, run the following command ;-)
+
+#+BEGIN_SRC shell
+make win
+#+END_SRC
+
+Then you can run the programmer with /programmer.exe/ and read the help.
+
+** License
+
+#+BEGIN_SRC
+Copyright (C) 2020 Davide Gerhard IV3CVE
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#+END_SRC
