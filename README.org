@@ -1,0 +1,38 @@
+#+startup: showeverything
+
+* Odyssey 2 SDR
+
+** Why I started this project?
+
+The main reasons that drove me to start this repository are the
+following:
+- I would a fully open source radio with the source code of every
+  components
+- a future proof code that will works for the next decade
+- learn PIC architecture and FPGA ecosystem (with verilog language in
+  this case)
+- fully remote controllable radio without any hardware controller.
+
+** Features
+
+** Architecture
+
+** Folders
+
+- [[./bootloader][bootloader]] : contains the verilog code for the bootloader and can be
+  programmed with the ~programmer~;
+- [[./docs][docs]] : contains a few documents published by David Fainitski N7DDC
+  about the hardware board and his software;
+- [[./mcu][mcu]] : the microcontroller firmware that controller the power of the
+  radio and the display;
+- [[./pcb][pcb]] : contains the PCB layout of Odyssey 2 version 1.2 and related
+  BOM/geber;
+- [[./programmer][programmer]] : the bootloader programmer that permits to control and
+  configure from remote the radio.
+
+** License
+
+Each project has its license since the FPGA code was derived from
+[[https://openhpsdr.org][openHPSDR]]. I tried to respect as much as possible each author citing
+his work on each source file. If you find something wrong or not correctly
+attributed feel free to open a pull request. thank you!
