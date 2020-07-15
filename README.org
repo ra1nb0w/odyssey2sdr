@@ -2,16 +2,20 @@
 
 * Odyssey 2 SDR
 
+#+begin_html
+<img src="./.img/radio_front.jpg" alt="Odyssey 2 Radio front" width="800">
+#+end_html
+
 ** Why I started this project?
 
 The main reasons that drove me to start this repository are the
 following:
 - I would a fully open source radio with the source code of every
-  components
-- a future proof code that will works for the next decade
-- learn PIC architecture and FPGA ecosystem (with verilog language in
-  this case)
-- fully remote controllable radio without any hardware controller.
+  components;
+- a future proof code that will works for the next decade;
+- learn PIC architecture and FPGA ecosystem (with Verilog language in
+  this case);
+- fully remote controllable radio without any external hardware.
 
 ** Features
 
