@@ -29,7 +29,7 @@
 
        David Fainitski N7DDC, 2017
 		 Project Odyssey-II
-		 based on Hermes 10.x firmfare
+		 based on Hermes 10.x firmware
 
 */
 
@@ -127,12 +127,10 @@ module Odyssey(
   */
   
   // MCU connection
-  inout MCU_RES,
-  inout MCU_DATA,
-  inout MCU_CLOCK,
-  inout MCU_EN,
+  input MCU_UART_RX,
+  output MCU_UART_TX,
   
-    //debug led's 
+  //debug led's 
   output led1,
   output led2,
   output led3,
@@ -147,8 +145,6 @@ assign _122MHz_out = C122_clk;
 
 wire RAND;            			//high turns random on
 wire DITH;            			//high turns dither on 
-
-pic_control #(fw_version) pic_cntrl (osc_80khz, MCU_RES, MCU_DATA, MCU_CLOCK, MCU_EN, FPGA_PTT);
 
 wire USEROUT4, USEROUT5, USEROUT6;
   
@@ -176,7 +172,14 @@ localparam board_type = 8'h03;		  	// 00 for Metis, 01 for Hermes, 02 for ANAN-1
 parameter  Angelia_version = 8'd116;	// FPGA code version
 parameter  protocol_version = 8'd33;	// openHPSDR protocol version implemented
 
-parameter [63:0] fw_version = "1.20 ANP";
+parameter [63:0] fw_version = "1.21 ANP";
+
+
+// module to comunicate with MCU
+// used only to send the stage change (radio or ptt)
+mcu #(.fw_version(fw_version)) mcu_uart (.clk(INA_CLK),
+	.mcu_uart_rx(MCU_UART_RX), .mcu_uart_tx(MCU_UART_TX), .ptt(FPGA_PTT));
+
 
 //--------------------------------------------------------------
 // Reset Lines - C122_rst, IF_rst, SPI_Alex_reset
