@@ -1,0 +1,8 @@
+* Odyssey 2 PCB
+
+*IMPORTANT*: This is only a personal copy of the pcb/BOM version 1.2
+ distributed by [[https://github.com/Dfinitski/Odyssey-2_2017_TRX][N7DDC]] on his repository. Therefore, the copyright
+ remain entirely to David Fainitski (N7DDC).
+
+To open the layout /lay6/ you need to use [[https://www.electronic-software-shop.com/lng/en/electronic-software/sprint-layout-60.html][Sprint Layout 6.0]]. The demo
+version is enough to visualize the pcb.
