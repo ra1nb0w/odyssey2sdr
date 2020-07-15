@@ -1,0 +1,120 @@
+* Bootloader for Odyssey 2
+
+** Changes from N7DDC
+
+There are the main changes from the original bootloader wrote by David
+Fainitski N7DDC:
+
+- replaced various ~if()~ with ~%~
+- comments everywhere
+- configuration changeable from hardware keys or from programmer
+- new commands: STS, EAA, EPA, STP, SLC, PWN, BOT
+- asynchronous communication with MCU
+- fully remote controllable (also bootloader access)
+
+** Functionalities
+
+** TODO
+
+- IPv4 subnet
+- IPv6 support
+- CRC32 on firmware update
+- re-implement DHCP support
+
+** Protocol with the remote programmer
+
+The protocol with the remote programmer it is statically define:
+
+- the request is always 32 bytes
+- the reply is always 32 bytes plus variable payload if needed
+- the request always starts from the programmer
+- the replay always starts after a request and from the FPGA
+- the first three bytes of the command are ASCII chars that define the
+  command type.
+- the protocol use an UDP transport on port 50000
+- the remote endpoint information (like client port and address) is
+  only stored in the MAC request therefore before call every other
+  command you need to request the MAC information.
+
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+| request                                 | reply                                          | function                                                                    |
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+| "MAC" + 232'b0                          | "MAC" + 184'b0 + 6 bytes MAC address           | request the MAC address of the FPGA                                         |
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+| "WIP" + 200'b0 + 4 bytes IP address     | the same as requested                          | write the new IP address to FPGA                                            |
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+| "ERS" + 224'b0 + 1 byte slot            | the same as requested                          | erase the slot defined in the request                                       |
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+| "WPD" + 232'b0 + 256 bytes of data      | the same as requested but with data from flash | write 256 byte to flash at slot defined by erase (iterate for all firmware) |
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+| "STS" + 232'b0                          | "STS" + 136'b0 +                               | request the status information                                              |
+|                                         | 1 byte = auto power on (0=OFF 1=ON)            |                                                                             |
+|                                         | 1 byte = audio amplifier status (0=OFF 1=ON)   |                                                                             |
+|                                         | 1 byte = power amplifier status (0=OFF 1=ON)   |                                                                             |
+|                                         | 1 byte = slot number to boot                   |                                                                             |
+|                                         | 8 bytes = bootloader version                   |                                                                             |
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+| "EAA" + 224'b0 + 1 byte audio amplifier | the same as requested                          | set the audio amplifier status; 0 for OFF and 1 for ON                      |
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+| "EPA" + 224'b0 + 1 byte power amplifier | the same as requested                          | set the power RF amplifier status; 0 for OFF and 1 for ON                   |
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+| "PWN" + 224'b0 + 1 byte auto power on   | the same as requested                          | set the auto power on functionality; 0 for OFF and 1 for ON                 |
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+| "STP" + 232'b0                          | the same as requested                          | stop the radio at bootloader during startup                                 |
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+| "BOT" + 232'b0                          | the same as requested                          | start the radio firmware present at the slot configured without reset       |
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+| "SLC" + 224'b0 + 1 byte for the slot    | the same as requested                          | change the slot to boot; valid values are from 1 to 3                       |
+|-----------------------------------------+------------------------------------------------+-----------------------------------------------------------------------------|
+
+** Build
+
+To build the bootloader you need to download and install
+[[https://fpgasoftware.intel.com/19.1/?edition=lite][Altera Quartus Prime Lite Edition 19.1]] or a version that support the
+/Cyclone IV/ that we are using (you also need to manually install the
+support for that generation). It is available for Linux and Windows.
+After you have installed the software open the /Quartus/ gui and open
+the project file /Bootloader.qpf/.
+At this stage you can generate the binary firmware that can be
+programmed to the flash selecting from the menu /Processing->Start
+Compilation/. You will end up with /Bootloader.rbf/
+and /Bootloader.pof/ that are needed for flash.
+
+Advice: since the environment is quite complex, I suggest to read the
+Quartus documentation and try to understand what are you doing.
+
+** Flash
+
+You have two choice:
+- use the /rbl/ file and write the firmware to slot 0 with the
+  programmer (useful only when you have a fully functional radio).
+- use the Altera USB Blaster.
+
+For the first solution refer to the [[../programmer][programmer]] documentation.
+To program the radio with Altera USB Blaster you need to attach the
+programming cable on the socket near the Ethernet port (pay attention
+on pin one). The you can use the programmer included in the Altera
+Quartus Prime if you have installed the entire suite or you can
+install only the [[https://www.intel.com/content/www/us/en/programmable/downloads/software/prog-software/121.html][Quartus II Stand-Alone Programmer]]. Open the
+programmer, select /Active Serial Programming/ from /Mode/, choose the
+hardware device and load the /Bootloader.pof/ file. Be sure that
+/Programm-Configure/, /Verify/, /Blank-Check/ are checked. Then you can
+start the programming. If it fails check cable connection.
+
+** License
+
+#+BEGIN_SRC
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#+END_SRC

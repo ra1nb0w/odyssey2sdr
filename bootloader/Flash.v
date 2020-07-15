@@ -1,12 +1,98 @@
+
+//  SPI flash memory code for Odyssey-2 project
 //
-// N7DDC, David Fainitski
-// project Odyssey-II
-// 04.2018
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
 //
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//  copyright 2018 David Fainitski N7DDC
 
 
-
+/*
+ 
+	EPCS64 memory layout
 	
+	Bytes 				= 8M
+	Sectors				= 128
+	Bytes per sector 	= 65k
+	Pages per sector 	= 256
+	Number of pages  	= 32768
+	Bytes per page   	= 256
+	
+	Slot              = 2MB
+	
+	Address Range (Byte Addresses in HEX)
+	
+	Sector	Start    End
+	
+Slot 3:
+	127      H'7F0000 H'7FFFFF
+   126      H'7E0000 H'7EFFFF
+	..........................
+	97       H'610000 H'61FFFF
+   96       H'600000 H'60FFFF
+	
+Slot 2:
+	95       H'5F0000 H'5FFFFF
+   94       H'5E0000 H'5EFFFF
+	..........................
+	65       H'420000 H'42FFFF
+   64       H'410000 H'41FFFF
+	
+Slot 1:
+	63       H'400000 H'40FFFF
+   62       H'3F0000 H'3FFFFF
+	..........................
+	33       H'210000 H'21FFFF
+   32       H'200000 H'20FFFF  ****
+	
+	31 		H'1F0000 H'1FFFFF
+	30 		H'1E0000 H'1EFFFF
+	29 		H'1D0000 H'1DFFFF
+	28 		H'1C0000 H'1CFFFF
+	27 		H'1B0000 H'1BFFFF
+	26 		H'1A0000 H'1AFFFF
+	25 		H'190000 H'19FFFF
+	24 		H'180000 H'18FFFF
+	23 		H'170000 H'17FFFF
+	22 		H'160000 H'16FFFF
+	21 		H'150000 H'15FFFF
+	20 		H'140000 H'14FFFF
+	19 		H'130000 H'13FFFF
+	18 		H'120000 H'12FFFF
+	17 		H'110000 H'11FFFF
+	16 		H'100000 H'10FFFF
+	15 		H'0F0000 H'0FFFFF
+	14 		H'0E0000 H'0EFFFF
+	13 		H'0D0000 H'0DFFFF
+	12 		H'0C0000 H'0CFFFF
+	11 		H'0B0000 H'0BFFFF
+	10 		H'0A0000 H'0AFFFF
+	 9 		H'090000 H'09FFFF
+	 8 		H'080000 H'08FFFF
+	 7 		H'070000 H'07FFFF
+	 6 		H'060000 H'06FFFF
+	 5 		H'050000 H'05FFFF
+	 4 		H'040000 H'04FFFF
+	 3 		H'030000 H'03FFFF
+	 2 		H'020000 H'02FFFF
+	 1 		H'010000 H'01FFFF
+	 0 		H'000000 H'00FFFF		
+		
+Each Sector holds 256 Pages each of 256 bytes
+
+*/
+
 module flash (
 input clock,  
 input erase_req,
@@ -16,34 +102,34 @@ input [2047:0] wr_data,
 output reg erase_done = 0,
 output reg wr_done = 0,
 output reg [2047:0] rd_data,
-	
-	
-// FLASH interface
+
+// serial flash interface
+// see W25Q64JV as example
 output reg DCLK,
 output reg DATAOUT,
 input      DATAIN,
 output reg FLASH_NCE
 );
 
-	
-parameter sSendCom   = 8'd50;
-parameter sSendCom1  = 8'd51;
-parameter sSendCom2  = 8'd52;
-parameter sSendCom3  = 8'd53;
-parameter sSendAddr  = 8'd60;
-parameter sSendAddr1 = 8'd61;
-parameter sSendAddr2 = 8'd62;
-parameter sSendAddr3 = 8'd63;
-parameter sReadSrv   = 8'd70;
-parameter sReadSrv1  = 8'd71;
-parameter sReadSrv2  = 8'd72;
-parameter sReadSts   = 8'd80;
-parameter sReadSts1  = 8'd81;
-parameter sReadSts2  = 8'd82;
-parameter sWriteSrv  = 8'd90;
-parameter sWriteSrv1 = 8'd91;
-parameter sWriteSrv2 = 8'd92;
-parameter sWriteSrv3 = 8'd93;
+// states used un the machine
+localparam 	sSendCom   = 8'd50,
+				sSendCom1  = 8'd51,
+				sSendCom2  = 8'd52,
+				sSendCom3  = 8'd53,
+				sSendAddr  = 8'd60,
+				sSendAddr1 = 8'd61,
+				sSendAddr2 = 8'd62,
+				sSendAddr3 = 8'd63,
+				sReadSrv   = 8'd70,
+				sReadSrv1  = 8'd71,
+				sReadSrv2  = 8'd72,
+				sReadSts   = 8'd80,
+				sReadSts1  = 8'd81,
+				sReadSts2  = 8'd82,
+				sWriteSrv  = 8'd90,
+				sWriteSrv1 = 8'd91,
+				sWriteSrv2 = 8'd92,
+				sWriteSrv3 = 8'd93;
 	
 	
 reg [7:0] sector_cnt;
@@ -261,10 +347,10 @@ sWriteSrv3: begin
 						state <= sReadSrv1; 
 					end
 					else begin FLASH_NCE <= 1; state <= return_state; end
-            end 
-//	
+            end
 			
-	default: state <= 1'd0;
+	default:
+		state <= 1'd0;
 	endcase
 end	
 	

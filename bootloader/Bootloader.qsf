@@ -41,7 +41,7 @@ set_global_assignment -name DEVICE EP4CE55F23C8
 set_global_assignment -name TOP_LEVEL_ENTITY Bootloader
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "9.1 SP2"
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "16:08:58  NOVEMBER 09, 2010"
-set_global_assignment -name LAST_QUARTUS_VERSION "18.1.0 Lite Edition"
+set_global_assignment -name LAST_QUARTUS_VERSION "19.1.0 Standard Edition"
 set_global_assignment -name USE_GENERATED_PHYSICAL_CONSTRAINTS OFF -section_id eda_blast_fpga
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
@@ -102,10 +102,6 @@ set_location_assignment PIN_B1 -to led4
 set_instance_assignment -name IO_STANDARD "1.8 V" -to INA_CLK
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
-set_location_assignment PIN_L22 -to MCU_CLOCK
-set_location_assignment PIN_L21 -to MCU_DATA
-set_location_assignment PIN_J22 -to MCU_EN
-set_location_assignment PIN_K21 -to MCU_RES
 set_location_assignment PIN_P1 -to FPGA_PTT
 set_location_assignment PIN_P2 -to PTT_2
 set_location_assignment PIN_M2 -to UO0
@@ -153,6 +149,11 @@ set_location_assignment PIN_K1 -to DATAIN
 set_location_assignment PIN_K2 -to DCLK
 set_location_assignment PIN_D1 -to DATAOUT
 set_location_assignment PIN_E2 -to FLASH_NCE
+set_location_assignment PIN_L22 -to MCU_UART_RX
+set_location_assignment PIN_L21 -to MCU_UART_TX
+set_location_assignment PIN_J22 -to MCU_NOT_CON -disable
+set_location_assignment PIN_K21 -to MCU_NOT_USED -disable
+set_global_assignment -name VERILOG_FILE uart.v
 set_global_assignment -name VERILOG_FILE Remote.v
 set_global_assignment -name QIP_FILE Remote.qip
 set_global_assignment -name VERILOG_FILE EEPROM.v
@@ -163,10 +164,10 @@ set_global_assignment -name VERILOG_FILE Led_flash.v
 set_global_assignment -name VERILOG_FILE MDIO.v
 set_global_assignment -name VERILOG_FILE Reconfigure.v
 set_global_assignment -name QIP_FILE C122_PLL.qip
-set_global_assignment -name VERILOG_FILE pic_control.v
 set_global_assignment -name QIP_FILE C125_PLL.qip
 set_global_assignment -name VERILOG_FILE phy_cfg.v
 set_global_assignment -name QIP_FILE ddio_in.qip
 set_global_assignment -name QIP_FILE ddio_out.qip
 set_global_assignment -name VERILOG_FILE Flash.v
+set_global_assignment -name VERILOG_FILE mcu.v
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
