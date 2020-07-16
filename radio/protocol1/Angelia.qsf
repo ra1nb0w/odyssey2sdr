@@ -28,7 +28,7 @@ set_global_assignment -name DEVICE EP4CE55F23C8
 set_global_assignment -name TOP_LEVEL_ENTITY Angelia
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "11.1 SP2.11"
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "16:25:51  JULY 31, 2012"
-set_global_assignment -name LAST_QUARTUS_VERSION "17.1.0 Lite Edition"
+set_global_assignment -name LAST_QUARTUS_VERSION "19.1.0 Standard Edition"
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
 set_global_assignment -name DEVICE_FILTER_PACKAGE FBGA
@@ -65,90 +65,6 @@ set_instance_assignment -name CLOCK_SETTINGS CLRCIN -to CLRCIN
 set_instance_assignment -name CLOCK_SETTINGS CLRCOUT -to CLRCOUT
 set_instance_assignment -name CLOCK_SETTINGS TLV2208_125Mhz -to LTC2208_125Mhz
 set_instance_assignment -name CLOCK_SETTINGS OSC_10MHz -to OSC_10MHZ
-set_global_assignment -name QIP_FILE sine_table_256.qip
-set_global_assignment -name MIF_FILE sine_256.mif
-set_global_assignment -name VERILOG_FILE mic_I2S.v
-set_global_assignment -name VERILOG_FILE audio_I2S.v
-set_global_assignment -name VERILOG_FILE Polyphase_FIR/firx2r2.v
-set_global_assignment -name VERILOG_FILE Polyphase_FIR/firx4r4.v
-set_global_assignment -name VERILOG_FILE receiver2.v
-set_global_assignment -name QIP_FILE Multiply2.qip
-set_global_assignment -name VERILOG_FILE divide2.v
-set_global_assignment -name VERILOG_FILE sine_table.v
-set_global_assignment -name MIF_FILE sine_table.mif
-set_global_assignment -name VERILOG_FILE sidetone.v
-set_global_assignment -name QIP_FILE profile_ROM.qip
-set_global_assignment -name VERILOG_FILE profile.v
-set_global_assignment -name MIF_FILE profile.mif
-set_global_assignment -name VERILOG_FILE Polyphase_FIR/firromH.v
-set_global_assignment -name VERILOG_FILE Polyphase_FIR/firram36.v
-set_global_assignment -name QIP_FILE Polyphase_FIR/firram36.qip
-set_global_assignment -name VERILOG_FILE Polyphase_FIR/firfilt.v
-set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8H.mif
-set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8G.mif
-set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8F.mif
-set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8E.mif
-set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8D.mif
-set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8C.mif
-set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8B.mif
-set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8A.mif
-set_global_assignment -name TEXT_FILE Polyphase_FIR/coefL8.txt
-set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8.mif
-set_global_assignment -name LICENSE_FILE Polyphase_FIR/coefL8.dat
-set_global_assignment -name SDC_FILE Angelia.sdc
-set_global_assignment -name VERILOG_FILE PHY_fifo.v
-set_global_assignment -name VERILOG_FILE Angelia_Tx_fifo_ctrl.v
-set_global_assignment -name VERILOG_FILE Angelia_ADC.v
-set_global_assignment -name VERILOG_FILE Angelia_clk_lrclk_gen.v
-set_global_assignment -name VERILOG_FILE Angelia.v
-set_global_assignment -name VERILOG_FILE sp_rcv_ctrl.v
-set_global_assignment -name VERILOG_FILE Attenuator.v
-set_global_assignment -name VERILOG_FILE CRC32.v
-set_global_assignment -name VERILOG_FILE ASMI.v
-set_global_assignment -name VERILOG_FILE PHY_Rx_fifo.v
-set_global_assignment -name VERILOG_FILE Led_control.v
-set_global_assignment -name VERILOG_FILE Led_flash.v
-set_global_assignment -name VERILOG_FILE MDIO.v
-set_global_assignment -name VERILOG_FILE Rx_MAC.v
-set_global_assignment -name VERILOG_FILE Tx_MAC.v
-set_global_assignment -name VERILOG_FILE ASMI_interface.v
-set_global_assignment -name VERILOG_FILE DHCP.v
-set_global_assignment -name VERILOG_FILE EEPROM.v
-set_global_assignment -name VERILOG_FILE EPCS_fifo.v
-set_global_assignment -name VERILOG_FILE PLL_clocks.v
-set_global_assignment -name VERILOG_FILE Tx_fifo.v
-set_global_assignment -name VERILOG_FILE varcic.v
-set_global_assignment -name VERILOG_FILE Apollo.v
-set_global_assignment -name VERILOG_FILE C122_PLL.v
-set_global_assignment -name VERILOG_FILE cdc_mcp.v
-set_global_assignment -name VERILOG_FILE cdc_sync.v
-set_global_assignment -name VERILOG_FILE cic.v
-set_global_assignment -name VERILOG_FILE cic_comb.v
-set_global_assignment -name VERILOG_FILE cic_integrator.v
-set_global_assignment -name VERILOG_FILE cicint.v
-set_global_assignment -name VERILOG_FILE clk_div.v
-set_global_assignment -name VERILOG_FILE cordic.v
-set_global_assignment -name VERILOG_FILE cpl_cordic.v
-set_global_assignment -name VERILOG_FILE debounce.v
-set_global_assignment -name VERILOG_FILE FIFO.v
-set_global_assignment -name VERILOG_FILE HPF_select.v
-set_global_assignment -name VERILOG_FILE LPF_select.v
-set_global_assignment -name VERILOG_FILE phase_accumulator.v
-set_global_assignment -name VERILOG_FILE pulsegen.v
-set_global_assignment -name VERILOG_FILE receiver.v
-set_global_assignment -name VERILOG_FILE SPI.v
-set_global_assignment -name VERILOG_FILE TLV320_SPI.v
-set_global_assignment -name QIP_FILE PLL_IF.qip
-set_global_assignment -name QIP_FILE PLL_clocks.qip
-set_global_assignment -name QIP_FILE SP_fifo.qip
-set_global_assignment -name QIP_FILE ASMI.qip
-set_global_assignment -name VERILOG_FILE Polyphase_FIR/CicInterpM5.v
-set_global_assignment -name VERILOG_FILE Polyphase_FIR/firram36I_1024.v
-set_global_assignment -name VERILOG_FILE Polyphase_FIR/firromI_1024.v
-set_global_assignment -name VERILOG_FILE Polyphase_FIR/FirInterp8_1024.v
-set_global_assignment -name QIP_FILE C122_PLL.qip
-set_global_assignment -name QIP_FILE C122_SHIFT_PLL.qip
-set_global_assignment -name QIP_FILE PLL_30MHz.qip
 set_global_assignment -name SEARCH_PATH Hermes_V1.4/ -tag from_archive
 set_global_assignment -name SEARCH_PATH Hermes_V1.5/ -tag from_archive
 set_global_assignment -name SEARCH_PATH Polyphase_FIR/ -tag from_archive
@@ -322,10 +238,8 @@ set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to PHY_TX[
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to PHY_TX_EN
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to _122MHz_out
 set_location_assignment PIN_T21 -to _122MHz_in
-set_global_assignment -name VERILOG_FILE iambic.v
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to INA[*]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to INA_2[*]
-set_global_assignment -name QIP_FILE C10_PLL.qip
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to DACD[*]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to PHY_TX[*]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to PHY_TX_EN
@@ -334,7 +248,6 @@ set_location_assignment PIN_AA11 -to INA_CLK
 set_location_assignment PIN_AA12 -to INA_CLK_2
 set_instance_assignment -name IO_STANDARD "1.8 V" -to INA_CLK
 set_instance_assignment -name IO_STANDARD "1.8 V" -to INA_CLK_2
-set_global_assignment -name VERILOG_FILE pic_control.v
 set_location_assignment PIN_L22 -to MCU_CLOCK
 set_location_assignment PIN_K21 -to MCU_RES
 set_location_assignment PIN_J22 -to MCU_EN
@@ -342,3 +255,88 @@ set_location_assignment PIN_L21 -to MCU_DATA
 set_global_assignment -name AUTO_RESTART_CONFIGURATION ON
 set_global_assignment -name ENABLE_INIT_DONE_OUTPUT OFF
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+set_global_assignment -name QIP_FILE sine_table_256.qip
+set_global_assignment -name MIF_FILE sine_256.mif
+set_global_assignment -name VERILOG_FILE mic_I2S.v
+set_global_assignment -name VERILOG_FILE audio_I2S.v
+set_global_assignment -name VERILOG_FILE Polyphase_FIR/firx2r2.v
+set_global_assignment -name VERILOG_FILE Polyphase_FIR/firx4r4.v
+set_global_assignment -name VERILOG_FILE receiver2.v
+set_global_assignment -name QIP_FILE Multiply2.qip
+set_global_assignment -name VERILOG_FILE divide2.v
+set_global_assignment -name VERILOG_FILE sine_table.v
+set_global_assignment -name MIF_FILE sine_table.mif
+set_global_assignment -name VERILOG_FILE sidetone.v
+set_global_assignment -name QIP_FILE profile_ROM.qip
+set_global_assignment -name VERILOG_FILE profile.v
+set_global_assignment -name MIF_FILE profile.mif
+set_global_assignment -name VERILOG_FILE Polyphase_FIR/firromH.v
+set_global_assignment -name VERILOG_FILE Polyphase_FIR/firram36.v
+set_global_assignment -name QIP_FILE Polyphase_FIR/firram36.qip
+set_global_assignment -name VERILOG_FILE Polyphase_FIR/firfilt.v
+set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8H.mif
+set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8G.mif
+set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8F.mif
+set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8E.mif
+set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8D.mif
+set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8C.mif
+set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8B.mif
+set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8A.mif
+set_global_assignment -name TEXT_FILE Polyphase_FIR/coefL8.txt
+set_global_assignment -name MIF_FILE Polyphase_FIR/coefL8.mif
+set_global_assignment -name LICENSE_FILE Polyphase_FIR/coefL8.dat
+set_global_assignment -name SDC_FILE Angelia.sdc
+set_global_assignment -name VERILOG_FILE PHY_fifo.v
+set_global_assignment -name VERILOG_FILE Angelia_Tx_fifo_ctrl.v
+set_global_assignment -name VERILOG_FILE Angelia_ADC.v
+set_global_assignment -name VERILOG_FILE Angelia_clk_lrclk_gen.v
+set_global_assignment -name VERILOG_FILE Angelia.v
+set_global_assignment -name VERILOG_FILE sp_rcv_ctrl.v
+set_global_assignment -name VERILOG_FILE Attenuator.v
+set_global_assignment -name VERILOG_FILE CRC32.v
+set_global_assignment -name VERILOG_FILE ASMI.v
+set_global_assignment -name VERILOG_FILE PHY_Rx_fifo.v
+set_global_assignment -name VERILOG_FILE Led_control.v
+set_global_assignment -name VERILOG_FILE Led_flash.v
+set_global_assignment -name VERILOG_FILE MDIO.v
+set_global_assignment -name VERILOG_FILE Rx_MAC.v
+set_global_assignment -name VERILOG_FILE Tx_MAC.v
+set_global_assignment -name VERILOG_FILE ASMI_interface.v
+set_global_assignment -name VERILOG_FILE DHCP.v
+set_global_assignment -name VERILOG_FILE EEPROM.v
+set_global_assignment -name VERILOG_FILE EPCS_fifo.v
+set_global_assignment -name VERILOG_FILE Tx_fifo.v
+set_global_assignment -name VERILOG_FILE varcic.v
+set_global_assignment -name VERILOG_FILE Apollo.v
+set_global_assignment -name VERILOG_FILE cdc_mcp.v
+set_global_assignment -name VERILOG_FILE cdc_sync.v
+set_global_assignment -name VERILOG_FILE cic.v
+set_global_assignment -name VERILOG_FILE cic_comb.v
+set_global_assignment -name VERILOG_FILE cic_integrator.v
+set_global_assignment -name VERILOG_FILE cicint.v
+set_global_assignment -name VERILOG_FILE clk_div.v
+set_global_assignment -name VERILOG_FILE cordic.v
+set_global_assignment -name VERILOG_FILE cpl_cordic.v
+set_global_assignment -name VERILOG_FILE debounce.v
+set_global_assignment -name VERILOG_FILE FIFO.v
+set_global_assignment -name VERILOG_FILE HPF_select.v
+set_global_assignment -name VERILOG_FILE LPF_select.v
+set_global_assignment -name VERILOG_FILE phase_accumulator.v
+set_global_assignment -name VERILOG_FILE pulsegen.v
+set_global_assignment -name VERILOG_FILE receiver.v
+set_global_assignment -name VERILOG_FILE SPI.v
+set_global_assignment -name VERILOG_FILE TLV320_SPI.v
+set_global_assignment -name QIP_FILE PLL_IF.qip
+set_global_assignment -name QIP_FILE PLL_clocks.qip
+set_global_assignment -name QIP_FILE SP_fifo.qip
+set_global_assignment -name QIP_FILE ASMI.qip
+set_global_assignment -name VERILOG_FILE Polyphase_FIR/CicInterpM5.v
+set_global_assignment -name VERILOG_FILE Polyphase_FIR/firram36I_1024.v
+set_global_assignment -name VERILOG_FILE Polyphase_FIR/firromI_1024.v
+set_global_assignment -name VERILOG_FILE Polyphase_FIR/FirInterp8_1024.v
+set_global_assignment -name QIP_FILE C122_PLL.qip
+set_global_assignment -name QIP_FILE C122_SHIFT_PLL.qip
+set_global_assignment -name QIP_FILE PLL_30MHz.qip
+set_global_assignment -name VERILOG_FILE iambic.v
+set_global_assignment -name QIP_FILE C10_PLL.qip
+set_global_assignment -name VERILOG_FILE pic_control.v
