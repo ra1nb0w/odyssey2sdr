@@ -449,12 +449,10 @@ module Angelia(
   */
   
   // MCU connection
-  inout MCU_RES,
-  inout MCU_DATA,
-  inout MCU_CLOCK,
-  inout MCU_EN,
+  input MCU_UART_RX,
+  output MCU_UART_TX,
   
-    //debug led's 
+  //debug led's
   output led1,
   output led2,
   output led3,
@@ -474,9 +472,6 @@ assign _122MHz_out = INA_CLK;
 wire RAND;            			//high turns random on
 wire DITH;            			//high turns LTC2208 dither on 
 
-
-
-pic_control #(fw_version) pic_cntrl (osc_80khz, MCU_RES, MCU_DATA, MCU_CLOCK, MCU_EN, FPGA_PTT);
  
 wire USEROUT4, USEROUT5, USEROUT6;
 assign USEROUT0 = IF_OC[0];					
@@ -502,7 +497,13 @@ localparam TX_FIFO_SZ  = 1024; 			// 16 by 1024 deep TX FIFO
 localparam SP_FIFO_SZ  = 16384; 			// 16 by 16,384 deep SP FIFO
 //
 
-parameter [63:0] fw_version = "1.11 AOP";
+parameter [63:0] fw_version = "1.12 AOP";
+
+
+// module to comunicate with MCU
+// used only to send the stage change (radio or ptt)
+mcu #(.fw_version(fw_version)) mcu_uart (.clk(INA_CLK),
+        .mcu_uart_rx(MCU_UART_RX), .mcu_uart_tx(MCU_UART_TX), .ptt(FPGA_PTT));
 
 
 //--------------------------------------------------------------
