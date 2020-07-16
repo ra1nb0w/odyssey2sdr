@@ -437,11 +437,22 @@ bool
 test_device(bool print)
 {
   int r;
+  int i=3;
 
-  memset(msg, 0, sizeof(msg));
-  memcpy(msg, bootloader_cmds[1], sizeof(bootloader_cmds[1]));
+  // sometimes you need two retry to get the socket
+  // seems strange and this is only workaround
+  while (i>0)
+    {
+      memset(msg, 0, sizeof(msg));
+      memcpy(msg, bootloader_cmds[1], sizeof(bootloader_cmds[1]));
 
-  r = send_msg(true, 1);
+      r = send_msg(true, 1);
+
+      if (r)
+        break;
+
+      i--;
+    }
 
   if(!r)
     {
@@ -1148,10 +1159,11 @@ main(int argc, char **argv)
   /* Set the new boot slot */
   if (argp.boot_slot)
     {
-      if (odyssey2.firmware_slot == 0) {
-        fprintf(stderr,"You can't boot slot 0\n");
-        ret=1;
-      }
+      if (odyssey2.firmware_slot == 0)
+        {
+          fprintf(stderr,"You can't boot slot 0\n");
+          ret=1;
+        }
       else
         {
           check_device();

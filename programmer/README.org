@@ -1,3 +1,5 @@
+#+startup: showeverything
+
 * Odyssey 2 Bootloader Programmer
 
 This is a fully C89 POSIX compliant terminal programmer for the
