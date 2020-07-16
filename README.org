@@ -1,4 +1,5 @@
-#+startup: showeverything
+#+LANGUAGE:  en
+#+STARTUP: showeverything
 
 * Odyssey 2 SDR
 
@@ -13,30 +14,65 @@ following:
 - I would a fully open source radio with the source code of every
   components;
 - a future proof code that will works for the next decade;
-- learn PIC architecture and FPGA ecosystem (with Verilog language in
+- comprehensive radio information;
+- learn PIC architecture and FPGA ecosystem (with Verilog HDL in
   this case);
 - fully remote controllable radio without any external hardware.
 
 ** Features
 
+In this section I expose only software changes that I made to the
+respect of N7DDC software; you can find these characteristics on
+[[./pcb/docs][pcb/docs]] folder.
+
+- the programmer is written in C89 and therefore will be available for
+  next decades. The basic commands are fully functional with the N7DDC
+  bootloader.
+- MCU is fully open source and documented
+- more agile protocol between MCU and FPGA
+- fully remote control of the bootloader (also the entering mode)
+- display visualizes each stage and all configuration
+
+For more information you can read each sub-system readme.
+
 ** Architecture
+
+The following diagram is an high overview of the radio main components
+and how they communicate and for which functionalities they are
+responsible. For a lower level see [[./.img/ody2_block_diagram.jpg][N7DDC diagram]].
+
+#+begin_html
+<img src="./.img/architecture.png" alt="Odyssey 2 Architecture" width="800">
+#+end_html
+
+Full information about MCU functionalities and FPGA UART protocol can be
+found in the [[./mcu/README.org][mcu]] readme.
+For the FPGA you can find the bootloader specifications in [[./bootloader/README.org][bootloader]]
+readme and the radio details in the [[./radio/README.org][radio]] readme.
 
 ** Folders
 
 - [[./bootloader][bootloader]] : contains the verilog code for the bootloader and can be
   programmed with the ~programmer~;
-- [[./docs][docs]] : contains a few documents published by David Fainitski N7DDC
-  about the hardware board and his software;
 - [[./mcu][mcu]] : the microcontroller firmware that controller the power of the
   radio and the display;
 - [[./pcb][pcb]] : contains the PCB layout of Odyssey 2 version 1.2 and related
   BOM/geber;
+- [[./pcb/docs][pcb/docs]] : contains a few documents published by David Fainitski N7DDC
+  about the hardware board and the software;
 - [[./programmer][programmer]] : the bootloader programmer that permits to control and
   configure from remote the radio.
+- [[./radio][radio]] : contains the readme for the radio firmware since many
+  functionalities are shared between protocol 1 and protocol 2.
+- [[./radio/protocol1][radio/protocol1]] : the Angelia radio firmware with protocol
+  version 1.
+- [[./radio/protocol2][radio/protocol2]] : the Angelia radio firmware with protocol
+  version 2.
 
 ** License
 
 Each project has its license since the FPGA code was derived from
-[[https://openhpsdr.org][openHPSDR]]. I tried to respect as much as possible each author citing
-his work on each source file. If you find something wrong or not correctly
-attributed feel free to open a pull request. thank you!
+[[https://openhpsdr.org][openHPSDR]]. It is generally GPL version 2 or 3. I tried to respect as
+much as possible each author citing his work on each source file. If
+you find something wrong or not correctly attributed feel free to open
+a pull request. Thank you for sharing with the community your code!
