@@ -439,8 +439,8 @@ test_device(bool print)
   int r;
   int i=3;
 
-  // sometimes you need two retry to get the socket
-  // seems strange and this is only workaround
+  /* sometimes you need two retry to get the socket */
+  /* seems strange and this is only workaround      */
   while (i>0)
     {
       memset(msg, 0, sizeof(msg));
@@ -622,7 +622,7 @@ write_firmware()
   if(!erase_slot(false))
     return(false);
 
-  if((fp=fopen(firmware_file, "r")) == NULL)
+  if((fp=fopen(firmware_file, "rb")) == NULL)
     {
       perror("fopen");
       exit(EXIT_FAILURE);
@@ -1112,8 +1112,19 @@ main(int argc, char **argv)
   /* Program the device */
   if (argp.program)
     {
+      unsigned short old_slot = 1;
+
       check_device();
       printf("We are writing the firmware %s to slot %d. Please wait..\n", firmware_file, odyssey2.firmware_slot);
+
+      /* we need to restore the slot if we are writing the bootloader */
+      if (odyssey2.firmware_slot == 0)
+        {
+          get_status(false);
+          old_slot = odyssey2.firmware_slot;
+          odyssey2.firmware_slot = 0;
+        }
+
       if(write_firmware())
         {
           printf("DONE\n");
@@ -1123,6 +1134,14 @@ main(int argc, char **argv)
         {
           fprintf(stderr,"An error occurred\n");
           ret=1;
+        }
+
+      /* restore the slot */
+      if (odyssey2.firmware_slot == 0)
+        {
+
+          odyssey2.firmware_slot = old_slot;
+          set_boot_slot(false);
         }
     }
 
