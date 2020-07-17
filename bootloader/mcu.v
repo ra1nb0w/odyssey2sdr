@@ -203,7 +203,9 @@ begin
 				ip_changed_old <= ip_changed;
 				state_tx <= STATE_SEND_IP;
 			end
-			else if (status_changed_ext != status_changed_ext_old)
+			// check if we are programming the bootloader
+			// therefore we don't need to send the status change
+			else if ((status_changed_ext != status_changed_ext_old) & (slot_ext != 2'b0))
 			begin
 				state_tx <= STATE_SEND_STATUS;
 			end
