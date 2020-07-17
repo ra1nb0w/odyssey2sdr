@@ -325,7 +325,7 @@ begin
 			begin
 			   if(EEPROM_MAC != 48'hff_ff_ff_ff_ff_ff & EEPROM_MAC != 48'h00_00_00_00_00_00)
 					local_MAC <= EEPROM_MAC;
-				if(EEPROM_IP != 32'hff_ff_ff_ff & EEPROM_IP != 32'h00_00_00)
+				if(EEPROM_IP != 32'hff_ff_ff_ff & EEPROM_IP != 32'h00_00_00_00)
 					local_IP <= EEPROM_IP;
 				net_start_up <= net_start_up + 1'd1;
 				ip_ready = 1;
