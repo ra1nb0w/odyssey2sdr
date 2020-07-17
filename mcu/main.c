@@ -63,6 +63,10 @@
  * - power up/down the main board with button and MIC FST
  * - display the status/IP/slot to the display
  * - bi-directional communication with the FPGA
+ * - store all configurations except IP and MAC on local EEPROM
+ *   this was done for two reasons:
+ *     - we need to save locally the auto power on value
+ *     - to avoid modification/rewriting of the FPGA EEPROM code
  *
  *
  * During BOOT:
@@ -100,13 +104,15 @@ uint8_t btn_count_time = 0;
 #define TEXT_BOOTLOADER      "BL: "
 #define TEXT_MCU_VERSION     "MCU: "
 #define TEXT_BOOTING         "BOOTING"
-#define TEXT_IP_ADDRESS      "IP:"
+//#define TEXT_IP_ADDRESS      "IP:"
+#define TEXT_IP_ADDRESS      " "
 #define TEXT_TRANSMITTING    "ON AIR"
 #define TEXT_BOOT_SLOT       "SLOT: "
 #define TEXT_PA              "PA: "
 #define TEXT_AA              "AA: "
 #define TEXT_ENABLED         "ON"
 #define TEXT_DISABLED        "OFF"
+#define TEXT_SWR             "SWR: "
 
 // after 60 second the display will be off
 #define STANDBY_TIMEOUT 60000
@@ -232,11 +238,22 @@ write_boot_amplifiers(void) {
 }
 
 /**
+ * @brief print the swr value during PTT
+ */
+void
+write_swr(void) {
+  ssd1306_goto(0, 3);
+  ssd1306_puts(TEXT_SWR);
+  ssd1306_puts(fpga_swr);
+}
+
+/**
  * @brief print the IP in the bootloader screen
  */
 void
 write_boot_ip(void) {
   ssd1306_goto(0, 1);
+  // not enough space to print this and the full IPv4
   ssd1306_puts(TEXT_IP_ADDRESS);
   int i;
   // print the IP address with dots (note: not IPv6 compliant)
@@ -374,7 +391,6 @@ main(void) {
       }
 
       if (fpga_value_changed) {
-
         // reset the value
         fpga_value_changed = false;
 
@@ -385,6 +401,13 @@ main(void) {
         if (screen_status == BOOTLOADER) {
           screen_redraw = 1;
         }
+      }
+
+      if (fpga_swr_changed) {
+        // reset the value
+        fpga_swr_changed = false;
+        // print on screen the SWR value
+        write_swr();
       }
 
       // now we need to check if the FPGA changed the stage
@@ -441,57 +464,57 @@ main(void) {
             prev_screen_status = screen_status;
             screen_status = PA_MSG;
           }
-        }// the button is not pressed and check if was pressed
-        else if (mic_down_count > 0) {
-          // if a short press decrement the boot slot value; available only at bootloader
-          if ((mic_down_count < BUTTON_LONG_PRESS / FUNCTIONAL_DELAY) &&
-              (mic_down_count >= BUTTON_SHORT_PRESS / FUNCTIONAL_DELAY) &&
-              screen_status == BOOTLOADER) {
-            if (fpga_boot_slot > BOOT_SLOT_MIN) {
-              // decrement the slot
-              fpga_boot_slot--;
-              fpga_update_status();
-              // update the screen value
-              write_boot_slot();
-            }
-          }
-          // reset the counter
-          mic_down_count = 0;
-        }
+}// the button is not pressed and check if was pressed
+              else if (mic_down_count > 0) {
+                // if a short press decrement the boot slot value; available only at bootloader
+                if ((mic_down_count < BUTTON_LONG_PRESS / FUNCTIONAL_DELAY) &&
+                    (mic_down_count >= BUTTON_SHORT_PRESS / FUNCTIONAL_DELAY) &&
+                    screen_status == BOOTLOADER) {
+                  if (fpga_boot_slot > BOOT_SLOT_MIN) {
+                    // decrement the slot
+                    fpga_boot_slot--;
+                    fpga_update_status();
+                    // update the screen value
+                    write_boot_slot();
+                  }
+                }
+                // reset the counter
+                mic_down_count = 0;
+              }
 
-          // check if we are pressing the MIC up button
-          if (!IO_RA7_MIC_UP_GetValue()) {
-            mic_up_count++;
-            // enable or disable the audio amplifier with a long press of MIC up
-            if ((mic_up_count >= BUTTON_LONG_PRESS / FUNCTIONAL_DELAY) &&
-                screen_status != AA_MSG) {
-              // update the fpga status
-              fbi(fpga_status, 0);
-              fpga_update_status();
-              // enable/disable the audio amplifier
-              set_audio_amplifier();
-              prev_screen_status = screen_status;
-              screen_status = AA_MSG;
-            }
-          }// the button is not pressed and check if was pressed
-          else if (mic_up_count > 0) {
-            // if a short press decrement the boot slot value
-            if ((mic_up_count < BUTTON_LONG_PRESS / FUNCTIONAL_DELAY) &&
-                (mic_up_count >= BUTTON_SHORT_PRESS / FUNCTIONAL_DELAY) &&
-                screen_status == BOOTLOADER) {
-              if (fpga_boot_slot < BOOT_SLOT_MAX) {
-                // increment the slot
-                fpga_boot_slot++;
-                fpga_update_status();
-                // update the screen value
-                write_boot_slot();
+              // check if we are pressing the MIC up button
+              if (!IO_RA7_MIC_UP_GetValue()) {
+                mic_up_count++;
+                // enable or disable the audio amplifier with a long press of MIC up
+                if ((mic_up_count >= BUTTON_LONG_PRESS / FUNCTIONAL_DELAY) &&
+                    screen_status != AA_MSG) {
+                  // update the fpga status
+                  fbi(fpga_status, 0);
+                  fpga_update_status();
+                  // enable/disable the audio amplifier
+                  set_audio_amplifier();
+                  prev_screen_status = screen_status;
+                  screen_status = AA_MSG;
+                }
+              }// the button is not pressed and check if was pressed
+              else if (mic_up_count > 0) {
+                // if a short press decrement the boot slot value
+                if ((mic_up_count < BUTTON_LONG_PRESS / FUNCTIONAL_DELAY) &&
+                    (mic_up_count >= BUTTON_SHORT_PRESS / FUNCTIONAL_DELAY) &&
+                    screen_status == BOOTLOADER) {
+                  if (fpga_boot_slot < BOOT_SLOT_MAX) {
+                    // increment the slot
+                    fpga_boot_slot++;
+                    fpga_update_status();
+                    // update the screen value
+                    write_boot_slot();
+                  }
+                }
+                // reset the counter
+                mic_up_count = 0;
               }
             }
-            // reset the counter
-            mic_up_count = 0;
-          }
-        }
-      }
+    }
 
       // check if the Power ON or MIC FST buttons are pressed
       // unfortunately, we can't move to ISR since we need to check RA3

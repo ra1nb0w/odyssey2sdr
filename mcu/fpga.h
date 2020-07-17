@@ -42,7 +42,7 @@ extern "C" {
   uint8_t fpga_version_pos = 0;
 
   // slot position
-  volatile uint8_t fpga_boot_slot = 1;
+  uint8_t fpga_boot_slot = 1;
 
   /* status bit mask
    *
@@ -57,16 +57,16 @@ extern "C" {
    * |   1 | power amplifier enabled (0=OFF 1=ON) |
    * |   0 | audio amplifier enabled (0=OFF 1=ON) |
    */
-  volatile uint8_t fpga_status = 0;
+  uint8_t fpga_status = 0;
 
   // the fpga request the status
-  volatile bool fpga_request_status = false;
+  bool fpga_request_status = false;
 
   // the fpga requested the auto power on
-  volatile bool fpga_request_poweron = false;
+  bool fpga_request_poweron = false;
 
   // trigger changes on main when something is received
-  volatile bool fpga_value_changed = false;
+  bool fpga_value_changed = false;
 
   // structure that define the stage
   // in which the FPGA is
@@ -85,6 +85,13 @@ extern "C" {
 
   // alert main that we have a new stage
   bool fpga_stage_changed = false;
+
+  // save the TX SWR value
+  // since we receive two byte we use char and
+  // during printing we convert to the right value
+#define FPGA_SWR_LENGTH 2
+  char fpga_swr[FPGA_SWR_LENGTH] = {0};
+  bool fpga_swr_changed = false;
 
   // variable of the command that we
   // are waiting to acknowledge
@@ -128,6 +135,9 @@ extern "C" {
 
   // auto power on command
 #define FPGA_CMD_POWERON 0x60
+
+  // swr value
+#define FPGA_CMD_SWR 0x70
 
   // temporary structure used during TX
   char fpga_tx_data = 0x00;

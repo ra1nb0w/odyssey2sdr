@@ -114,8 +114,10 @@ fpga_deinit(void)
   fpga_stage = 0;
   fpga_version[0] = 0;
   fpga_ip_address[0] = 0;
+  fpga_swr[0] = 0;
   fpga_stage_changed = false;
   fpga_value_changed = false;
+  fpga_swr_changed = false;
   fpga_request_status = false;
   fpga_request_poweron = false;
 }
@@ -297,10 +299,20 @@ fpga_check_command(void)
                 fpga_version[fpga_version_pos] = fpga_rx_queue[fpga_rx_read_pos];
                 fpga_version_pos++;
               }
+              if (fpga_rx_cmd_next_bytes == 1)
+                fpga_value_changed = true;
               break;
 
             case FPGA_CMD_IP:
               fpga_ip_address[FPGA_IP_ADDRESS_LENGTH-fpga_rx_cmd_next_bytes] = fpga_rx_queue[fpga_rx_read_pos];
+              if (fpga_rx_cmd_next_bytes == 1)
+                fpga_value_changed = true;
+              break;
+
+            case FPGA_CMD_SWR:
+              fpga_swr[FPGA_SWR_LENGTH-fpga_rx_cmd_next_bytes] = fpga_rx_queue[fpga_rx_read_pos];
+              if (fpga_rx_cmd_next_bytes == 1)
+                fpga_swr_changed = true;
               break;
 
               // if the bytes are not correlated to a command
@@ -310,10 +322,6 @@ fpga_check_command(void)
               break;
             }
           fpga_rx_cmd_next_bytes--;
-
-          // if it is the last we can alert the main that we have changed the value
-          if (fpga_rx_cmd_next_bytes == 0)
-            fpga_value_changed = true;
         }
       else {
         // check the command
@@ -408,7 +416,6 @@ fpga_check_command(void)
 
             // status
           case 5:
-
             // we have a request therefore send the status
             // is blocking but fast enough to not care
             if (fpga_rx_queue[fpga_rx_read_pos] == FPGA_CMD_STATUS)
@@ -442,7 +449,6 @@ fpga_check_command(void)
 
             // auto power on
           case 6:
-
             if (fpga_rx_queue[fpga_rx_read_pos] == FPGA_CMD_POWERON)
               {
                 fpga_request_poweron = true;
@@ -457,6 +463,13 @@ fpga_check_command(void)
             // write the new value to eeprom
             fpga_write_eeprom();
             break;
+
+          case 7:
+            // clear the array
+            cla(fpga_swr, sizeof(fpga_swr));
+            // configure to receive the next bytes
+            fpga_rx_cmd_next_bytes = FPGA_SWR_LENGTH;
+            fpga_rx_cmd_wait = FPGA_CMD_SWR;
 
             // if the command is invalid don't do anything
           default:

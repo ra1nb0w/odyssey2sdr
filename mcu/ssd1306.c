@@ -324,8 +324,6 @@ ssd1306_putsn(signed int c) {
   ssd1306_putun(c);
 }
 
-// draw a spot
-
 /**
  * @brief draw a pixel in the display
  *
