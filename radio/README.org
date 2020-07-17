@@ -1,14 +1,87 @@
-* openHPSDR protocol 2 radio firmware for Odyssey 2
+#+startup: showeverything
+
+* openHPSDR radio firmware
 
 ** Changes from N7DDC
 
-** Functionalities
+- the mcu communicates with UART
+- SWR is sent to MCU
 
-** TODO
+** TO DO
+
+- re-establish DHCP protocol when IP address is 0.0.0.0
+- implement IPv6 support
+- support auto-sensing on protocol 1 (connect to gigabit switch)
+- reboot the radio from remote
+
+** Protocol 1 (protocol1 folder)
+
+Use the Angelia version as base with MCU UART channel and the same
+functionalities described above. The main limitation is that it
+requires a 100Mbit/s Ethernet switch or you need to force that speed
+if you have a manged switch.
+
+The firmware is supported by the following software:
+
+- [[https://github.com/g0orx/linhpsdr][linHPSDR]]
+- [[https://github.com/g0orx/pihpsdr][piHPSDR]]
+- [[https://github.com/TAPR/OpenHPSDR-PowerSDR][OpenHPSDR PowerSDR]]
+- [[http://james.ahlstrom.name/quisk/][Quisk]]
+
+** Protocol 2 (protocol2 folder)
+
+Full features Angelia firmware with MCU UART channel and the same
+functionalities described above. It requires gigabit Ethernet switch
+or connection.
+
+The firmware is supported by the following software:
+
+- [[https://github.com/g0orx/linhpsdr][linHPSDR]]
+- [[https://github.com/g0orx/pihpsdr][piHPSDR]]
+- [[https://github.com/TAPR/OpenHPSDR-Thetis][OpenHPSDR Thetis]]
+- [[https://www.sdr-radio.com][SDR Console]]
+
+** EXT.IO
+
+This table describe the functionalities available from the /Ext.IO/
+D-Sub 15 pins port. The voltage range is GND to 3.3V.
+
+|-----+------------+-------------------------------------------------------------------------|
+| pin | short name | functionality                                                           |
+|-----+------------+-------------------------------------------------------------------------|
+|   1 | ADC1       | input for measurement of the output power of the transmitter            |
+|   2 | ADC2       | input for measurement of reflected wave for calculating SWR             |
+|   3 | PTT out    | amplifier control output, logic level 3.3 V, TX mode high level         |
+|   4 | TUNE       | not in use at the moment                                                |
+|   5 | UO_0       | User Output 0 (programmable from software)                              |
+|   6 | UO_1       | User Output 1 (programmable from software)                              |
+|   7 | UO_2       | User Output 2 (programmable from software)                              |
+|   8 | UO_3       | User Output 3 (programmable from software)                              |
+|   9 | PTT in     | activate the PTT. Pull-up, to activate close to GND. Use optocoupler    |
+|  10 | VNA        | used for VNA measurement                                                |
+|  11 | ANT        | high level provides a signal to turn on the relay of the second antenna |
+|  12 | DATA       | SPI data                                                                |
+|  13 | CLOCK      | SPI clock                                                               |
+|  14 | EN         | SPI enable                                                              |
+|  15 | GND        | radio ground                                                            |
+|-----+------------+-------------------------------------------------------------------------|
+
+To control external filters you can use either User Output pins or SPI
+channel with a similar ALEX board. For more information read [[../pcb/docs/Overview of the first firmware for the Odyssey-2 transceiver. — Odyssey.pdf][Overview
+of the first firmware]] by N7DDC.
 
 ** Build
 
+The procedure to build the firmware is the same as the bootloader
+therefore for a comprehensive information read the [[../bootloader/README.org][bootloader]] readme.
+
 ** Flash
+
+To flash the radio firmware into the device you the the /rbf/ file and
+the programmer. Put the radio in Bootloader mode, either by connecting
+both iambic keys to GND or using the programmer, then use the
+programmer to write the firmware to slot N. The programmed slot is
+automatically selected as the next slot to boot.
 
 ** License
 
