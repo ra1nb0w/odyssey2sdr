@@ -1,3 +1,5 @@
+#+startup: showeverything
+
 * Bootloader for Odyssey 2
 
 ** Changes from N7DDC
@@ -7,19 +9,31 @@ Fainitski N7DDC:
 
 - replaced various ~if()~ with ~%~
 - comments everywhere
-- configuration changeable from hardware keys or from programmer
+- configuration changeable from hardware keys or from remote programmer
 - new commands: STS, EAA, EPA, STP, SLC, PWN, BOT
 - asynchronous communication with MCU
 - fully remote controllable (also bootloader access)
 
-** Functionalities
-
-** TODO
+** TO DO
 
 - IPv4 subnet
 - IPv6 support
 - CRC32 on firmware update
-- re-implement DHCP support
+- re-implement DHCP support (with address 0.0.0.0)
+
+** How to access the bootloader
+
+You have two ways to access the bootloader:
+
+- connect both iambic keys to GND; pay attention that when you release
+  the connection the bootloader starts the radio firmware (in less
+  then ten seconds);
+- use /programmer -b/ option that stops the device into bootloader
+  mode. Then you can manipulate the configurations and at the end
+  start the radio firmware or reset the device.
+
+You can verify the parameters from the display or the programmer and
+when you modify it both ways are synchronized.
 
 ** Protocol with the remote programmer
 
@@ -86,6 +100,7 @@ Quartus documentation and try to understand what are you doing.
 ** Flash
 
 You have two choice:
+
 - use the /rbl/ file and write the firmware to slot 0 with the
   programmer (useful only when you have a fully functional radio).
 - use the Altera USB Blaster.
