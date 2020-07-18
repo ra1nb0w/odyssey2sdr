@@ -579,7 +579,8 @@ main(void) {
           ssd1306_puts_center(TEXT_SDR, (SSD1306_HEIGHT / 16) - 1);
           break;
         case TRANSMITTING:
-          ssd1306_puts_center(TEXT_TRANSMITTING, (SSD1306_HEIGHT / 16) - 1);
+          ssd1306_puts_center(TEXT_TRANSMITTING, 1);
+          ssd1306_puts_center(fpga_version, 2);
           break;
         case PA_MSG:
           ssd1306_puts_center(bit_is_set(fpga_status, 1) ?
