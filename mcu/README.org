@@ -24,6 +24,11 @@ esitate to open an issue or a pull request. thank you.
 - code comments everywhere
 - free available PIC compiler (maybe move to SDCC)
 
+** Notes
+
+- when you flash this firmware over N7DDC you need to re-calibrate the
+  PD85004s resistor since the RA2 voltage is different.
+
 ** Functionalities
 
 |--------------------+--------------------------------------------------------------------------------------------------------------------------+------------------------------|

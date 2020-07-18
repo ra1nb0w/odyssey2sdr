@@ -50,14 +50,37 @@ mcu_init(void) {
   TRISA = 0xBB;
   TRISB = 0xFB;
   // ANSEL* analog select
-  ANSELB = 0x00;
   ANSELA = 0x00;
+  ANSELB = 0x00;
   // WPU* weak pull-up
-  WPUB = 0x00;
   WPUA = 0x00;
+  WPUB = 0x00;
   // alternate pin function control
   APFCON0 = 0x00;
   APFCON1 = 0x00;
+
+  // Fixed voltage reference (FVR)
+  // FVR output voltage for DAC = 4.096V
+  FVRCONbits.CDAFVR = 0b11;
+  // FVR enable
+  FVRCONbits.FVREN = 1;
+
+  // use RA2 (1W power amplifier power on) as ADC with
+  // the voltage reference as backend to have a stable
+  // voltage to drive the ST PD85004
+  TRISAbits.TRISA2 = 1;
+  ANSELAbits.ANSA2 = 1;
+  DACCON1 = 0x00;
+  // use FVR as source voltage for DAC
+  DACCON0bits.DACPSS=0b10;
+  // enable LPS
+  DACCON0bits.DACLPS=0;
+  // enable DAC to output on RA2
+  DACCON0bits.DACOE=1;
+  // DAC negative voltage is Vss
+  DACCON0bits.DACNSS = 0;
+  // turn on the DAC
+  DACCON0bits.DACEN=0;
 
   // enable weak pull-ups globally
   OPTION_REGbits.nWPUEN = 0;

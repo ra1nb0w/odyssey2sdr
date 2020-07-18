@@ -159,8 +159,10 @@ extern "C" {
   uint8_t fpga_rx_queue_rewrite = 0;
 
   // address used to store in eeprom the configuration
-#define FPGA_EEPROM_STATUS_ADDR 0x00
-#define FPGA_EEPROM_SLOT_ADDR 0x01
+#define FPGA_EEPROM_SENTINEL_ADDR 0xA0
+#define FPGA_EEPROM_SENTINEL_VALUE 0xAF
+#define FPGA_EEPROM_STATUS_ADDR 0xA1
+#define FPGA_EEPROM_SLOT_ADDR 0xA2
 
   void fpga_init(void);
   void fpga_deinit(void);

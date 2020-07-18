@@ -273,33 +273,19 @@ set_audio_amplifier(void) {
 }
 
 /**
- * @brief enable or disable the 1W RF amplifier based on the status value
- *
- * generally it is used during PTT status since we don't like that the RF
- * amplifier is always enabled
- *
- * @param c 1 if we are entering in the PTT otherwise 0
- */
-void
-set_rf_amplifier(bool c) {
-  if(c && bit_is_set(fpga_status, 1))
-    IO_RA2_1W_PA_SetHigh();
-  else
-    IO_RA2_1W_PA_SetLow();
-}
-
-/**
  * @brief initialize the FPGA UART and power on the board
  */
 void
 start_fpga(void) {
-  IO_RB2_BOARD_PWR_SetHigh();
 
   // read configuration from eeprom
   fpga_read_eeprom();
 
   // initialize the audio amplifier value
   set_audio_amplifier();
+
+  // power on the radio board
+  IO_RB2_BOARD_PWR_SetHigh();
 
   // initialize the communication with FPGA
   fpga_init();
@@ -320,11 +306,14 @@ start_fpga(void) {
  */
 void
 stop_fpga(void) {
+  // power off the radio board
+  IO_RB2_BOARD_PWR_SetLow();
+
   // write configuration to eeprom before
   // clear local values
   fpga_write_eeprom();
   fpga_deinit();
-  IO_RB2_BOARD_PWR_SetLow();
+
   // move the screen to STANDBY
   prev_screen_status = screen_status;
   screen_status = STANDBY;
@@ -432,14 +421,10 @@ main(void) {
             break;
 
           case FPGA_RADIO:
-            // always power of the RF amplifier
-            set_rf_amplifier(false);
             screen_status = SDR;
             break;
 
           case FPGA_PTT:
-            // check if we need to unable the RF amplifier
-            set_rf_amplifier(true);
             screen_status = TRANSMITTING;
             break;
 
@@ -576,11 +561,12 @@ main(void) {
           write_boot_amplifiers();
           break;
         case SDR:
-          ssd1306_puts_center(TEXT_SDR, (SSD1306_HEIGHT / 16) - 1);
+          ssd1306_puts_center(TEXT_SDR, 1);
+          ssd1306_puts_center(fpga_version, 2);
           break;
         case TRANSMITTING:
-          ssd1306_puts_center(TEXT_TRANSMITTING, 1);
-          ssd1306_puts_center(fpga_version, 2);
+          // maybe we can push a dynamic logo ;-)
+          ssd1306_puts_center(TEXT_TRANSMITTING, (SSD1306_HEIGHT / 16) - 1);
           break;
         case PA_MSG:
           ssd1306_puts_center(bit_is_set(fpga_status, 1) ?

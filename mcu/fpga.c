@@ -94,6 +94,13 @@ fpga_init(void) {
   PIE3bits.TMR6IE = 1;
   // Disable the Timer 6 by default
   T6CONbits.TMR6ON = 0;
+
+  // disable the power amplifier line RA2
+  DACCON0bits.DACLPS = 0;
+  DACCON1bits.DACR = 0x00;
+
+  // disable the audio amplifier
+  IO_RA6_AUDIO_AMPL_LAT = 1;
 }
 
 /**
@@ -120,6 +127,13 @@ fpga_deinit(void)
   fpga_swr_changed = false;
   fpga_request_status = false;
   fpga_request_poweron = false;
+
+  // disable the power amplifier line RA2
+  DACCON0bits.DACLPS = 0;
+  DACCON1bits.DACR = 0x00;
+
+  // disable the audio amplifier
+  IO_RA6_AUDIO_AMPL_LAT = 1;
 }
 
 /**
@@ -364,11 +378,19 @@ fpga_check_command(void)
 
                 // radio
               case 3:
+                // disable the power amplifier line RA2
+                DACCON0bits.DACLPS = 0;
+                DACCON1bits.DACR = 0x00;
                 fpga_stage = FPGA_RADIO;
                 break;
 
                 // PTT
               case 4:
+                // check if we need to enable RA2 1W power amplifier
+                if (bit_is_set(fpga_status, 1)) {
+                  DACCON0bits.DACLPS = 1;
+                  DACCON1bits.DACR = 0x1F;
+                }
                 fpga_stage = FPGA_PTT;
                 break;
 
@@ -493,7 +515,7 @@ void
 fpga_send_status(void)
 {
   // send the status byte
-  uart_tx_byte(FPGA_CMD_STATUS | fpga_boot_slot << 2 | rbi(fpga_status,1) << 1 | rbi(fpga_status,0));
+  uart_tx_byte(FPGA_CMD_STATUS | (fpga_boot_slot << 2) | (fpga_status & 0x03));
 }
 
 /**
@@ -535,6 +557,19 @@ fpga_read_eeprom(void)
 {
   // wait for end-of-write before EEPROM_READ
   while(WR) {}
+
+  // check the sentinel if it is different
+  // if yes we need to initialize the values
+  // we use this method since __EEPROM_DATA()/__eeprom
+  // and @0xF0 didn't work well for us
+  if (EEPROM_READ(FPGA_EEPROM_SENTINEL_ADDR) != FPGA_EEPROM_SENTINEL_VALUE) {
+    EEPROM_WRITE(FPGA_EEPROM_SENTINEL_ADDR, FPGA_EEPROM_SENTINEL_VALUE);
+    // everything disabled
+    EEPROM_WRITE(FPGA_EEPROM_STATUS_ADDR, 0x00);
+    // first slot
+    EEPROM_WRITE(FPGA_EEPROM_SLOT_ADDR, 0x01);
+  }
+
   fpga_status = EEPROM_READ(FPGA_EEPROM_STATUS_ADDR);
   fpga_boot_slot = EEPROM_READ(FPGA_EEPROM_SLOT_ADDR);
 
