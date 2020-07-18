@@ -16,7 +16,11 @@ protocol but adds a few more commands.
   the port and press keys. In this way it is fully remote usable.
 - get the radio status with versions and parameters
 - enter into the bootloader from remote
-- for many other options see the next section
+- for other options see the next section
+
+** TO DO
+
+- local web interface?
 
 ** Help screen
 

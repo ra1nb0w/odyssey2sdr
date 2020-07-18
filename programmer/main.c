@@ -279,7 +279,7 @@ set_timeout(unsigned int timeout_sec, unsigned int timeout_usec)
 {
 #if defined(WIN32) || defined(__WIN32__)
   /* in windows the value is in milliseconds */
-  int timeout = timeout_sec*1000 + timeout_usec;
+  int timeout = timeout_sec*1000 + timeout_usec/1000;
 #else
   struct timeval timeout;
   /* declare timeout value for the socket */
@@ -887,7 +887,8 @@ start_radio_firmware(bool print)
 {
   int r;
 
-  get_status(false);
+  if(!get_status(false))
+    return(false);
 
   memset(msg, 0, sizeof(msg));
   memcpy(msg, bootloader_cmds[11], sizeof(bootloader_cmds[11]));
@@ -1120,7 +1121,10 @@ main(int argc, char **argv)
       /* we need to restore the slot if we are writing the bootloader */
       if (odyssey2.firmware_slot == 0)
         {
-          get_status(false);
+          if(!get_status(false)){
+            ret=1;
+            goto EXIT;
+          }
           old_slot = odyssey2.firmware_slot;
           odyssey2.firmware_slot = 0;
         }
@@ -1202,6 +1206,7 @@ main(int argc, char **argv)
         ret=1;
     }
 
+ EXIT:
   close_socket();
   return(ret);
 }
