@@ -7,17 +7,20 @@
 <img src="./.img/radio_front.jpg" alt="Odyssey 2 Radio front" width="800">
 #+end_html
 
-** Why I started this project?
+** Why I started this repository?
 
-The main reasons that drove me to start this repository are the
-following:
-- I would a fully open source radio with the source code of every
+This wonderful project was done by David Fainitski N7DDC and you can
+find all his work at this [[https://github.com/Dfinitski/Odyssey-2_2017_TRX][url]].
+
+I started this repository for the following reasons:
+
+- I would like a fully open source radio with the source code of every
   components;
-- a future proof code that will works for the next decade;
-- comprehensive radio information;
+- fully remote controllable radio without any external hardware;
+- a future proof code that will work for the next decade;
+- comprehensive radio documentation;
 - learn PIC architecture and FPGA ecosystem (with Verilog HDL in
   this case);
-- fully remote controllable radio without any external hardware.
 
 ** Features
 
@@ -27,11 +30,11 @@ respect of N7DDC software; you can find these characteristics on
 
 - the programmer is written in C89 and therefore will be available for
   next decades. The basic commands are fully functional with the N7DDC
-  bootloader.
-- MCU is fully open source and documented
-- more agile protocol between MCU and FPGA
-- fully remote control of the bootloader (also the entering mode)
-- display visualizes each stage and all configuration
+  bootloader;
+- MCU is fully open source and documented;
+- more agile protocol between MCU and FPGA;
+- fully remote control of the bootloader (also remote entering mode);
+- display visualizes each stage and all configuration.
 
 For more information you can read each sub-system readme.
 
@@ -57,15 +60,15 @@ readme and the radio details in the [[./radio/README.org][radio]] readme.
 - [[./mcu][mcu]] : the microcontroller firmware that controller the power of the
   radio and the display;
 - [[./pcb][pcb]] : contains the PCB layout of Odyssey 2 version 1.2 and related
-  BOM/geber;
+  BOM/geber provided by David Fainitski N7DDC;
 - [[./pcb/docs][pcb/docs]] : contains a few documents published by David Fainitski N7DDC
-  about the hardware board and the software;
-- [[./programmer][programmer]] : the bootloader programmer that permits to control and
-  configure from remote the radio.
+  about the hardware board and his software;
+- [[./programmer][programmer]] : the bootloader programmer that permit to control and
+  configure from remote the radio;
 - [[./radio][radio]] : contains the readme for the radio firmware since many
-  functionalities are shared between protocol 1 and protocol 2.
+  functionalities are shared between protocol 1 and protocol 2;
 - [[./radio/protocol1][radio/protocol1]] : the Angelia radio firmware with protocol
-  version 1.
+  version 1;
 - [[./radio/protocol2][radio/protocol2]] : the Angelia radio firmware with protocol
   version 2.
 
