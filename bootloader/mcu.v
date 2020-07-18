@@ -239,7 +239,7 @@ begin
 				uart_tx_byte <= 8'h40;
 				uart_tx_dv <= 1'b1;
 				send_waiting <= 1'b1;
-				sent_bytes_counter <= sent_bytes_counter + 5'd1;
+				sent_bytes_counter <= sent_bytes_counter + 8'd1;
 			end
 			// this limitation is for IPv4
 			else if (sent_bytes_counter <= 4)
@@ -247,7 +247,7 @@ begin
 				uart_tx_byte <= ip[(39-(sent_bytes_counter*8))-:8];
 				uart_tx_dv <= 1'b1;
 				send_waiting <= 1'b1;
-				sent_bytes_counter <= sent_bytes_counter + 5'd1;
+				sent_bytes_counter <= sent_bytes_counter + 8'd1;
 			end
 			// send empty byte as fullfill
 			else if (sent_bytes_counter <= 16)
@@ -255,12 +255,12 @@ begin
 				uart_tx_byte <= 8'h00;
 				uart_tx_dv <= 1'b1;
 				send_waiting <= 1'b1;
-				sent_bytes_counter <= sent_bytes_counter + 5'd1;
+				sent_bytes_counter <= sent_bytes_counter + 8'd1;
 			end
 			// at the end go to the next stage
 			else
 			begin
-				sent_bytes_counter <= 5'd0;
+				sent_bytes_counter <= 8'd0;
 				if (first_start)
 					state_tx <= STATE_SEND_VERSION;
 				else
@@ -276,19 +276,19 @@ begin
 				uart_tx_byte <= 8'h30 | fw_type;
 				uart_tx_dv <= 1'b1;
 				send_waiting <= 1'b1;
-				sent_bytes_counter <= sent_bytes_counter + 5'd1;
+				sent_bytes_counter <= sent_bytes_counter + 8'd1;
 			end
 			else if (sent_bytes_counter <= 8)
 			begin
 				uart_tx_byte <= fw_version[(71-(sent_bytes_counter*8))-:8];
 				uart_tx_dv <= 1'b1;
 				send_waiting <= 1'b1;
-				sent_bytes_counter <= sent_bytes_counter + 5'd1;
+				sent_bytes_counter <= sent_bytes_counter + 8'd1;
 			end
 			// at the end go to the next stage
 			else
 			begin
-				sent_bytes_counter <= 5'd0;
+				sent_bytes_counter <= 8'd0;
 				if (first_start)
 					state_tx <= STATE_SEND_STAGE;
 				else
