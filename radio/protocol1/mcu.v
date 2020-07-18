@@ -66,9 +66,10 @@ UART_TX #(.CLKS_PER_BIT(uart_clock_per_bit)) UART_TX_Inst
 reg send_waiting = 1'b0;
 
 // UART TX status
-localparam [2:0] TX_IDLE   = 3'd0;
-localparam [2:0] TX_RADIO  = 3'd1;
-localparam [2:0] TX_PTT    = 3'd2;
+localparam [2:0] TX_IDLE     = 3'd0;
+localparam [2:0] TX_VERSION  = 3'd1;
+localparam [2:0] TX_RADIO    = 3'd2;
+localparam [2:0] TX_PTT      = 3'd3;
 
 // state machine for the booting operation
 reg [2:0] state_tx = TX_IDLE;
@@ -80,6 +81,9 @@ reg ptt_old = 1'b0;
 // we can got immediatelly to TX_RADIO since
 // we need a cycle to initialize the UART module
 reg first_start = 1'b1;
+
+// counter used to track how many bytes we have sent within a state
+reg [7:0] sent_bytes_counter = 8'b0;
 
 // MCU TX FSM
 always @(posedge clk)
@@ -97,7 +101,35 @@ begin
 					state_tx <= TX_RADIO;
 			end
 			else if (first_start)
-				state_tx <= TX_RADIO;
+				state_tx <= TX_VERSION;
+		end
+		
+		TX_VERSION: // send version
+		begin
+			if (sent_bytes_counter == 0)
+			begin
+				// this is the radio version
+				uart_tx_byte <= 8'h30 | 8'h03;
+				uart_tx_dv <= 1'b1;
+				send_waiting <= 1'b1;
+				sent_bytes_counter <= sent_bytes_counter + 8'd1;
+			end
+			else if (sent_bytes_counter <= 8)
+			begin
+				uart_tx_byte <= fw_version[(71-(sent_bytes_counter*8))-:8];
+				uart_tx_dv <= 1'b1;
+				send_waiting <= 1'b1;
+				sent_bytes_counter <= sent_bytes_counter + 8'd1;
+			end
+			// at the end go to the next stage
+			else
+			begin
+				sent_bytes_counter <= 8'd0;
+				if (first_start)
+					state_tx <= TX_RADIO;
+				else
+					state_tx <= TX_IDLE;
+			end
 		end
 		
 		// we are in the radio stage (only RX)
