@@ -44,6 +44,9 @@ module mcu
 	// alert Reconfigure when we have received the slot
 	output reg slot_ready = 1'b0,
 	
+	// the remote slot is changed
+	input slot_changed_ext,
+	
 	// bit with the amplifiers status
 	input power_amplifier_ext,
 	input audio_amplifier_ext,
@@ -53,9 +56,10 @@ module mcu
 	output reg [1:0] slot = 2'b0,
 	output reg power_amplifier = 1'b0,
 	output reg audio_amplifier = 1'b0,
-
-	// different from before if amplifier/slot status changed
-	input status_changed_ext,
+	
+	// flag to alert when a value changed
+	input power_amplifier_changed_ext,
+	input audio_amplifier_changed_ext,
 	
 	// variable for the auto power on functionality
 	input poweron_ext,
@@ -140,13 +144,20 @@ reg power_amplifier_int = 1'b0;
 reg audio_amplifier_int = 1'b0;
 reg status_changed_int = 1'b0;
 reg status_changed_int_old = 1'b0;
-reg status_changed_ext_old = 1'b0;
 
 // manage the auto power on option
 reg poweron_int = 1'b0;
 reg poweron_changed_int = 1'b0;
 reg poweron_changed_int_old = 1'b0;
 reg poweron_changed_ext_old = 1'b0;
+
+// flags from remote status change
+reg slot_changed_ext_old = 1'b0;
+reg power_amplifier_changed_ext_old = 1'b0;
+reg audio_amplifier_changed_ext_old = 1'b0;
+
+reg send_status = 1'b0;
+reg send_status_old = 1'b0;
 
 // manage the status changes from network programmer
 // and from mcu keys
@@ -162,14 +173,28 @@ begin
 		power_amplifier <= power_amplifier_int;
 		audio_amplifier <= audio_amplifier_int;
 	end
-	else if (status_changed_ext != status_changed_ext_old)
+	// check the status
+	else if (slot_changed_ext != slot_changed_ext_old)
 	begin
-		status_changed_ext_old <= status_changed_ext;
+		slot_changed_ext_old <= slot_changed_ext;
 		slot <= slot_ext;
-		power_amplifier <= power_amplifier_ext;
-		audio_amplifier <= audio_amplifier_ext;
+		if (send_status == send_status_old)
+			send_status = ~send_status;
 	end
-	
+	else if (power_amplifier_changed_ext != power_amplifier_changed_ext_old)
+	begin
+		power_amplifier_changed_ext_old <= power_amplifier_changed_ext;
+		power_amplifier <= power_amplifier_ext;
+		if (send_status == send_status_old)
+			send_status = ~send_status;
+	end
+	else if (audio_amplifier_changed_ext != audio_amplifier_changed_ext_old)
+	begin
+		audio_amplifier_changed_ext_old <= audio_amplifier_changed_ext;
+		audio_amplifier <= audio_amplifier_ext;
+		if (send_status == send_status_old)
+			send_status = ~send_status;
+	end
 	// check if the power on option is changed
 	if (poweron_changed_int != poweron_changed_int_old)
 	begin
@@ -205,8 +230,23 @@ begin
 			end
 			// check if we are programming the bootloader
 			// therefore we don't need to send the status change
-			else if ((status_changed_ext != status_changed_ext_old) & (slot_ext != 2'b0))
+			/*
+			else if ((slot_changed_ext != slot_changed_ext_old) & (slot_ext != 2'b0))
 			begin
+				state_tx <= STATE_SEND_STATUS;
+			end
+			else if (power_amplifier_changed_ext != power_amplifier_changed_ext_old)
+			begin
+				state_tx <= STATE_SEND_STATUS;
+			end
+			else if (audio_amplifier_changed_ext != audio_amplifier_changed_ext_old)
+			begin
+				state_tx <= STATE_SEND_STATUS;
+			end
+			*/
+			else if ((send_status != send_status_old) & (slot_ext != 2'b0))
+			begin
+				send_status_old <= send_status;
 				state_tx <= STATE_SEND_STATUS;
 			end
 			else if (stage_changed != stage_changed_old)

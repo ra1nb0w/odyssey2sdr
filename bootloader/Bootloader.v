@@ -413,16 +413,19 @@ reg start_addr_ready = 1'b0;
 // slot value
 wire [1:0] slot_num;
 reg [1:0] slot_num_ext = 2'd1;
+// flag to alert when the value changed from remote
+reg slot_changed_ext = 1'b0;
 // high when we receive a valid slot from MCU
 wire slot_ready;
-// high if we have changed slot, power amplifier or audio amplifier
-reg status_changed = 1'b0;
 // status of the power amplifier
 wire pa_enabled;
 reg pa_enabled_ext = 1'b0;
 // status of the audio amplifier
 wire aa_enabled;
 reg aa_enabled_ext = 1'b0;
+// flags to alert when the value changed from remote
+reg pa_changed_ext = 1'b0;
+reg aa_changed_ext = 1'b0;
 // crc error during radio firmware loading
 wire fw_crc_error;
 // option that manage the auto power on functionality
@@ -438,11 +441,27 @@ reg [3:0] stage = 4'h01;
 reg stage_changed = 1'b0;
 
 mcu #(.fw_version(fw_version), .fw_type(fw_type)) mcu_uart (
- .clk(INA_CLK), .mcu_uart_rx(MCU_UART_RX), .mcu_uart_tx(MCU_UART_TX), .ip(local_IP), .eeprom_read_ready(ip_ready),
- .stage(stage), .stage_changed(stage_changed), .slot_ext(slot_num_ext), .slot(slot_num), .slot_ready(slot_ready),
- .power_amplifier(pa_enabled), .power_amplifier_ext(pa_enabled_ext), .audio_amplifier(aa_enabled), .audio_amplifier_ext(aa_enabled_ext),
- .poweron_ext(auto_poweron_ext), .poweron_changed_ext(auto_poweron_changed_ext), .poweron(auto_poweron),
- .status_changed_ext(status_changed), .ip_changed(write_ip)
+ .clk(INA_CLK),
+ .mcu_uart_rx(MCU_UART_RX),
+ .mcu_uart_tx(MCU_UART_TX),
+ .ip(local_IP),
+ .eeprom_read_ready(ip_ready),
+ .stage(stage),
+ .stage_changed(stage_changed),
+ .slot_ext(slot_num_ext),
+ .slot_changed_ext(slot_changed_ext),
+ .slot(slot_num),
+ .slot_ready(slot_ready),
+ .power_amplifier(pa_enabled),
+ .power_amplifier_ext(pa_enabled_ext),
+ .power_amplifier_changed_ext(pa_changed_ext),
+ .audio_amplifier(aa_enabled),
+ .audio_amplifier_ext(aa_enabled_ext),
+ .audio_amplifier_changed_ext(aa_changed_ext),
+ .poweron_ext(auto_poweron_ext),
+ .poweron_changed_ext(auto_poweron_changed_ext),
+ .poweron(auto_poweron),
+ .ip_changed(write_ip)
  );
 
 // add 10 seconds delay before deciding if boot radio or stay in the bootloader
@@ -770,7 +789,7 @@ begin
 				// by flash module. Since the latter works at 12.5MHz should
 				// be enought
 		      slot_num_ext <= ip_data_buffer[1:0];
-				status_changed <= ~status_changed;
+				slot_changed_ext <= ~slot_changed_ext;
 			   erase_req <= ~erase_req;
 				pkt_rx_state <= 1'd0;
 		   end
@@ -811,7 +830,7 @@ begin
 				// get the new status of the audio amplifier
 		      aa_enabled_ext <= ip_data_buffer[0:0];
 				// notify that the status is changed
-				status_changed <= ~status_changed;
+				aa_changed_ext <= ~aa_changed_ext;
 				// reply with the same package
 				udp_buffer[(32-0)*8-1 : 0] <= {"EAA", 224'b0, 7'b0, ip_data_buffer[0:0] };
 				udp_length <= 8'd8 + 8'd32;
@@ -826,7 +845,7 @@ begin
 				// get the new status of the audio amplifier
 		      pa_enabled_ext <= ip_data_buffer[0:0];
 				// notify that the status is changed
-				status_changed <= ~status_changed;
+				pa_changed_ext <= ~pa_changed_ext;
 				// reply with the same package
 				udp_buffer[(32-0)*8-1 : 0] <= {"EPA", 224'b0, 7'b0, ip_data_buffer[0:0] };
 				udp_length <= 8'd8 + 8'd32;
@@ -884,7 +903,7 @@ begin
 		   begin
 				slot_num_ext <= ip_data_buffer[1:0];
 				// notify that the status is changed
-				status_changed <= ~status_changed;
+				slot_changed_ext <= ~slot_changed_ext;
 				// reply with the same package
 				udp_buffer[(32-0)*8-1 : 0] <= {"SLC", 224'b0, 6'b0, ip_data_buffer[1:0] };
 				udp_length <= 8'd8 + 8'd32;
