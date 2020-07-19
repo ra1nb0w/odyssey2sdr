@@ -14,6 +14,12 @@ Fainitski N7DDC:
 - asynchronous communication with MCU
 - fully remote controllable (also bootloader access)
 
+** Notes
+
+- the booting is soo long because it waits a stop signal from the
+  remote programmer; this is used to enter in the bootloader from
+  remote.
+
 ** TO DO
 
 - IPv4 subnet
