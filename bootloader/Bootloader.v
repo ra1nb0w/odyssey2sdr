@@ -464,9 +464,9 @@ mcu #(.fw_version(fw_version), .fw_type(fw_type)) mcu_uart (
  .ip_changed(write_ip)
  );
 
-// add 10 seconds delay before deciding if boot radio or stay in the bootloader
+// add 15 seconds delay before deciding if boot radio or stay in the bootloader
 // this it is needed to stop in bootloader mode from remote (network activation)
-reg [23:0] boot_cnt = 24'd800000;
+reg [23:0] boot_cnt = 24'd1200000;
 
 // when low reload the radio with the firmware at start_addr
 reg boot_radio = 1'b1;

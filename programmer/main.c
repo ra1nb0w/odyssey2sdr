@@ -1143,7 +1143,6 @@ main(int argc, char **argv)
       /* restore the slot */
       if (odyssey2.firmware_slot == 0)
         {
-
           odyssey2.firmware_slot = old_slot;
           set_boot_slot(false);
         }
