@@ -59,9 +59,9 @@ D-Sub 15 pins port. The voltage range is GND to 3.3V.
 |   9 | PTT in     | activate the PTT. Pull-up, to activate close to GND. Use optocoupler    |
 |  10 | VNA        | used for VNA measurement                                                |
 |  11 | ANT        | high level provides a signal to turn on the relay of the second antenna |
-|  12 | DATA       | SPI data                                                                |
-|  13 | CLOCK      | SPI clock                                                               |
-|  14 | EN         | SPI enable                                                              |
+|  12 | DATA       | SPI data (when no Alex board is configured the pin is UO_4)             |
+|  13 | CLOCK      | SPI clock (when no Alex board is configured the pin is UO_5)            |
+|  14 | EN         | SPI enable (when no Alex board is configured the pin is UO_6)           |
 |  15 | GND        | radio ground                                                            |
 |-----+------------+-------------------------------------------------------------------------|
 
