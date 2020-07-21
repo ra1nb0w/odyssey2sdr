@@ -6,3 +6,11 @@
 
 To open the layout /lay6/ you need to use [[https://www.electronic-software-shop.com/lng/en/electronic-software/sprint-layout-60.html][Sprint Layout 6.0]]. The demo
 version is enough to visualize the pcb.
+
+** Schematics
+
+There is no official schematics. The connections can be quite easily
+followed using the layout software. If you need some basic reference
+you can read the [[./schematics/Angelia-Anan100D.pdf][Angelia-Anan100D]] schematic since parts of it are the
+same like RX front-ends. If you have done by your own the schematics
+or part of it feel free to open a pull requests.
