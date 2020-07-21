@@ -586,7 +586,7 @@ erase_slot(bool print)
   msg[31] = odyssey2.firmware_slot;
 
   /* we need to change the timeout to wait the erase process to finish */
-  set_timeout(UDP_TIMEOUT_SEC*10, UDP_TIMEOUT_USEC);
+  set_timeout(UDP_TIMEOUT_SEC*20, UDP_TIMEOUT_USEC);
   r = send_msg(true, 3);
   set_timeout(UDP_TIMEOUT_SEC, UDP_TIMEOUT_USEC);
 
