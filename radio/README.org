@@ -82,6 +82,132 @@ both iambic keys to GND or using the programmer, then use the
 programmer to write the firmware to slot N. The programmed slot is
 automatically selected as the next slot to boot.
 
+** FPGA pin assignment
+
+The following table collects the FPGA pin assignment and its functionality.
+
+|--------------+-----------+----------+----------+------------+--------------|
+| Name         | Direction | Location | I/O Bank | VREF Group | I/O Standard |
+|--------------+-----------+----------+----------+------------+--------------|
+| ADCCLK       | Output    | PIN_V4   |        2 | B2_N1      | 3.3-V LVCMOS |
+| ADCCS_N      | Output    | PIN_R3   |        2 | B2_N1      | 3.3-V LVCMOS |
+| ADCMISO      | Input     | PIN_V3   |        2 | B2_N1      | 3.3-V LVCMOS |
+| ADCMOSI      | Output    | PIN_W2   |        2 | B2_N1      | 3.3-V LVCMOS |
+| ANT          | Output    | PIN_V2   |        2 | B2_N0      | 3.3-V LVCMOS |
+| ATTN_CLK     | Output    | PIN_Y1   |        2 | B2_N1      | 3.3-V LVCMOS |
+| ATTN_DATA    | Output    | PIN_Y2   |        2 | B2_N1      | 3.3-V LVCMOS |
+| ATTN_LE      | Output    | PIN_AA1  |        2 | B2_N1      | 3.3-V LVCMOS |
+| ATTN_LE_2    | Output    | PIN_W1   |        2 | B2_N1      | 3.3-V LVCMOS |
+| CBCLK        | Output    | PIN_F22  |        6 | B6_N1      | 3.3-V LVCMOS |
+| CCS_N        | Output    | PIN_B21  |        6 | B6_N0      | 3.3-V LVCMOS |
+| CDIN         | Output    | PIN_F21  |        6 | B6_N1      | 3.3-V LVCMOS |
+| CDOUT        | Input     | PIN_E21  |        6 | B6_N0      | 3.3-V LVCMOS |
+| CLRCIN       | Output    | PIN_E22  |        6 | B6_N0      | 3.3-V LVCMOS |
+| CLRCOUT      | Output    | PIN_D22  |        6 | B6_N0      | 3.3-V LVCMOS |
+| CMCLK        | Output    | PIN_D21  |        6 | B6_N0      | 3.3-V LVCMOS |
+| CMODE        | Output    | PIN_B22  |        6 | B6_N0      | 3.3-V LVCMOS |
+| CMOSI        | Output    | PIN_C21  |        6 | B6_N0      | 3.3-V LVCMOS |
+| CSCK         | Output    | PIN_C22  |        6 | B6_N0      | 3.3-V LVCMOS |
+| DACD[13]     | Output    | PIN_N22  |        5 | B5_N0      | 3.3-V LVCMOS |
+| DACD[12]     | Output    | PIN_N21  |        5 | B5_N0      | 3.3-V LVCMOS |
+| DACD[11]     | Output    | PIN_P22  |        5 | B5_N0      | 3.3-V LVCMOS |
+| DACD[10]     | Output    | PIN_P21  |        5 | B5_N0      | 3.3-V LVCMOS |
+| DACD[9]      | Output    | PIN_R22  |        5 | B5_N0      | 3.3-V LVCMOS |
+| DACD[8]      | Output    | PIN_R21  |        5 | B5_N0      | 3.3-V LVCMOS |
+| DACD[7]      | Output    | PIN_U21  |        5 | B5_N0      | 3.3-V LVCMOS |
+| DACD[6]      | Output    | PIN_U22  |        5 | B5_N0      | 3.3-V LVCMOS |
+| DACD[5]      | Output    | PIN_V21  |        5 | B5_N1      | 3.3-V LVCMOS |
+| DACD[4]      | Output    | PIN_V22  |        5 | B5_N1      | 3.3-V LVCMOS |
+| DACD[3]      | Output    | PIN_W21  |        5 | B5_N1      | 3.3-V LVCMOS |
+| DACD[2]      | Output    | PIN_W22  |        5 | B5_N1      | 3.3-V LVCMOS |
+| DACD[1]      | Output    | PIN_Y21  |        5 | B5_N1      | 3.3-V LVCMOS |
+| DACD[0]      | Output    | PIN_Y22  |        5 | B5_N1      | 3.3-V LVCMOS |
+| DAC_ALC      | Output    | PIN_K22  |        6 | B6_N1      | 3.3-V LVCMOS |
+| ECS          | Output    | PIN_A3   |        8 | B8_N1      | 3.3-V LVCMOS |
+| ESCK         | Output    | PIN_A4   |        8 | B8_N1      | 3.3-V LVCMOS |
+| ESI          | Output    | PIN_B4   |        8 | B8_N1      | 3.3-V LVCMOS |
+| ESO          | Input     | PIN_B3   |        8 | B8_N1      | 3.3-V LVCMOS |
+| FPGA_PLL     | Output    | PIN_AA21 |        5 | B5_N1      | 3.3-V LVCMOS |
+| FPGA_PTT     | Output    | PIN_P1   |        2 | B2_N0      | 3.3-V LVCMOS |
+| INA[15]      | Input     | PIN_AA4  |        3 | B3_N1      | 1.8 V        |
+| INA[14]      | Input     | PIN_AB4  |        3 | B3_N1      | 1.8 V        |
+| INA[13]      | Input     | PIN_AB3  |        3 | B3_N1      | 1.8 V        |
+| INA[12]      | Input     | PIN_AA3  |        3 | B3_N1      | 1.8 V        |
+| INA[11]      | Input     | PIN_AB5  |        3 | B3_N1      | 1.8 V        |
+| INA[10]      | Input     | PIN_AA5  |        3 | B3_N1      | 1.8 V        |
+| INA[9]       | Input     | PIN_AB6  |        3 | B3_N1      | 1.8 V        |
+| INA[8]       | Input     | PIN_AA6  |        3 | B3_N1      | 1.8 V        |
+| INA[7]       | Input     | PIN_AB7  |        3 | B3_N1      | 1.8 V        |
+| INA[6]       | Input     | PIN_AA7  |        3 | B3_N1      | 1.8 V        |
+| INA[5]       | Input     | PIN_AB8  |        3 | B3_N0      | 1.8 V        |
+| INA[4]       | Input     | PIN_AA8  |        3 | B3_N0      | 1.8 V        |
+| INA[3]       | Input     | PIN_AB10 |        3 | B3_N0      | 1.8 V        |
+| INA[2]       | Input     | PIN_AA9  |        3 | B3_N0      | 1.8 V        |
+| INA[1]       | Input     | PIN_AA10 |        3 | B3_N0      | 1.8 V        |
+| INA[0]       | Input     | PIN_AB9  |        3 | B3_N0      | 1.8 V        |
+| INA_2[15]    | Input     | PIN_AA14 |        4 | B4_N1      | 1.8 V        |
+| INA_2[14]    | Input     | PIN_AB14 |        4 | B4_N1      | 1.8 V        |
+| INA_2[13]    | Input     | PIN_AB13 |        4 | B4_N1      | 1.8 V        |
+| INA_2[12]    | Input     | PIN_AA13 |        4 | B4_N1      | 1.8 V        |
+| INA_2[11]    | Input     | PIN_AB15 |        4 | B4_N1      | 1.8 V        |
+| INA_2[10]    | Input     | PIN_AA15 |        4 | B4_N1      | 1.8 V        |
+| INA_2[9]     | Input     | PIN_AB16 |        4 | B4_N1      | 1.8 V        |
+| INA_2[8]     | Input     | PIN_AA16 |        4 | B4_N1      | 1.8 V        |
+| INA_2[7]     | Input     | PIN_AB17 |        4 | B4_N0      | 1.8 V        |
+| INA_2[6]     | Input     | PIN_AA17 |        4 | B4_N0      | 1.8 V        |
+| INA_2[5]     | Input     | PIN_AB18 |        4 | B4_N0      | 1.8 V        |
+| INA_2[4]     | Input     | PIN_AA18 |        4 | B4_N0      | 1.8 V        |
+| INA_2[3]     | Input     | PIN_AB20 |        4 | B4_N0      | 1.8 V        |
+| INA_2[2]     | Input     | PIN_AA19 |        4 | B4_N0      | 1.8 V        |
+| INA_2[1]     | Input     | PIN_AA20 |        4 | B4_N0      | 1.8 V        |
+| INA_2[0]     | Input     | PIN_AB19 |        4 | B4_N0      | 1.8 V        |
+| INA_CLK      | Input     | PIN_AA11 |        3 | B3_N0      | 1.8 V        |
+| INA_CLK_2    | Input     | PIN_AA12 |        4 | B4_N1      | 1.8 V        |
+| KEY_DASH     | Input     | PIN_H21  |        6 | B6_N1      | 3.3-V LVCMOS |
+| KEY_DOT      | Input     | PIN_H22  |        6 | B6_N1      | 3.3-V LVCMOS |
+| MCU_UART_RX  | Input     | PIN_L22  |        6 | B6_N1      | 3.3-V LVCMOS |
+| MCU_UART_TX  | Output    | PIN_L21  |        6 | B6_N1      | 3.3-V LVCMOS |
+| NCONFIG      | Output    | PIN_H1   |        1 | B1_N1      | 3.3-V LVCMOS |
+| OSC_10MHZ    | Input     | PIN_T2   |        2 | B2_N0      | 3.3-V LVCMOS |
+| OVERFLOW     | Input     | PIN_Y3   |        3 | B3_N1      | 1.8 V        |
+| OVERFLOW_2   | Input     | PIN_Y14  |        4 | B4_N1      | 1.8 V        |
+| PHY_CLK125   | Input     | PIN_B12  |        7 | B7_N1      | 3.3-V LVCMOS |
+| PHY_MDC      | Output    | PIN_C13  |        7 | B7_N1      | 3.3-V LVCMOS |
+| PHY_MDIO     | Bidir     | PIN_B13  |        7 | B7_N1      | 3.3-V LVCMOS |
+| PHY_RESET_N  | Output    | PIN_B14  |        7 | B7_N1      | 3.3-V LVCMOS |
+| PHY_RX[3]    | Input     | PIN_B8   |        8 | B8_N0      | 3.3-V LVCMOS |
+| PHY_RX[2]    | Input     | PIN_A9   |        8 | B8_N0      | 3.3-V LVCMOS |
+| PHY_RX[1]    | Input     | PIN_B9   |        8 | B8_N0      | 3.3-V LVCMOS |
+| PHY_RX[0]    | Input     | PIN_A10  |        8 | B8_N0      | 3.3-V LVCMOS |
+| PHY_RX_CLOCK | Input     | PIN_B11  |        8 | B8_N0      | 3.3-V LVCMOS |
+| PHY_RX_DV    | Input     | PIN_B10  |        8 | B8_N0      | 3.3-V LVCMOS |
+| PHY_TX[3]    | Output    | PIN_A7   |        8 | B8_N0      | 3.3-V LVCMOS |
+| PHY_TX[2]    | Output    | PIN_B6   |        8 | B8_N0      | 3.3-V LVCMOS |
+| PHY_TX[1]    | Output    | PIN_A6   |        8 | B8_N0      | 3.3-V LVCMOS |
+| PHY_TX[0]    | Output    | PIN_B5   |        8 | B8_N1      | 3.3-V LVCMOS |
+| PHY_TX_CLOCK | Output    | PIN_E5   |        8 | B8_N1      | 3.3-V LVCMOS |
+| PHY_TX_EN    | Output    | PIN_A8   |        8 | B8_N0      | 3.3-V LVCMOS |
+| PTT          | Input     | PIN_J21  |        6 | B6_N1      | 3.3-V LVCMOS |
+| PTT2         | Input     | PIN_P2   |        2 | B2_N0      | 3.3-V LVCMOS |
+| SPI_RX_LOAD  | Output    | PIN_N1   |        2 | B2_N0      | 3.3-V LVCMOS |
+| SPI_SCK      | Output    | PIN_R2   |        2 | B2_N0      | 3.3-V LVCMOS |
+| SPI_SDO      | Output    | PIN_U2   |        2 | B2_N0      | 3.3-V LVCMOS |
+| TUNE         | Output    | PIN_N2   |        2 | B2_N0      | 3.3-V LVCMOS |
+| USEROUT0     | Output    | PIN_M2   |        2 | B2_N0      | 3.3-V LVCMOS |
+| USEROUT1     | Output    | PIN_V1   |        2 | B2_N1      | 3.3-V LVCMOS |
+| USEROUT2     | Output    | PIN_U1   |        2 | B2_N0      | 3.3-V LVCMOS |
+| USEROUT3     | Output    | PIN_R1   |        2 | B2_N0      | 3.3-V LVCMOS |
+| VNA_out      | Output    | PIN_M1   |        2 | B2_N0      | 3.3-V LVCMOS |
+| _122MHz_in   | Input     | PIN_T21  |        5 | B5_N0      | 3.3-V LVCMOS |
+| _122MHz_out  | Output    | PIN_T20  |        5 | B5_N1      | 3.3-V LVCMOS |
+| led1         | Output    | PIN_F1   |        1 | B1_N1      | 3.3-V LVCMOS |
+| led2         | Output    | PIN_E1   |        1 | B1_N0      | 3.3-V LVCMOS |
+| led3         | Output    | PIN_C1   |        1 | B1_N0      | 3.3-V LVCMOS |
+| led4         | Output    | PIN_B1   |        1 | B1_N0      | 3.3-V LVCMOS |
+| MCU_NOT_CON  |           | PIN_K21  |          |            |              |
+| MCU_NOT_USED |           | PIN_J22  |          |            |              |
+|--------------+-----------+----------+----------+------------+--------------|
+
 ** License
 
 #+BEGIN_SRC
