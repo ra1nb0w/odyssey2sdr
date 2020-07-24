@@ -146,15 +146,20 @@ the optional parameters of the /STATUS/ command have the following values
 
 *** Requirements
 
-To build the software you only need two software:
+To build the software you only need the following software:
 
-- Microchip [[https://www.microchip.com/mplab/compilers][MPLAB XC8]] available for Windows, macOS and Linux
-- make (Posix compliant should be enough like, GNU make or BSD make)
+- Microchip [[https://www.microchip.com/mplab/mplab-x-ide][MPLAB X IDE]] (and [[https://www.microchip.com/mplab/compilers][MPLAB XC8)]]; it is available for Windows,
+  macOS and Linux
+- if you are using *nix: make (Posix compliant should be enough like,
+  GNU make or BSD make)
 
 *** Build
 
-If you have installed correctly the software above and /xc8/ is
-available in you shell you only need to run one command:
+If you have correctly installed the above software and the /xc8/
+compiler, you can open this folder with MPLAB X IDE and configure,
+if not done automatically, the project compiler. From this point on
+you can compile the project from the IDE or from the shell with the
+following command:
 
 #+BEGIN_SRC shell
 make
@@ -163,13 +168,14 @@ make
 At the end, you can see the "Memory Summary" and the firmware will be
 available at /dist/default/production/mcu.production.hex/
 
-You can also use MPLAB X IDE if you would like to use an integrated
-environment to build and flash the firmware.
-
 *** Flash
 
+You can "burn" the firmware to the PIC16 either using MPLAB X IDE
+(you need to configure the programmer) or with another software using
+the /.hex/ file.
+
 There are many in-circuit programmer in the market that you can select
-to flash the /.hex/ the only requirements is to use ones that support
+to flash the /.hex/; the only requirement is to use ones that support
 low voltage programming. This is very important otherwise you can
 damage the FPGA (see the 4.5V zener in the layout). I used the
 following:
@@ -178,7 +184,7 @@ following:
 - [[https://github.com/jaromir-sukuba/a-p-prog][a-p-prog]] for arduino (remember to use delay ~-s 1700~)
 
 Just pay attention on which device powers the MCU and if something
-fails double check the wire connections.
+fails double check wire connections.
 
 ** License
 

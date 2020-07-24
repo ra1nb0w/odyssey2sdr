@@ -1,0 +1,70 @@
+CHIP := 16F1827
+CC_BIN := xc8-cc
+TARGET := mcu
+BUILD_DIR := build
+CFLAGS := -mcpu=${CHIP} \
+	-c -fno-short-double -fno-short-float \
+	-O2 -fasmfile -maddrqual=ignore \
+	-xassembler-with-cpp \
+	-mwarn=-3 -Wa,-a \
+	-DXPRJ_default=default \
+	-msummary=-psect,-class,+mem,-hex,-file \
+	-ginhx032 -Wl,--data-init \
+	-mno-keep-startup \
+	-mno-osccal \
+	-mno-resetbits \
+	-mno-save-resetbits \
+	-mno-download \
+	-mno-stackcall \
+	-std=c99 -gdwarf-3 \
+	-mstack=compiled:auto:auto
+LDFLAGS := -mcpu=${CHIP} \
+	-Wl,-Map=${BUILD_DIR}/${TARGET}.map \
+	-DXPRJ_default=default \
+	-fno-short-double \
+	-fno-short-float \
+	-O2 -fasmfile -maddrqual=ignore \
+	-xassembler-with-cpp \
+	-mwarn=-3 -Wa,-a \
+	-msummary=-psect,-class,+mem,-hex,-file \
+	-ginhx032 -Wl,--data-init \
+	-mno-keep-startup -mno-osccal -mno-resetbits -mno-save-resetbits \
+	-mno-download -mno-stackcall -std=c99 -gdwarf-3 \
+	-mstack=compiled:auto:auto \
+	-Wl,--memorysummary,${BUILD_DIR}/memoryfile.xml
+
+SOURCES := \
+	16F1827.c \
+	fpga.c \
+	i2c.c \
+	main.c \
+	ssd1306.c
+
+OBJS := $(SOURCES:%.c=${BUILD_DIR}/%.p1)
+
+# we need the realpath of the compiler otherwise
+# it doesn't work
+ifneq (,$(findstring WINDOWS,$(PATH)))
+	CC := $(where ${CC_BIN})
+else
+	CC := $(realpath $(shell which ${CC_BIN}))
+endif
+
+all: ${BUILD_DIR}/${TARGET}.elf
+
+.PHONY: build/%.p1
+${BUILD_DIR}/%.p1: %.c ${INC_DIR}
+	@mkdir -p ${@D}
+	${CC} ${CFLAGS} -o $@ $<
+
+.PHONY: ${TARGET}.elf
+${BUILD_DIR}/${TARGET}.elf: ${OBJS}
+	${CC} ${LDFLAGS} -o $@ $^
+
+.PHONY: clean
+clean:
+ifneq (,$(findstring WINDOWS,$(PATH)))
+	@rd /s /q ${BUILD_DIR}
+else
+	@rm -rf ${BUILD_DIR}
+endif
