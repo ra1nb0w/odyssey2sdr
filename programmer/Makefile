@@ -5,11 +5,11 @@ CC_WIN?=i686-w64-mingw32-gcc
 
 .PHONY: programmer
 programmer:
-	$(CC) -std=c89 -o programmer main.c
+	$(CC) -Wall -std=c89 -o programmer main.c
 
 .PHONY: win
 win:
-	$(CC_WIN) -std=c89 -o programmer.exe main.c -lws2_32
+	$(CC_WIN) -Wall -std=c89 -o programmer.exe main.c -lws2_32
 
 clean:
 	rm programmer programmer.exe

@@ -31,15 +31,16 @@
  *  - mingw to build for windows
  */
 
+#define _DEFAULT_SOURCE
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <limits.h>
 /* require mingw in windows */
 #include <getopt.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #if defined(WIN32) || defined(__WIN32__)
 #include <winsock2.h>
 #else
@@ -64,7 +65,9 @@ typedef enum { false, true } bool;
 #define FIRMWARE_CHUNK 256
 /* generic buffer dimension */
 #define BUF_LEN 64
-char firmware_file[PATH_MAX+1];
+/* we should use pathconf("/", _PC_PATH_MAX) to be correct */
+#define F_PATH_MAX 512
+char firmware_file[F_PATH_MAX+1];
 
 /* programmer binary name */
 char *bin_name;
@@ -1004,7 +1007,7 @@ main(int argc, char **argv)
             }
           break;
         case 'f':
-          snprintf(firmware_file, PATH_MAX, "%s", optarg);
+          snprintf(firmware_file, F_PATH_MAX, "%s", optarg);
           if (strlen(firmware_file) == 0 || access(firmware_file, R_OK) != 0)
             {
               fprintf(stderr, "The file %s doesn't exist or it is not readable\n", firmware_file);
