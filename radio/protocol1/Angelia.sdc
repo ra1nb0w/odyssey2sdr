@@ -153,12 +153,13 @@ set_output_delay  10 -clock $clock_12_5MHz {ASMI_interface:ASMI_int_inst|ASMI:AS
 set_max_delay -from _122MHz_in -to _122MHz_in 12
 
 set_max_delay -from INA_CLK -to INA_CLK 15
+set_max_delay -from INA_CLK -to INA_CLK_2 10
 
 set_max_delay -from INA_CLK -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[2] 10
 
-set_max_delay -from PLL_clocks_inst|altpll_component|auto_generated|pll1|clk[1] -to PLL_clocks_inst|altpll_component|auto_generated|pll1|clk[1] 25
+set_max_delay -from PLL_clocks_inst|altpll_component|auto_generated|pll1|clk[1] -to PLL_clocks_inst|altpll_component|auto_generated|pll1|clk[1] 24
 
-set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[3] -to _122MHz_in 10
+set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[3] -to _122MHz_in 11
 set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[3] -to INA_CLK 9
 
 set_max_delay -from PLL_inst|altpll_component|auto_generated|pll1|clk[0] -to _122MHz_in 7

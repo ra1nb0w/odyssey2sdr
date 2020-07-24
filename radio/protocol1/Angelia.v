@@ -309,9 +309,13 @@
 						- changed version number to v5.9
 						- recompiled, retimed, closed timing. 
 					
+	Nov 30   - implemented PS_enabled C&C bit (C2[6] when C0=0010_010x) to allow Rx5 freq to be modified during Tx and Rx
+			when PureSignal is inactive
+		- changed FW version number to v6.0
+		- removed all set_max_delay constraints from Orion.sdc, recompiled, added new set_max_delay
+			constraints as needed to close timing
+		- compiled using Quartus Prime Lite v16.1
 
-					*** change global clock name **** 
-  
 
 NOTES: 
 
@@ -488,7 +492,7 @@ assign NCONFIG = IP_write_done || reset_FPGA;
 parameter M_TPD   = 4;
 parameter IF_TPD  = 2;
 
-parameter  Angelia_version = 8'd59;		// Serial number of this version
+parameter  Angelia_version = 8'd60;		// Serial number of this version
 localparam Penny_serialno = 8'd00;		// Use same value as equ1valent Penny code 
 localparam Merc_serialno = 8'd00;		// Use same value as equivalent Mercury code
 
@@ -497,7 +501,7 @@ localparam TX_FIFO_SZ  = 1024; 			// 16 by 1024 deep TX FIFO
 localparam SP_FIFO_SZ  = 16384; 			// 16 by 16,384 deep SP FIFO
 //
 
-parameter [63:0] fw_version = "1.12 AOP";
+parameter [63:0] fw_version = "1.13 P1";
 
 
 // module to comunicate with MCU
@@ -1463,8 +1467,7 @@ assign select_input_RX[4] = (ADC_RX5[0] == 1'b1) ? temp_ADC[1] : temp_ADC[0];
 assign select_input_RX[5] = (ADC_RX6[0] == 1'b1) ? temp_ADC[1] : temp_ADC[0];
 assign select_input_RX[6] = (ADC_RX7[0] == 1'b1) ? temp_ADC[1] : temp_ADC[0];
 
-assign select_input_special = FPGA_PTT ? temp_DACD : select_input_RX[4]; //for support of PureSignal
-
+assign select_input_special = PS_enabled ?  (FPGA_PTT ? temp_DACD : select_input_RX[4]) : select_input_RX[4]; //for support of PureSignal
 
 receiver receiver_inst0(   // Rx1
 	//control// 
@@ -1526,7 +1529,7 @@ receiver receiver_inst4(	// Rx5 - has DAC data on TX
 	//control
 	.clock(C122_clk),
 	.rate(rate),
-	.frequency(C122_sync_phase_word_Tx),
+	.frequency(PS_enabled ? (FPGA_PTT ? C122_sync_phase_word_Tx : C122_sync_phase_word[4]) : C122_sync_phase_word[4]),
 	.out_strobe(strobe[4]),
 	//input
 	.in_data(select_input_special),
@@ -2106,6 +2109,7 @@ reg   [1:0] keyer_mode_in;			// 00 = straight/external/bug, 01 = Mode A, 10 = Mo
 reg   [7:0] keyer_weight;			// keyer weight 33-66
 reg         keyer_spacing;			// 0 = off, 1 = on
 reg   [4:0] atten_on_Tx;			// Rx attenuation value to use when Tx is active
+reg   PS_enabled;				// 0 = PureSignal disabled, 1 = PureSignal disabled
 
 always @ (posedge IF_clk)
 begin 
@@ -2155,7 +2159,8 @@ begin
     keyer_mode_in      <= 2'b0;	   // 00 = straight/external/bug, 01 = Mode A, 10 = Mode B
     keyer_weight       <= 8'b0;		// keyer weight 33-66
     keyer_spacing      <= 1'b0;	   // 0 = off, 1 = on
-	 atten_on_Tx		  <= 5'b11111; // default Rx attenuation value to use when Tx is active	
+    atten_on_Tx	        <= 5'b11111; // default Rx attenuation value to use when Tx is active	
+    PS_enabled          <= 1'b0;	// default PS_enabled (0 = PS is inactive)
   end
   else if (IF_Rx_save) 					// all Rx_control bytes are ready to be saved
   begin 										// Need to ensure that C&C data is stable 
@@ -2240,7 +2245,11 @@ begin
 		hang[1:0]	 		<= IF_Rx_ctrl_2[1:0];
 		tone_freq [11:4]  <= IF_Rx_ctrl_3;			// decode sidetone frequency, 12 bits
 		tone_freq [3:0]   <= IF_Rx_ctrl_4[3:0];	
-	end		
+	end
+ 	if (IF_Rx_ctrl_0[7:1] == 7'b0010_010)
+ 	begin
+ 	   PS_enabled			<= IF_Rx_ctrl_2[6];		// decode PureSignal state (0=disabled, 1=enabled)
+ 	end
   end
 end	
 
