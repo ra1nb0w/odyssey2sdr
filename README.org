@@ -9,8 +9,8 @@
 
 ** Why I started this repository?
 
-This wonderful project was done by David Fainitski N7DDC and you can
-find all his work at this [[https://github.com/Dfinitski/Odyssey-2_2017_TRX][url]].
+The hardware project was done by David Fainitski N7DDC and you can find all
+his work at this [[https://github.com/Dfinitski/Odyssey-2_2017_TRX][url]].
 
 I started this repository for the following reasons:
 

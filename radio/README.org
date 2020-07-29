@@ -40,9 +40,28 @@ The firmware is supported by the following software:
 - [[https://github.com/TAPR/OpenHPSDR-Thetis][OpenHPSDR Thetis]]
 - [[https://www.sdr-radio.com][SDR Console]]
 
+** MIC port
+
+The port is compatible with many Yaesu MIC such as MH-31.
+This table describes the pin out of the MIC PORT; from left to right
+as standard Ethernet port.
+
+|-----+------------+--------------------------------------------|
+| pin | short name | functionality                              |
+|-----+------------+--------------------------------------------|
+|   1 | DOWN       | long press enable/disable 1W amplifier     |
+|   2 | UP         | long press enable/disable audio amplifier  |
+|   3 | +5V DC     |                                            |
+|   4 | Mic GND    | microphone ground                          |
+|   5 | Mic Input  | microphone input                           |
+|   6 | PTT        | push-to-talk input                         |
+|   7 | GND        | chassis ground or speaker (check jumper 1) |
+|   8 | FAST       | power on/off the radio                     |
+|-----+------------+--------------------------------------------|
+
 ** EXT.IO
 
-This table describe the functionalities available from the /Ext.IO/
+This table describes the functionalities available from the /Ext.IO/
 D-Sub 15 pins port. The voltage range is GND to 3.3V.
 
 |-----+------------+-------------------------------------------------------------------------|
