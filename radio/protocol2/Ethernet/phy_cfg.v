@@ -83,7 +83,8 @@ always @(posedge clock)
     init_required <= 1;
     values[8] = {6'b0, allow_1Gbit, 9'b0};
     values[7] = 16'h8104;
-    values[6] = 16'h5270;  // plus rx and tx clock delay, in 0.12 ns units to reg 104h, changed 25 Sept
+    //values[6] = 16'h5270;  // plus rx and tx clock delay, in 0.12 ns units to reg 104h, changed 25 Sept
+    values[6] = 16'h4477;
     values[5] = 16'h8105;
     values[4] = 16'h0000;			// Rx pad skews, reg 105h		
     values[3] = 16'h8106;

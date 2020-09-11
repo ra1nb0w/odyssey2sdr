@@ -6,7 +6,7 @@
 // DIN      1     1     CH    1  ---------------------------------
 // DOUT  ---------------------------0     B11   B10    B9   B8    B7    B6    B5    B4    B3    B2    B1    B0
 
-module LF_ADC(clock, SCLK, nCS, MISO, MOSI, AIN1, AIN2, pk_detect_reset, pk_detect_ack);
+module ext_io_adc(clock, SCLK, nCS, MISO, MOSI, AIN1, AIN2, pk_detect_reset, pk_detect_ack);
 
 input  wire       clock;
 output reg        SCLK;
