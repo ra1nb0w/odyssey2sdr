@@ -1532,33 +1532,27 @@ sidetone sidetone_inst( .clock(CLRCLK), .enable(sidetone), .tone_freq(tone_freq)
 
 reg [15:0]temp_ADC[0:1];
 reg [15:0] temp_DACD;
+reg [15:0]temp_ADC_reg[0:1];
+
+// ODYSEEY 2: we are using ADC and DAC in offset binary mode
+// and not in 2's complement format as Anan devices
 
 always @ (posedge _122_90)
-	temp_DACD <= {C122_cordic_i_out[21:8], 2'b00}; 
+	temp_DACD <= {~C122_cordic_i_out[21], C122_cordic_i_out[20:8], 2'b00};
 
-always @ (posedge C122_clk) 
-begin 
+always @ (posedge LTC2208_122MHz)
+begin
+    temp_ADC_reg[0] <= {~INA[15], INA[14:0]};
+end
 
-	 //{DAC,x} <= {x, C122_cordic_i_out[21:8], 2'b0}; // make DACD 16-bits, use high bits for DACD
-	//temp_DACD <= {DACD, 2'b00};
-	
-	// ODYSSEY 2 RAND not present
-   //if (RAND) begin	// RAND set so de-ramdomize
-	//	if (INA[0]) temp_ADC[0] <= {~INA[15:1],INA[0]};
-	//	else temp_ADC[0] <= INA;
-	//end
-   //else
-	temp_ADC[0] <= INA;  // not set so just copy data	 
-		
-	//if (RAND_2) begin
-	//	if (INA_2[0]) temp_ADC[1] <= {~INA_2[15:1], INA_2[0]};
-	//	else temp_ADC[1] <= INA_2;	
-	//end
-	//else
-	temp_ADC[1] <= INA_2;
-	
-end 
+always @ (posedge LTC2208_122MHz_2)
+    temp_ADC_reg[1] <= {~INA_2[15], INA_2[14:0]};
 
+always @(posedge C122_clk)
+begin
+   temp_ADC[0] <= temp_ADC_reg[0];
+   temp_ADC[1] <= temp_ADC_reg[1];
+end
 
 
 //------------------------------------------------------------------------------
