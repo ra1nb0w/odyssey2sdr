@@ -26,10 +26,10 @@ esitate to open an issue or a pull request. thank you.
 
 ** Notes
 
-- when you flash this firmware over N7DDC you need to re-calibrate the
-  PD85004s 10K trimmer resistor since the RA2 voltage is lower than
-  before and therefore the RF output will be lower; RA2 is using the
-  fixed voltage reference (FVR) as reference.
+- when you flash this firmware over N7DDC you should re-calibrate the PD85004s
+  10K trimmer resistor since the RA2 voltage can be lower than before and
+  therefore the RF output will be lower; RA2 can use the fixed voltage reference
+  (FVR).
 
 ** Functionalities
 
