@@ -464,12 +464,13 @@ module Angelia(
 );
 
 assign VNA_out = VNA;
-assign ANT = SPI_Alex_data[25];
 assign TUNE = IF_autoTune;
 
 assign SPI_SDO     = IF_Apollo ? USEROUT4 : Alex_SDO;
 assign SPI_SCK     = IF_Apollo ? USEROUT5 : Alex_SCK;
-assign SPI_RX_LOAD = IF_Apollo ? USEROUT6: Alex_RX_LOAD; 
+assign SPI_RX_LOAD = IF_Apollo ? USEROUT6 : Alex_RX_LOAD; 
+// we use ANT2 to set TX load signal
+assign ANT         = IF_Apollo ? SPI_Alex_data[25] : Alex_TX_LOAD;
 
 assign _122MHz_out = INA_CLK;
 
@@ -514,7 +515,7 @@ mcu #(.fw_version(fw_version)) mcu_uart (.clk(INA_CLK),
 // Reset Lines - C122_rst, IF_rst, SPI_Alex_reset
 //--------------------------------------------------------------
 
-wire  IF_rst;
+wire IF_rst;
 wire SPI_Alex_rst;
 	
 assign IF_rst 	 = (!IF_locked || reset);		// hold code in reset until PLLs are locked & PHY operational
@@ -2536,9 +2537,11 @@ cdc_sync #(32)
 
 wire Alex_SDO;
 wire Alex_SCK;
-wire Alex_RX_LOAD;					  					  
+wire Alex_RX_LOAD;
+wire Alex_TX_LOAD;			  					  
 SPI Alex_SPI_Tx (.spi_clock(CBCLK), .reset (IF_rst), .enable(1'b1), .Alex_data(SPI_Alex_data), .SPI_data(Alex_SDO),
-                 .SPI_clock(Alex_SCK), .Rx_load_strobe(Alex_RX_LOAD));
+                 .SPI_clock(Alex_SCK), .Rx_load_strobe(Alex_RX_LOAD), .Tx_load_strobe(Alex_TX_LOAD), .if_DITHER(IF_DITHER));
+
 //---------------------------------------------------------
 //   State Machine to manage PWM interface
 //---------------------------------------------------------
