@@ -96,8 +96,12 @@ fpga_init(void) {
   T6CONbits.TMR6ON = 0;
 
   // disable the power amplifier line RA2
+#ifdef PA_BIAS_4096
   DACCON0bits.DACLPS = 0;
   DACCON1bits.DACR = 0x00;
+#else
+  IO_RA2_1W_PA_SetLow();
+#endif
 
   // disable the audio amplifier
   IO_RA6_AUDIO_AMPL_LAT = 1;
@@ -129,8 +133,12 @@ fpga_deinit(void)
   fpga_request_poweron = false;
 
   // disable the power amplifier line RA2
+#ifdef PA_BIAS_4096
   DACCON0bits.DACLPS = 0;
   DACCON1bits.DACR = 0x00;
+#else
+  IO_RA2_1W_PA_SetLow();
+#endif
 
   // disable the audio amplifier
   IO_RA6_AUDIO_AMPL_LAT = 1;
@@ -379,8 +387,12 @@ fpga_check_command(void)
                 // radio
               case 3:
                 // disable the power amplifier line RA2
+#ifdef PA_BIAS_4096
                 DACCON0bits.DACLPS = 0;
                 DACCON1bits.DACR = 0x00;
+#else
+                IO_RA2_1W_PA_SetLow();
+#endif
                 fpga_stage = FPGA_RADIO;
                 break;
 
@@ -388,8 +400,12 @@ fpga_check_command(void)
               case 4:
                 // check if we need to enable RA2 1W power amplifier
                 if (bit_is_set(fpga_status, 1)) {
+#ifdef PA_BIAS_4096
                   DACCON0bits.DACLPS = 1;
                   DACCON1bits.DACR = 0x1F;
+#else
+                  IO_RA2_1W_PA_SetHigh();
+#endif
                 }
                 fpga_stage = FPGA_PTT;
                 break;

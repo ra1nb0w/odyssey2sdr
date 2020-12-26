@@ -68,6 +68,7 @@ mcu_init(void) {
   // use RA2 (1W power amplifier power on) as ADC with
   // the voltage reference as backend to have a stable
   // voltage to drive the ST PD85004
+#ifdef PA_BIAS_4096
   TRISAbits.TRISA2 = 1;
   ANSELAbits.ANSA2 = 1;
   DACCON1 = 0x00;
@@ -81,6 +82,7 @@ mcu_init(void) {
   DACCON0bits.DACNSS = 0;
   // turn on the DAC
   DACCON0bits.DACEN=0;
+#endif
 
   // enable weak pull-ups globally
   OPTION_REGbits.nWPUEN = 0;
