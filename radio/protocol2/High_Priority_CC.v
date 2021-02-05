@@ -157,10 +157,10 @@ begin
 						1403:	Mercury_Attenuator     <=  udp_rx_data;	
 						
 						// parse the Alex data bytes into temp_Alex_data
-						1430: temp_Alex_data [31:24]	<= udp_rx_data; // Rx1 filters high byte
-						1431: temp_Alex_data [23:16]	<= udp_rx_data; // Rx1 filters low byte
-						1432:	temp_Alex_data [47:40]  <= udp_rx_data; // Tx filters data high byte
-						1433:	temp_Alex_data [39:32]  <= udp_rx_data; // Tx filters data low byte
+						1430: temp_Alex_data [47:40]	<= udp_rx_data; // Rx1 filters high byte
+						1431: temp_Alex_data [39:32]	<= udp_rx_data; // Rx1 filters low byte
+						1432:	temp_Alex_data [31:24]  <= udp_rx_data; // Tx filters data high byte
+						1433:	temp_Alex_data [23:16]  <= udp_rx_data; // Tx filters data low byte
 						1434:	temp_Alex_data [15:8]   <= udp_rx_data; // Rx0 filters data high byte
 						1435:	temp_Alex_data [7:0]    <= udp_rx_data; // Rx0 filters data low byte	
 		
