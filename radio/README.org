@@ -5,6 +5,8 @@
 ** Changes from N7DDC
 
 - the FPGA communicates to MCU with UART
+- support Alex SPI protocol and TAPR/F6ITU boards
+- sync source code with upstream TAPR ANAN-100D firmware
 
 ** TO DO
 
@@ -20,7 +22,7 @@ functionalities described above. The main limitation is that it
 requires a 100Mbit/s Ethernet switch or you need to force that speed
 if you have a manged switch.
 
-The firmware is supported by the following software:
+The protocol is supported by the following software:
 
 - [[https://github.com/g0orx/linhpsdr][linHPSDR]]
 - [[https://github.com/g0orx/pihpsdr][piHPSDR]]
@@ -33,7 +35,7 @@ Full features Angelia firmware with MCU UART channel and the same
 functionalities described above. It requires gigabit Ethernet switch
 or connection.
 
-The firmware is supported by the following software:
+The protocol is supported by the following software:
 
 - [[https://github.com/g0orx/linhpsdr][linHPSDR]]
 - [[https://github.com/g0orx/pihpsdr][piHPSDR]]
@@ -42,7 +44,7 @@ The firmware is supported by the following software:
 
 ** MIC port
 
-The port is compatible with many Yaesu MIC such as MH-31.
+The port is compatible with Yaesu MICs such as MH-31.
 This table describes the pin out of the MIC PORT; from left to right
 as standard Ethernet port.
 
@@ -99,7 +101,7 @@ therefore for a comprehensive information read the [[../bootloader/README.org][b
 
 ** Flash
 
-To flash the radio firmware into the device you the the /rbf/ file and
+To flash the radio firmware into the device you the /rbf/ file and
 the programmer. Put the radio in Bootloader mode, either by connecting
 both iambic keys to GND or using the programmer, then use the
 programmer to write the firmware to slot N. The programmed slot is
