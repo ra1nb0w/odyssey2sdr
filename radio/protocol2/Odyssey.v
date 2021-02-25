@@ -173,7 +173,7 @@ localparam board_type = 8'h03;		  	// 00 for Metis, 01 for Hermes, 02 for ANAN-1
 parameter  Angelia_version = 8'd116;	// FPGA code version
 parameter  protocol_version = 8'd33;	// openHPSDR protocol version implemented
 
-parameter [63:0] fw_version = "1.21 ANP";
+parameter [63:0] fw_version = "1.22 P2";
 
 
 // module to comunicate with MCU
