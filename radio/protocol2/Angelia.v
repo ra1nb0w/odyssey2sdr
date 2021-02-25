@@ -730,22 +730,22 @@ parameter  protocol_version = 8'd38;	// openHPSDR protocol version implemented
 //--------------------------------------------------------------
 // Odyssey 2: custom things
 //--------------------------------------------------------------
-parameter [63:0] fw_version = "12.00 P2";
+parameter [63:0] fw_version = "12.01 P2";
 assign VNA_out = VNA;
-assign ANT2_RELAY = Alex_data[25];
 
 // Odyssey 2 : we share the Alex SPI with the USEROUT4-6
-// TODO check why using DITH
-wire DITH, DITH_2;
-wire RAND, RAND_2;
+wire DITH;
+wire RAND;
 wire Alex_SPI_SDO;
 wire Alex_SPI_SCK;
-wire SPI_TX_LOAD;
+wire Alex_TX_LOAD;
 wire Alex_RX_LOAD;
-// ODYSSEY 2 TODO DITH
-assign SPI_SDO     = !DITH ? Alex_SPI_SDO : USEROUT4;
-assign SPI_SCK     = !DITH ? Alex_SPI_SCK : USEROUT5;
-assign SPI_RX_LOAD = !DITH ? Alex_RX_LOAD : USEROUT6;
+
+assign SPI_SDO     = Apollo ? USEROUT4 : Alex_SPI_SDO;
+assign SPI_SCK     = Apollo ? USEROUT5 : Alex_SPI_SCK;
+assign SPI_RX_LOAD = Apollo ? USEROUT6 : Alex_RX_LOAD;
+// we use ANT2 to set TX load signal
+assign ANT2_RELAY  = Apollo ? Alex_data[25] : Alex_TX_LOAD;
 
 // we use the main clock to pilot DAC
 assign _122MHz_out = C122_clk;
@@ -2017,11 +2017,8 @@ Rx_specific_CC #(1025, NR) Rx_specific_CC_inst // parameter is port number
 				.HW_reset(HW_reset4)
 			);			
 			
-assign  RAND   = random[0];        		//high turns random on
-assign  RAND_2 = random[1]; 
-// ODYSSEY 2 check with the usage on user ext io
-assign  DITH   = dither[0];      		//high turns LTC2208 dither on 
-assign  DITH_2 = dither[1]; 		
+assign  RAND   = random[0] | random[1];        		//high turns random on
+assign  DITH   = dither[0] | dither[1];      		//high turns LTC2208 dither on 	
 
 // transfer C&C data in rx_clock domain, on strobe, into relevant clock domains
 cdc_mcp #(32) Tx1_freq 
@@ -2107,8 +2104,8 @@ Attenuator Attenuator_ADC1 (.clk(CBCLK), .data(atten1), .ATTN_CLK(ATTN_CLK_2), .
 //----------------------------------------------
 
 SPI Alex_SPI_Tx (.reset (IF_rst), .enable(Alex_enable[0]), .Alex_data(SPI_Alex_data), .SPI_data(Alex_SPI_SDO),
-                 .SPI_clock(Alex_SPI_SCK), .Tx_load_strobe(SPI_TX_LOAD),
-                 .Rx_load_strobe(Alex_RX_LOAD), .spi_clock(CBCLK));	
+                 .SPI_clock(Alex_SPI_SCK), .Tx_load_strobe(Alex_TX_LOAD), .Rx_load_strobe(Alex_RX_LOAD),
+					  .if_DITHER(DITH), .spi_clock(CBCLK));	
 
 //---------------------------------------------------------
 //  Debounce inputs - active low
