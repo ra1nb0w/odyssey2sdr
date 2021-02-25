@@ -57,7 +57,7 @@
 	------ 	------------ 	-----------
 	Bit 16 - N.C. 				U2 - D0 		
 	Bit 17 - N.C. 				U2 - D1
-	Bit 18 - N.C. 				U2 - D2
+	Bit 18 - T/R Relay		U2 - D2 		Transmit is high, Rec Low (required by F6ITU Alexandrie/Mentor)
 	Bit 19 - YELLOW LED 		U2 - D3
 	Bit 20 - 30/20 Meters 	U2 - D4
 	Bit 21 - 60/40 Meters 	U2 - D5
@@ -76,9 +76,8 @@
 	
 	SPI data is sent to Alex whenever data changes.
 	On reset all outputs are set off. 
-	
-	
-	
+
+
 	*****************************************
 	Modified by David Fainitski
 	for Odyssey-2 TRX project
@@ -112,54 +111,72 @@ module SPI(
 				input [31:0]Alex_data,
 				output reg SPI_data,
 				output reg SPI_clock,
-				output reg Rx_load_strobe
+				output reg Rx_load_strobe,
+				output reg Tx_load_strobe,
+				input if_DITHER
 			);
 
-reg [3:0] spi_state;
+reg [2:0] spi_state;
 reg [4:0] data_count;
 reg [31:0] previous_Alex_data; 
+//reg loop_count; 					// used to send data word twice each time data word has changed
 
-wire [15:0] send_data = {Alex_data[23], Alex_data[22], Alex_data[21], Alex_data[20], Alex_data[31], Alex_data[30], Alex_data[6], Alex_data[5], 
-                        Alex_data[4], Alex_data[1], Alex_data[2], Alex_data[12], Alex_data[3], Alex_data[25], Alex_data[26], Alex_data[27]};
- 
+// if we are using DITHER use the David customized protocol otherwise the standard one
+wire [31:0] send_data = if_DITHER ?
+	{16'b0, Alex_data[23], Alex_data[22], Alex_data[21], Alex_data[20], Alex_data[31], Alex_data[30], Alex_data[6], Alex_data[5],
+    Alex_data[4], Alex_data[1], Alex_data[2], Alex_data[12], Alex_data[3], Alex_data[25], Alex_data[26], Alex_data[27]} :
+	{Alex_data[31:19], Alex_data[27], Alex_data[17:0]};
+
 always @ (posedge spi_clock)
 begin
 case (spi_state)
-0:	begin
-		if (reset | ( enable & (Alex_data != previous_Alex_data))) begin
-			data_count <= 15;				// set starting bit count to 15
-			spi_state <= 1;
+3'd0:	begin
+	if (reset | ( enable & (send_data != previous_Alex_data))) begin
+			previous_Alex_data <= reset ? 32'd0 : send_data; // save current data right away, it could change
+			data_count <= if_DITHER ? 5'd15 : 5'd31;
+			spi_state <= 3'd1;
 		end
+		else spi_state <= 3'd0;					// wait for Alex data to change
 	end		
-1:	begin
-	if (reset) 
-		SPI_data <= 1'b0;
-	else 
-		SPI_data <= send_data[data_count];	// set up data to send
-	spi_state <= 2;
+3'd1:	begin
+		SPI_data <= previous_Alex_data[data_count];	// set up data to send
+		spi_state <= 3'd2;
 	end
-2:	begin
+3'd2:	begin
 	SPI_clock <= 1'b1;					// set clock high
-	spi_state <= 3;
+	spi_state <= 3'd3;
 	end
-3:	begin
+3'd3:	begin
 	SPI_clock <= 1'b0;					// set clock low
-	spi_state <= 4;
+	spi_state <= 3'd4;
 	end
-4:	begin
-		if (data_count == 0)begin		// transfer complete
-			Rx_load_strobe <= 1'b1; 	// strobe data
-			spi_state <= 5;
+3'd4:	begin
+		if (data_count == 5'd16) begin		// transfer complete
+			Tx_load_strobe <= 1'b1; 	// strobe Tx data
+			spi_state <= 3'd5;
 		end
-		else spi_state  <= 1;  			// go round again
+		else if(data_count == 5'd0) begin
+			Rx_load_strobe <= 1'b1;
+			spi_state <= 3'd6;
+		end 
+		else spi_state  <= 3'd1;  			// go round again
 	data_count <= data_count - 1'b1;
 	end
-5:	begin
-	Rx_load_strobe <= 1'b0;				// reset strobe
-	previous_Alex_data <= Alex_data;
-	spi_state <= 0;						
+3'd5:	begin
+	Tx_load_strobe <= 1'b0;				// reset Tx strobe
+	spi_state <= 3'd1;				// now do Rx data
 	end
-default: spi_state <= 0;	
+3'd6:	begin
+	Rx_load_strobe <= 1'b0;				// reset Rx strobe
+//	loop_count <= loop_count + 1'b1; // loop_count increments each time the SPI data word is sent after a word change is detected
+//	if (loop_count == 1'b1) begin			
+//			data_count <= 5'd31;		// set starting bit count to 31
+//			spi_state <= 3'd1;			// send data word twice
+//		end
+//		else begin
+			spi_state <= 3'd0;			// reset for next run
+//		end
+	end
 	
 endcase
 end

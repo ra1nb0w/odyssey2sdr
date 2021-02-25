@@ -139,7 +139,6 @@ module Odyssey(
 );
 
 assign VNA_out = VNA;
-assign ANT = Alex_data[25];
 
 assign _122MHz_out = C122_clk;
 
@@ -156,9 +155,11 @@ assign USEROUT4 = Open_Collector[5];
 assign USEROUT5 = Open_Collector[6]; 
 assign USEROUT6 = Open_Collector[7]; 
 
-assign SPI_SDO     = !DITH ? Alex_SDO : USEROUT4;
-assign SPI_SCK     = !DITH ? Alex_SCK : USEROUT5;
-assign SPI_RX_LOAD = !DITH ? Alex_RX_LOAD : USEROUT6;
+assign SPI_SDO     = Apollo ? USEROUT4 : Alex_SDO;
+assign SPI_SCK     = Apollo ? USEROUT5 : Alex_SCK;
+assign SPI_RX_LOAD = Apollo ? USEROUT6 : Alex_RX_LOAD;
+// we use ANT2 to set TX load signal
+assign ANT         = Apollo ? Alex_data[25] : Alex_TX_LOAD;
 
 assign NCONFIG = IP_write_done;
 
@@ -1325,8 +1326,8 @@ Rx_specific_CC #(1025, NR) Rx_specific_CC_inst // parameter is port number
 				.HW_reset(HW_reset4)
 			);			
 			
-assign  RAND   = random[0];        		//high turns random on
-assign  DITH   = dither[0];      		//high turns LTC2208 dither on  		
+assign  RAND   = random[0] | random[1];        		//high turns random on
+assign  DITH   = dither[0] | dither[1];      		//high turns LTC2208 dither on  		
 
 // transfer C&C data in rx_clock domain, on strobe, into relevant clock domains
 cdc_mcp #(32) Tx1_freq 
@@ -1410,9 +1411,11 @@ Attenuator atten (.clk(CMCLK), .att(atten0), .att_2(atten1), .ATTN_CLK(ATTN_CLK)
 wire Alex_SDO;
 wire Alex_SCK;
 wire Alex_RX_LOAD;
+wire Alex_TX_LOAD;
 
-SPI Alex_SPI_Tx (.reset (IF_rst), .enable(Alex_enable[1]), .Alex_data(SPI_Alex_data), .SPI_data(Alex_SDO),
-                 .SPI_clock(Alex_SCK), .Rx_load_strobe(Alex_RX_LOAD), .spi_clock(CBCLK));	
+SPI Alex_SPI_Tx (.reset (IF_rst), .enable(Alex_enable[0]), .Alex_data(SPI_Alex_data), .SPI_data(Alex_SDO),
+                 .SPI_clock(Alex_SCK), .Rx_load_strobe(Alex_RX_LOAD), .Tx_load_strobe(Alex_TX_LOAD),
+					  .spi_clock(CBCLK), .if_DITHER(DITH));	
 
 //---------------------------------------------------------
 //  Debounce inputs - active low
