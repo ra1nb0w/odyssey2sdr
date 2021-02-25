@@ -89,6 +89,7 @@ You can choose between two SPI protocols in the Alex configuration:
 - enabling dithering (not available in the used ADCs) you can enable the customized N7DDC protocol.
 
 You can find the SPI protocol definition in the following [[protocol1/SPI.v][file]].
+
 For the customized protocol you can read [[../pcb/docs/Overview of the first firmware for the Odyssey-2 transceiver. — Odyssey.pdf][Overview of the first firmware]] by N7DDC.
 
 ** Build
