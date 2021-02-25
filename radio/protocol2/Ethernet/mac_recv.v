@@ -50,8 +50,8 @@ module mac_recv(
 //-----------------------------------------------------------------------------
 //                            state machine
 //-----------------------------------------------------------------------------
-localparam ST_DST_ADDR = 3'd0, ST_SRC_ADDR = 3'd1, ST_PROTO = 3'd2, ST_PAYLOAD = 3'd3, ST_ERROR = 3'd4;
-reg[2:0] state = ST_DST_ADDR;
+localparam ST_DST_ADDR = 5'd1, ST_SRC_ADDR = 5'd2, ST_PROTO = 5'd4, ST_PAYLOAD = 5'd8, ST_ERROR = 5'd16;
+reg[4:0] state;
 
 reg [2:0] byte_no;
 reg unicast;

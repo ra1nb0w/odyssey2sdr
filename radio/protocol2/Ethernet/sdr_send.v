@@ -2,10 +2,6 @@
 //                          sdr send
 //-----------------------------------------------------------------------------
 
-//-----------------------------------------------------------------------------
-//                          sdr send
-//-----------------------------------------------------------------------------
-
 //
 //  HPSDR - High Performance Software Defined Radio
 //
@@ -133,7 +129,7 @@ wire [31:0] clock_frequency = master_clock;
 //datetime datetime_inst(.epoch_min (epoch_min));
 
 always @(posedge tx_clock) 
-/*
+`ifdef nostuck
   begin
   if ((state > IDLE) && !run) begin				// prevents code getting stuck when run not active
       if (stuck_cnt < 29'd250000000)
@@ -145,7 +141,7 @@ always @(posedge tx_clock)
   end
   else
       stuck_cnt <= 29'd0;
- */
+`endif
 
 
   if (!run && state > SEND) state <= IDLE;

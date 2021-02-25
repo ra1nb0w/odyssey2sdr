@@ -62,7 +62,6 @@ case (prof_state)
 
 0: 	begin
 		 timer <= 0;
-		 char_PTT <= 0;
        enable_hang <= 0;				
 		 if (CW_char) begin  			// apply leading profile
 			char_PTT <= 1'b1; 			// activate PTT from key press
@@ -71,6 +70,7 @@ case (prof_state)
 				prof_state <= 2;			// so go straight to profie generation
 			else prof_state <= 1;			
 		  end 
+		 else char_PTT <= 0;
 		end
 		
 1: begin										// delay for set mS
@@ -99,7 +99,7 @@ case (prof_state)
 			timer <= 0;
 			prof_state <= 4;
 		end 
-		else timer <= timer + 16'd1;
+		else timer = timer + 16'd1;
 	end
 	
 4: begin	

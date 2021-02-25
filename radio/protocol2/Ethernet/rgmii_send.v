@@ -22,6 +22,7 @@
 
 
 module rgmii_send (
+  input speed_1Gbit, 
   input [7:0] data,
   input tx_enable,   
   output active,  
@@ -32,8 +33,7 @@ module rgmii_send (
   //hardware pins
   output [3:0]PHY_TX,
   output PHY_TX_EN,              
-  output PHY_TX_CLOCK, 
-  input  PHY_RX_CLOCK,  
+  output PHY_TX_CLOCK,    
   input  PHY_CLK125
   );
   
@@ -43,28 +43,25 @@ module rgmii_send (
 //-----------------------------------------------------------------------------  
 //                              clocks
 //-----------------------------------------------------------------------------
-//
-// PHY_RX_CLK used as a source instead PHY_CLK125
-// PHY_TX_CLK also used in the rgmii_rcv.v module as a clock delayed to 90 deg respect to PHY_RX_CLK
-// David Fainitski for Odyssey-II project, 2017
-
-
-wire clock_125_MHz_0_deg, clock_125_MHz_90_deg, clock_25_MHz_180_deg;
+wire clock_125_mhz_0_deg, clock_125_mhz_90_deg;
   
 tx_pll	tx_pll_inst (
-	.inclk0 (PHY_RX_CLOCK),
-	.c0 (clock_125_MHz_0_deg),
-	.c1 (clock_125_MHz_90_deg),
+	.inclk0 (PHY_CLK125),
+	.c0 (clock_125_mhz_0_deg),
+	.c1 (clock_125_mhz_90_deg),
 	.c2 (clock_12_5MHz),
-	.c3 (clock_25_MHz_180_deg),
-	.c4 (clock_2_5MHz)
+	.c3 (clock_2_5MHz)
 	);   
    
 
-assign clock = clock_125_MHz_0_deg;
-assign PHY_TX_CLOCK = clock_125_MHz_90_deg;
+assign clock = clock_125_mhz_0_deg;
+assign PHY_TX_CLOCK = clock_125_mhz_90_deg;
 
 
+ 
+
+
+ 
 //-----------------------------------------------------------------------------  
 //                            shift reg
 //-----------------------------------------------------------------------------
@@ -74,17 +71,20 @@ localparam HI_BIT = 8*PREAMB_LEN - 1;
 reg [HI_BIT:0] shift_reg;  
 reg [3:0] bytes_left;
 
+
+
+
+  
   
 //-----------------------------------------------------------------------------  
 //                           state machine
 //-----------------------------------------------------------------------------
-localparam ST_IDLE = 2'd0, ST_SEND = 2'd1, ST_GAP = 2'd2;
+localparam ST_IDLE = 1, ST_SEND = 2, ST_GAP = 4;
 reg [2:0] state = ST_IDLE;
 
 
 wire sending = tx_enable | (state == ST_SEND);
 assign active = sending | (state == ST_GAP);
-
 
 always @(posedge clock)
   begin
@@ -118,8 +118,6 @@ always @(posedge clock)
 //-----------------------------------------------------------------------------  
 //                             output
 //-----------------------------------------------------------------------------
-
-
 ddio_out	ddio_out_inst (
 	.datain_h({sending, shift_reg[HI_BIT-4 -: 4]}),
 	.datain_l({sending, shift_reg[HI_BIT -: 4]}),   
@@ -127,6 +125,8 @@ ddio_out	ddio_out_inst (
 	.dataout({PHY_TX_EN, PHY_TX})
 	);  
 
-
+   
+  
+  
 endmodule
   

@@ -59,8 +59,8 @@ crc32 crc32_inst (
   
   
 //state
-localparam ST_IDLE = 3'd0, ST_HEADER = 3'd1, ST_PAYLOAD = 3'd2, ST_TAIL = 3'd3, ST_CRC = 3'd4;
-reg [2:0] state = ST_IDLE;  
+localparam ST_IDLE = 1, ST_HEADER = 2, ST_PAYLOAD = 4, ST_TAIL = 8, ST_CRC = 16;
+reg [4:0] state = ST_IDLE;  
 
 
 assign active = !reset && (tx_enable || (state != ST_IDLE));

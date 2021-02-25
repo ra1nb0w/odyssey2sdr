@@ -5,13 +5,6 @@
 //
 //  This program is free software; you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
-//
-//  HPSDR - High Performance Software Defined Radio
-//
-//  Hermes code. 
-//
-//  This program is free software; you can redistribute it and/or modify
-//  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation; either version 2 of the License, or
 //  (at your option) any later version.
 //
@@ -53,24 +46,21 @@ The register data is latched once LE goes high.
 
 */
 
-module Attenuator (clk, att, att_2, ATTN_CLK, ATTN_DATA, ATTN_LE, ATTN_LE_2);
+module Attenuator (clk, data, ATTN_CLK, ATTN_DATA, ATTN_LE);
 
 input clk;								   // CMCLK - 12.288MHz
-input [4:0]att;		            	// Attenuator setting
-input [4:0]att_2; 
+input [4:0]data;		            	// Attenuator setting 
 output reg ATTN_CLK;					   // clock to attenuator chip - max 10MHz 
 output reg ATTN_DATA;					// data to attenuator chip
 output reg ATTN_LE;						// data latch to attenuator chip]
-output reg ATTN_LE_2;
 
 reg [2:0]bit_count;
-wire [5:0]send_data, send_data_2;
+wire [5:0]send_data;
 
-assign send_data = {att, 1'b0};		// append 0 to end of data
-assign send_data_2 = {att_2, 1'b0};		
+assign send_data = {data, 1'b0};		// append 0 to end of data
 
 reg [3:0] state;
-reg [5:0] previous_data, previous_data_2;
+reg [5:0] previous_data;
 
 always @ (negedge clk)
 begin
@@ -79,8 +69,7 @@ case (state)
 
 0: begin 
    bit_count <= 6;
-   previous_data <= att;				// save current attenuator data in case it changes whilst we are 
-	previous_data_2 <= att_2;
+   previous_data <= data;				// save current attenuator data in case it changes whilst we are 
    state <= state + 1'b1;				// send data
    end 
 
@@ -110,55 +99,16 @@ case (state)
 	ATTN_LE <= 1'b1;
 	state <= state + 1'b1;
 	end
-	
-	
-// send to 2-nd ATT
-5: begin
-   ATTN_LE <= 0;
-	bit_count <= 6;
-	state <= state + 1'b1;
-	end
-	
-6:	begin
-	ATTN_DATA <= send_data_2[bit_count - 1];
-	state <= state + 1'b1;
-	end
-	
-// clock data out, set clock high  
-7:  begin 
-	bit_count <= bit_count - 1'b1;
-	ATTN_CLK <= 1'b1;
-	state <= state + 1'b1;
-	end 
-	
-// set clock low	
-8:	begin
-	ATTN_CLK <= 0;
-		if (bit_count == 0) begin		// all data sent? If so send latch signal
-			state <= state + 1'b1;
-		end 
-		else state <= 4'd6;				// more bits to send
-	end
-	 
-// delay before we send the LE as required by the attenuator chip	
-9:	begin
-	ATTN_LE_2 <= 1'b1;
-	state <= state + 1'b1;
-	end
-	
-	
-	
-	
+
 // reset LE pulse and wait until data changes	
-10:	begin
-	ATTN_LE_2 <= 0;
-		if (att != previous_data | att_2 != previous_data_2) begin  // loop here until data changes
+5:	begin
+	ATTN_LE <= 0;
+		if (data != previous_data) begin  // loop here until data changes
 			state <= 0;
 		end
 	end 
 	
 endcase
-
 end 
 
 endmodule

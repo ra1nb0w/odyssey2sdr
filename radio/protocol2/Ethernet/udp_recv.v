@@ -46,8 +46,8 @@ module udp_recv(
 
   
 
-localparam IDLE = 3'd0, PORT = 3'd1, VERIFY = 3'd2, ST_PAYLOAD = 3'd3, ST_DONE = 3'd4;
-reg[2:0] state;
+localparam IDLE = 4'd1, PORT = 4'd2, VERIFY = 4'd3, ST_PAYLOAD = 4'd4, ST_DONE = 4'd5;
+reg[3:0] state;
 reg [10:0] header_len, packet_len, byte_no;
 reg dhcp_data;
 reg [15:0] remote_port;
@@ -82,8 +82,7 @@ always @(posedge clock)
 			 
 	           // verify DHCP, broadcast to port 1024  or the ip address its being sent to then save packet length				 
 				 5: begin 
-					//	if (to_port == 16'd68) dhcp_data <= 1'b1;				// check for DHCP data
-						if (to_port == 16'd68) state <= ST_DONE;				// check for DHCP data, not supported on 10E.
+						if (to_port == 16'd68) dhcp_data <= 1'b1;				// check for DHCP data
 						else if (broadcast) begin
 								if (to_port != 16'd1024) state <= ST_DONE;
 						end 

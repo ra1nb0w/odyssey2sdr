@@ -63,6 +63,7 @@ input wire [4:0] line_in_gain;
 reg   [3:0] load;
 reg   [3:0] TLV;
 reg  [15:0] TLV_data;
+reg  [15:0] latch_TLV_data;
 reg   [3:0] bit_cnt;
 reg         prev_boost;
 reg         prev_line;
@@ -101,8 +102,10 @@ begin
   begin
     nCS <= 1'b1;        					// set TLV320 CS high
     bit_cnt <= 4'd15;   					// set starting bit count to 15
-    if (tlv_timeout == (200*12288)) 	// wait for 200mS timeout
+    if (tlv_timeout == (200*12288)) begin 	// wait for 200mS timeout
+      latch_TLV_data <= TLV_data;		// save the current settings
       TLV <= 4'd1;
+    end
     else
       TLV <= 4'd0;
   end
@@ -110,7 +113,7 @@ begin
   4'd1:
   begin
     nCS  <= 1'b0;                		// start data transfer with nCS low
-    MOSI <= TLV_data[bit_cnt];  			// set data up
+    MOSI <= latch_TLV_data[bit_cnt];  			// set data up
     TLV  <= 4'd2;
   end
 
@@ -144,7 +147,7 @@ begin
 
   4'd5:
   begin
-    if (load == 7) begin					// stop when all data sent, and wait for boost to change
+    if (load == 7) begin					// stop when all data sent, and wait for boost to change 
 		nCS <= 1'b1;        					// set CS high               
 		  if (boost != prev_boost || line != prev_line || line_in_gain != prev_line_in_gain) begin  // has boost or line in or line-in gain changed?
 			load <= 0;

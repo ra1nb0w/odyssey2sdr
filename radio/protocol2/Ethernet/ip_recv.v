@@ -27,6 +27,7 @@ module ip_recv(
   input rx_enable,
   input [7:0] data,
   input broadcast,
+  input [31:0] local_ip,
 
   //output
   output active,
@@ -39,8 +40,8 @@ module ip_recv(
 
   
 
-localparam ST_IDLE = 3'd0, ST_HEADER = 3'd1, ST_PAYLOAD = 3'd2, ST_DONE = 3'd3;
-reg[2:0] state = ST_IDLE;
+localparam ST_IDLE = 4'd1, ST_HEADER = 4'd2, ST_PAYLOAD = 4'd4, ST_DONE = 4'd8;
+reg[3:0] state;
 reg [10:0] header_len, packet_len, byte_no;
 reg [31:0] temp_remote_ip;
 
@@ -67,9 +68,8 @@ always @(posedge clock)
 			  4: packet_len[7:0]  <= data;
 
 			  //determine the protocol
-			 10: // if (data == 8'd1) is_icmp <= 1'b1; //  ICMP not supported on ANAN-10E.
-				  // else 
-				  if (data == 8'h11)   // then will be udp
+			 10: if (data == 8'd1) is_icmp <= 1'b1;
+				  else if (data == 8'h11)   // then will be udp
 						is_icmp <= 1'b0;
 				  else state <= ST_DONE;	  // neither so exit
             
@@ -79,32 +79,41 @@ always @(posedge clock)
 			 15: temp_remote_ip[15:8]  <= data;
 			 16: temp_remote_ip[7:0]   <= data;
 				
-          //save to_ip	if not broadcast	 
-			 17: begin 
-						remote_ip <= temp_remote_ip;
-					   if (!broadcast) to_ip[31-:8] <= data;  // save the ip address this packet is addressed to
-				  end
-				  
-			 18: if (!broadcast) to_ip[23-:8] <= data;
-				  
-			 19: if (!broadcast) to_ip[15-:8] <= data;				  
-				  
-				  
-			 20: 	if (broadcast) begin
-							if (byte_no == header_len) begin
-							 byte_no <= 11'd1;
-							 state <= ST_PAYLOAD;
-						end
-					end				
-				 else 
-					begin
-						to_ip[7-:8] <= data;
-						if (byte_no == header_len) begin
-							 byte_no <= 11'd1;
-							 state <= ST_PAYLOAD;
-					   end 
-				  end 
-            
+          //verify broadcast - or save to_ip		 
+	  17: begin 
+	     remote_ip <= temp_remote_ip;
+	     if (broadcast) begin 
+		if (data != 8'd255 && data != local_ip[31-:8]) state <= ST_DONE;  
+	     end
+	     else  to_ip[31-:8] <= data;  // save the ip address this packet is addressed to
+	  end
+	  
+	  18: if (broadcast) begin
+	     if (data != 8'd255 && data != local_ip[23-:8]) state <= ST_DONE;
+	  end 
+	  else  to_ip[23-:8] <= data;
+	  
+	  19: if (broadcast) begin 
+	     if (data != 8'd255 && data != local_ip[15-:8]) state <= ST_DONE;
+	  end 
+	  else  to_ip[15-:8] <= data;
+	  
+	  
+	  20: 	if (broadcast) begin
+	     if(data != 8'd255) state <= ST_DONE; 
+	     else if (byte_no == header_len) begin
+		byte_no <= 11'd1;
+		state <= ST_PAYLOAD;
+	     end
+	  end				
+	  else begin
+	     to_ip[7-:8] <= data;
+	     if (byte_no == header_len) begin
+		byte_no <= 11'd1;
+		state <= ST_PAYLOAD;
+	     end 
+	  end 
+          
           default
             if (byte_no == header_len) state <= ST_PAYLOAD;
         endcase    

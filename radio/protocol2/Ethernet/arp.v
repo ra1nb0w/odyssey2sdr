@@ -53,8 +53,8 @@ module arp (
 //rx_bits = {80'h_0806_0001_0800_0604_0001, destination_mac, 32'bx, 48'bx, local_ip};
 
 
-localparam ST_IDLE = 3'd0, ST_RX = 3'd1, ST_TXREQ = 3'd2, ST_TX = 3'd3, ST_ERR = 3'd4; 
-reg [2:0] state = ST_IDLE;
+localparam ST_IDLE = 5'd1, ST_RX = 5'd2, ST_TXREQ = 5'd4, ST_TX = 5'd8, ST_ERR = 5'd16; 
+reg [4:0] state = ST_IDLE;
 
 
 localparam RX_LEN = 5'd28;

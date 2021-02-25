@@ -105,7 +105,8 @@ module iambic (
 				input dash_key,					// dash paddle input, active high
 				input CWX,						   // CW data from PC active high
 				input paddle_swap,				// swap if set
-				output reg keyer_out				// keyer output, active high
+				output reg keyer_out,			// keyer output, active high
+				input IO5							// additional CW key via digital input IO5, debounced, inverted
 				);
 				
 parameter   clock_speed = 30;					// default clock speed of 30kHz from PLL 
@@ -163,7 +164,7 @@ LOOP:
 				key_state <= PREDOT;
 			else if (dash)
 				key_state <= PREDASH;
-			else keyer_out <= CWX;			// neither so use CWX ext CW digital input
+			else keyer_out <= (CWX || IO5);					// neither so use CWX or IO5 ext CW digital input
 		end 	
 	end 
 		
@@ -184,7 +185,7 @@ PREDASH:
 SENDDOT:
    	begin 
 	keyer_out <= 1'b1;
-		if (delay == dot_delay)begin
+		if (delay >= dot_delay)begin
 			delay <= 0;
 			keyer_out <= 1'b0;
 			key_state <= DOTDELAY;				// add inter-character spacing of one dot length
@@ -205,7 +206,7 @@ SENDDOT:
 SENDDASH:
 	begin
 	keyer_out <= 1'b1;
-		if (delay == dash_delay) begin
+		if (delay >= dash_delay) begin
 			delay <= 0;
 			keyer_out <= 1'b0;
 			key_state <= DASHDELAY;				// add inter-character spacing of one dot length
@@ -213,7 +214,7 @@ SENDDASH:
 		else delay <= delay  + 1;
 		
 	// if Mode A and both padles are relesed then clear dot memory
-	if (keyer_mode == 0 ) begin	
+	if (keyer_mode == 0) begin	
 		if (!dot & !dash)
 				dot_memory <= 0;
 	end
@@ -224,7 +225,7 @@ SENDDASH:
 // add dot delay at end of the dot and check for dash memory, then check if paddle still held
 DOTDELAY:
 	begin
-		if (delay == dot_delay) begin
+		if (delay >= dot_delay) begin
 			delay <= 0;
 			if(!iambic) 									// just return if in bug mode
 				key_state <= LOOP;
@@ -240,7 +241,7 @@ DOTDELAY:
 // add dot delay at end of the dash and check for dot memory, then check if paddle still held
 DASHDELAY:
 	begin
-		if (delay == dot_delay) begin
+		if (delay >= dot_delay) begin
 			delay <= 0;
 			if (dot_memory)							// dot has been set during the dash so service
 				key_state <= PREDOT;
@@ -283,7 +284,7 @@ DASHHELD:
 // Actually add 2 x dot_delay since we already have a dot delay at the end of the character.
 LETTERSPACE:
 	begin
-		if (delay == 2 * dot_delay) begin	
+		if (delay >= 2 * dot_delay) begin	
 			delay <= 0;
 			if (dot_memory) 							// check if a dot or dash paddle was pressed during the delay.
 				key_state <= PREDOT;

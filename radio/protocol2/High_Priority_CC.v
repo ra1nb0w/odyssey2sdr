@@ -1,3 +1,28 @@
+//-----------------------------------------------------------------------------
+//                          High_Priority_CC.v
+//-----------------------------------------------------------------------------
+
+//
+//  HPSDR - High Performance Software Defined Radio
+//
+//  
+//  This program is free software; you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation; either version 2 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+//  Copyright 2010, 2011, 2012, 2013, 2014  Phil Harman VK6(A)PH
+
 // ***** need to check sequence error 
 
 /*
@@ -157,10 +182,10 @@ begin
 						1403:	Mercury_Attenuator     <=  udp_rx_data;	
 						
 						// parse the Alex data bytes into temp_Alex_data
-						1430: temp_Alex_data [47:40]	<= udp_rx_data; // Rx1 filters high byte
-						1431: temp_Alex_data [39:32]	<= udp_rx_data; // Rx1 filters low byte
-						1432:	temp_Alex_data [31:24]  <= udp_rx_data; // Tx filters data high byte
-						1433:	temp_Alex_data [23:16]  <= udp_rx_data; // Tx filters data low byte
+						1430: temp_Alex_data [31:24]	<= udp_rx_data; // Rx1 filters high byte
+						1431: temp_Alex_data [23:16]	<= udp_rx_data; // Rx1 filters low byte
+						1432:	temp_Alex_data [47:40]  <= udp_rx_data; // Tx filters data high byte
+						1433:	temp_Alex_data [39:32]  <= udp_rx_data; // Tx filters data low byte
 						1434:	temp_Alex_data [15:8]   <= udp_rx_data; // Rx0 filters data high byte
 						1435:	temp_Alex_data [7:0]    <= udp_rx_data; // Rx0 filters data low byte	
 		

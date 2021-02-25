@@ -21,7 +21,7 @@
 
 // 2013 Jan 26	- Modified to accept decimation values from 1-40. VK6APH 
 
-module cic(reset, decimation, clock, in_strobe,  out_strobe, in_data, out_data );
+module cic(reset, decimation, clock, in_strobe,  out_strobe, in_data, out_data);
 
   //design parameters
   parameter STAGES = 5; //  Sections of both Comb and Integrate
@@ -33,7 +33,7 @@ module cic(reset, decimation, clock, in_strobe,  out_strobe, in_data, out_data )
   // derived parameters
   parameter ACC_WIDTH = IN_WIDTH + (STAGES * $clog2(MAX_DECIMATION));
   
-  input [6:0] decimation; 
+  input [$clog2(MAX_DECIMATION):0] decimation; 
   
   input reset;
   input clock;
@@ -87,6 +87,12 @@ always @(posedge clock) begin
 	integer index;
 
 	//  Integrators
+	if (reset) begin 
+			for(index = 1; index < STAGES + 1; index = index + 1) begin
+			integrator_data[index] <= 0;
+		end
+	end 
+	else	
 	if(in_strobe) begin
 		integrator_data[1] <= integrator_data[1] + in_data;
 		for(index = 1; index < STAGES; index = index + 1) begin
@@ -95,6 +101,11 @@ always @(posedge clock) begin
 	end
 
 	// Combs
+	if(reset) begin
+			for(index = 1; index < STAGES + 1; index = index + 1) begin
+			comb_data[index]  <= 0;	
+			end
+	end
 	if(out_strobe) begin
 		comb_data[1] <= integrator_data[STAGES] - comb_last[0];
 		comb_last[0] <= integrator_data[STAGES];
@@ -115,8 +126,8 @@ generate
 		assign out_data = comb_data[STAGES][ACC_WIDTH - 1 -: OUT_WIDTH] + comb_data[STAGES][ACC_WIDTH - OUT_WIDTH - 1];
 	end else begin
 		wire [$clog2(ACC_WIDTH)-1:0] msb [MAX_DECIMATION:MIN_DECIMATION];
-		for(i = MIN_DECIMATION; i <= MAX_DECIMATION; i = i + 1'd1) begin: round_position
-			assign msb[i] = IN_WIDTH + ($clog2(i) * STAGES) - 1'd1 ;
+		for(i = MIN_DECIMATION; i <= MAX_DECIMATION; i = i + 1) begin: round_position
+			assign msb[i] = IN_WIDTH + ($clog2(i) * STAGES) - 1 ;
 		end
 
 		assign out_data = comb_data[STAGES][msb[decimation] -: OUT_WIDTH] + comb_data[STAGES][msb[decimation] - OUT_WIDTH];

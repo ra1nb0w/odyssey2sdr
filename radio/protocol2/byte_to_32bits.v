@@ -103,7 +103,7 @@ case (main)
 		  end
 	  6: begin 
 				data_out[7:0] <= udp_rx_data;
-				if(byte_counter == 64) begin	// MUST get 64 = 64 x 32 bit I&Q samples.
+				if(byte_counter == 64) begin	// MUST get 1440 bytes = 360 x 32 bit I&Q samples.  // ** was 360
 					byte_counter <= 0;
 					byte_number <= 0;
 					if (!udp_rx_active)  		// only return to IDLE state when udp_rx_active has dropped

@@ -66,9 +66,11 @@ always @(posedge clock)
   end 
   else shift_reg <= tx_bits;	  
   //send while payload is coming
-  if (tx_enable) begin byte_no <= length_out -16'd1; sending <= true; end
+  if (tx_enable) begin
+    byte_no <= length_in + 16'd7; //length_out -16'd1;
+    sending <= true; end
   //purge shift register
-  else if (byte_no != 0) byte_no <= byte_no - 15'd1;
+  else if (byte_no != 0) byte_no <= byte_no - 16'd1;
   //done
   else sending <= false;
   end

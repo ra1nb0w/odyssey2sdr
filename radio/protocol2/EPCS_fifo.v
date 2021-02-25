@@ -4,7 +4,7 @@
 // MODULE: dcfifo 
 
 // ============================================================
-// File Name: Rx_fifo.v
+// File Name: EPCS_fifo.v
 // Megafunction Name(s):
 // 			dcfifo
 //
@@ -37,7 +37,7 @@
 // synopsys translate_off
 `timescale 1 ps / 1 ps
 // synopsys translate_on
-module Rx_fifo (
+module EPCS_fifo (
 	aclr,
 	data,
 	rdclk,
@@ -49,7 +49,6 @@ module Rx_fifo (
 	rdfull,
 	rdusedw,
 	wrempty,
-	wrfull,
 	wrusedw);
 
 	input	  aclr;
@@ -61,10 +60,9 @@ module Rx_fifo (
 	output	[7:0]  q;
 	output	  rdempty;
 	output	  rdfull;
-	output	[11:0]  rdusedw;
+	output	[10:0]  rdusedw;
 	output	  wrempty;
-	output	  wrfull;
-	output	[11:0]  wrusedw;
+	output	[10:0]  wrusedw;
 `ifndef ALTERA_RESERVED_QIS
 // synopsys translate_off
 `endif
@@ -76,17 +74,15 @@ module Rx_fifo (
 	wire [7:0] sub_wire0;
 	wire  sub_wire1;
 	wire  sub_wire2;
-	wire [11:0] sub_wire3;
+	wire [10:0] sub_wire3;
 	wire  sub_wire4;
-	wire  sub_wire5;
-	wire [11:0] sub_wire6;
+	wire [10:0] sub_wire5;
 	wire [7:0] q = sub_wire0[7:0];
 	wire  rdempty = sub_wire1;
 	wire  rdfull = sub_wire2;
-	wire [11:0] rdusedw = sub_wire3[11:0];
+	wire [10:0] rdusedw = sub_wire3[10:0];
 	wire  wrempty = sub_wire4;
-	wire  wrfull = sub_wire5;
-	wire [11:0] wrusedw = sub_wire6[11:0];
+	wire [10:0] wrusedw = sub_wire5[10:0];
 
 	dcfifo	dcfifo_component (
 				.aclr (aclr),
@@ -100,17 +96,17 @@ module Rx_fifo (
 				.rdfull (sub_wire2),
 				.rdusedw (sub_wire3),
 				.wrempty (sub_wire4),
-				.wrfull (sub_wire5),
-				.wrusedw (sub_wire6),
-				.eccstatus ());
+				.wrusedw (sub_wire5),
+				.eccstatus (),
+				.wrfull ());
 	defparam
 		dcfifo_component.add_usedw_msb_bit = "ON",
-		dcfifo_component.intended_device_family = "Cyclone IV E",
-		dcfifo_component.lpm_numwords = 2048,
+		dcfifo_component.intended_device_family = "Cyclone III",
+		dcfifo_component.lpm_numwords = 1024,
 		dcfifo_component.lpm_showahead = "OFF",
 		dcfifo_component.lpm_type = "dcfifo",
 		dcfifo_component.lpm_width = 8,
-		dcfifo_component.lpm_widthu = 12,
+		dcfifo_component.lpm_widthu = 11,
 		dcfifo_component.overflow_checking = "ON",
 		dcfifo_component.rdsync_delaypipe = 4,
 		dcfifo_component.read_aclr_synch = "OFF",
@@ -131,10 +127,10 @@ endmodule
 // Retrieval info: PRIVATE: AlmostFullThr NUMERIC "-1"
 // Retrieval info: PRIVATE: CLOCKS_ARE_SYNCHRONIZED NUMERIC "0"
 // Retrieval info: PRIVATE: Clock NUMERIC "4"
-// Retrieval info: PRIVATE: Depth NUMERIC "2048"
+// Retrieval info: PRIVATE: Depth NUMERIC "1024"
 // Retrieval info: PRIVATE: Empty NUMERIC "1"
 // Retrieval info: PRIVATE: Full NUMERIC "1"
-// Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone IV E"
+// Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone III"
 // Retrieval info: PRIVATE: LE_BasedFIFO NUMERIC "0"
 // Retrieval info: PRIVATE: LegacyRREQ NUMERIC "1"
 // Retrieval info: PRIVATE: MAX_DEPTH_BY_9 NUMERIC "0"
@@ -155,16 +151,16 @@ endmodule
 // Retrieval info: PRIVATE: sc_aclr NUMERIC "0"
 // Retrieval info: PRIVATE: sc_sclr NUMERIC "0"
 // Retrieval info: PRIVATE: wsEmpty NUMERIC "1"
-// Retrieval info: PRIVATE: wsFull NUMERIC "1"
+// Retrieval info: PRIVATE: wsFull NUMERIC "0"
 // Retrieval info: PRIVATE: wsUsedW NUMERIC "1"
 // Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
 // Retrieval info: CONSTANT: ADD_USEDW_MSB_BIT STRING "ON"
-// Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone IV E"
-// Retrieval info: CONSTANT: LPM_NUMWORDS NUMERIC "2048"
+// Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone III"
+// Retrieval info: CONSTANT: LPM_NUMWORDS NUMERIC "1024"
 // Retrieval info: CONSTANT: LPM_SHOWAHEAD STRING "OFF"
 // Retrieval info: CONSTANT: LPM_TYPE STRING "dcfifo"
 // Retrieval info: CONSTANT: LPM_WIDTH NUMERIC "8"
-// Retrieval info: CONSTANT: LPM_WIDTHU NUMERIC "12"
+// Retrieval info: CONSTANT: LPM_WIDTHU NUMERIC "11"
 // Retrieval info: CONSTANT: OVERFLOW_CHECKING STRING "ON"
 // Retrieval info: CONSTANT: RDSYNC_DELAYPIPE NUMERIC "4"
 // Retrieval info: CONSTANT: READ_ACLR_SYNCH STRING "OFF"
@@ -179,12 +175,11 @@ endmodule
 // Retrieval info: USED_PORT: rdempty 0 0 0 0 OUTPUT NODEFVAL "rdempty"
 // Retrieval info: USED_PORT: rdfull 0 0 0 0 OUTPUT NODEFVAL "rdfull"
 // Retrieval info: USED_PORT: rdreq 0 0 0 0 INPUT NODEFVAL "rdreq"
-// Retrieval info: USED_PORT: rdusedw 0 0 12 0 OUTPUT NODEFVAL "rdusedw[11..0]"
+// Retrieval info: USED_PORT: rdusedw 0 0 11 0 OUTPUT NODEFVAL "rdusedw[10..0]"
 // Retrieval info: USED_PORT: wrclk 0 0 0 0 INPUT NODEFVAL "wrclk"
 // Retrieval info: USED_PORT: wrempty 0 0 0 0 OUTPUT NODEFVAL "wrempty"
-// Retrieval info: USED_PORT: wrfull 0 0 0 0 OUTPUT NODEFVAL "wrfull"
 // Retrieval info: USED_PORT: wrreq 0 0 0 0 INPUT NODEFVAL "wrreq"
-// Retrieval info: USED_PORT: wrusedw 0 0 12 0 OUTPUT NODEFVAL "wrusedw[11..0]"
+// Retrieval info: USED_PORT: wrusedw 0 0 11 0 OUTPUT NODEFVAL "wrusedw[10..0]"
 // Retrieval info: CONNECT: @aclr 0 0 0 0 aclr 0 0 0 0
 // Retrieval info: CONNECT: @data 0 0 8 0 data 0 0 8 0
 // Retrieval info: CONNECT: @rdclk 0 0 0 0 rdclk 0 0 0 0
@@ -194,14 +189,15 @@ endmodule
 // Retrieval info: CONNECT: q 0 0 8 0 @q 0 0 8 0
 // Retrieval info: CONNECT: rdempty 0 0 0 0 @rdempty 0 0 0 0
 // Retrieval info: CONNECT: rdfull 0 0 0 0 @rdfull 0 0 0 0
-// Retrieval info: CONNECT: rdusedw 0 0 12 0 @rdusedw 0 0 12 0
+// Retrieval info: CONNECT: rdusedw 0 0 11 0 @rdusedw 0 0 11 0
 // Retrieval info: CONNECT: wrempty 0 0 0 0 @wrempty 0 0 0 0
-// Retrieval info: CONNECT: wrfull 0 0 0 0 @wrfull 0 0 0 0
-// Retrieval info: CONNECT: wrusedw 0 0 12 0 @wrusedw 0 0 12 0
-// Retrieval info: GEN_FILE: TYPE_NORMAL Rx_fifo.v TRUE
-// Retrieval info: GEN_FILE: TYPE_NORMAL Rx_fifo.inc FALSE
-// Retrieval info: GEN_FILE: TYPE_NORMAL Rx_fifo.cmp FALSE
-// Retrieval info: GEN_FILE: TYPE_NORMAL Rx_fifo.bsf FALSE
-// Retrieval info: GEN_FILE: TYPE_NORMAL Rx_fifo_inst.v FALSE
-// Retrieval info: GEN_FILE: TYPE_NORMAL Rx_fifo_bb.v FALSE
+// Retrieval info: CONNECT: wrusedw 0 0 11 0 @wrusedw 0 0 11 0
+// Retrieval info: GEN_FILE: TYPE_NORMAL EPCS_fifo.v TRUE
+// Retrieval info: GEN_FILE: TYPE_NORMAL EPCS_fifo.inc FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL EPCS_fifo.cmp FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL EPCS_fifo.bsf FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL EPCS_fifo_inst.v FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL EPCS_fifo_bb.v FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL EPCS_fifo_waveforms.html FALSE
+// Retrieval info: GEN_FILE: TYPE_NORMAL EPCS_fifo_wave*.jpg FALSE
 // Retrieval info: LIB_FILE: altera_mf

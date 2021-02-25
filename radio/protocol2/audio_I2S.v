@@ -1,4 +1,4 @@
-/// audio_I2S.v
+// audio_I2S.v
 
 //
 //  HPSDR - High Performance Software Defined Radio

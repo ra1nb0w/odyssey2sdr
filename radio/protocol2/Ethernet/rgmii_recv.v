@@ -10,6 +10,7 @@
 
 module rgmii_recv (
   input reset, 
+  input speed_1Gbit, 
 
   //receive: data and active are valid at posedge of clock
   output clock, 
@@ -19,8 +20,7 @@ module rgmii_recv (
   //hardware pins
   input  [3:0]PHY_RX,     
   input  PHY_DV,
-  input  PHY_RX_CLOCK,
-  input  PHY_TX_CLOCK  // 90 deg
+  input  PHY_RX_CLOCK
   );
   
   
@@ -39,8 +39,10 @@ module rgmii_recv (
 
 
 
-// We are using PHY_TX_CLOCK that delayed to 90 deg respect to PHY_RX (DATA), look rgmii_send.v
-// David Fainitski for project Odyssey-II, 2017
+//PHY_RX_CLOCK must be delayed by ~2 ns in respect to PHY_RX and PHY_DV
+//by programming the skew registers in phy 
+
+
 
 
 
@@ -48,22 +50,39 @@ module rgmii_recv (
 //-----------------------------------------------------------------------------
 //                                  clock
 //-----------------------------------------------------------------------------
+//reg slow_rx_clock;
+//reg old_PHY_DV; 
+ 
+ 
+//slow clock for the 100MBit mode 
+//always @(posedge PHY_RX_CLOCK)
+//  begin
+//  slow_rx_clock <= ~slow_rx_clock | (PHY_DV && !old_PHY_DV);
+//  old_PHY_DV <= PHY_DV;
+//  end
+ 
+ 
+assign clock = PHY_RX_CLOCK; // 1000T speed only...speed_1Gbit? PHY_RX_CLOCK : slow_rx_clock; 
 
-assign clock = PHY_TX_CLOCK; 
+
 
 //-----------------------------------------------------------------------------
 //          de-multiplex nibbles presented at both clock edges
 //-----------------------------------------------------------------------------
-reg rxdv_wire, error;
-reg [7:0] data_wire;
+wire rxdv_wire, error;
+wire [7:0] data_wire;
 
 
 ddio_in  ddio_in_inst (      
-  .datain({PHY_DV, PHY_RX[3:0]}),
+  .datain({PHY_DV, PHY_RX}),
   .inclock(clock),
   .dataout_l({rxdv_wire, data_wire[3:0]}),
   .dataout_h({error, data_wire[7:4]})
   );  
+  
+  
+
+
 
 
 //-----------------------------------------------------------------------------

@@ -26,7 +26,7 @@
 
 
 //-----------------------------------------------------------------------------
-// initialize the PHY device on startup
+// initialize the PHY device on startup and when allow_1Gbit changes
 // by writing config data to its MDIO registers; 
 // continuously read PHY status from the MDIO registers
 //-----------------------------------------------------------------------------
@@ -35,7 +35,8 @@ module phy_cfg(
   //input
   input clock,        //2.5 MHZ
   input init_request,
-  
+  input allow_1Gbit,  //speed selection jumper: open 
+
   //output
   output reg [1:0] speed,
   output reg duplex,
@@ -51,43 +52,12 @@ module phy_cfg(
 //-----------------------------------------------------------------------------
 
 //mdio register values
-wire [15:0] values [8:0];
-assign values[8] = {6'b0, 1'b1, 9'b0}; // 1 Gig FD mode advertizing
-//
-assign values[7] = 16'h8104;        // select extended address h104
-assign values[6] = {8'h77, 8'h77};  // rx clock, rx_ctl, tx clock, tx ctl no skews
-//
-assign values[5] = 16'h8105;        // extended address h105
-assign values[4] = 16'h7777;			// Rx data pads no skews
-//	
-assign values[3] = 16'h8106;        // extended address h106
-assign values[2] = 16'h7777;			// Tx data pads no skews
-//
-assign values[1] = 16'b00000001_01000000;   // 100T: 16'b00100001_00000000  ;  1000T: 16'b00000001_01000000 ;
-assign values[0] = 16'h0000;  // 
-
-// reg h104: RXC_RXCTL_TXC_TXCTL,  0111 by default (h7)
-// reg h105: RXD3_RXD2_RXD1_RXD0,  0111 by default
-// reg h106: TXD3_TXD2_TXD1_TXD0,  0111 by default
-
+logic [15:0] values [8:0];
 
 //mdio register addresses 
-wire [4:0] addresses [8:0];
-assign addresses[8] = 9;
-assign addresses[7] = 11;
-assign addresses[6] = 12;
-assign addresses[5] = 11;
-assign addresses[4] = 12;
-assign addresses[3] = 11;
-assign addresses[2] = 12;
-assign addresses[1] = 0;
-assign addresses[0] = 31; 
+logic [4:0] addresses [8:0];
 
 reg [3:0] word_no; 
-
-
-
-
 
 
 //-----------------------------------------------------------------------------
@@ -95,8 +65,8 @@ reg [3:0] word_no;
 //-----------------------------------------------------------------------------
 
 //phy initialization required 
-//if init_request input was raised
-reg init_required;
+//if allow_1Gbit input has changed or init_request input was raised
+reg last_allow_1Gbit, init_required;
 
 wire ready;
 wire [15:0] rd_data;
@@ -107,11 +77,29 @@ reg rd_request, wr_request;
 localparam READING = 1'b0, WRITING = 1'b1;  
 reg state = READING;  
 
-
 always @(posedge clock)  
   begin
-  if (init_request) 
+  if (init_request || (allow_1Gbit != last_allow_1Gbit))  begin
     init_required <= 1;
+    values[8] = {6'b0, allow_1Gbit, 9'b0};
+    values[7] = 16'h8104;
+    values[6] = 16'h5270;  // plus rx and tx clock delay, in 0.12 ns units to reg 104h, changed 25 Sept
+    values[5] = 16'h8105;
+    values[4] = 16'h0000;			// Rx pad skews, reg 105h		
+    values[3] = 16'h8106;
+    values[2] = 16'h7777;			// Tx pad skews, reg 106h, added 25th Sept
+    values[1] = 16'h1300;
+    values[0] = 16'hxxxx;
+    addresses[8] = 9;
+    addresses[7] = 11;
+    addresses[6] = 12;
+    addresses[5] = 11;
+    addresses[4] = 12;
+    addresses[3] = 11;
+    addresses[2] = 12;
+    addresses[1] = 0;
+    addresses[0] = 31; 
+  end
   
   if (ready)
     case (state)
@@ -124,6 +112,7 @@ always @(posedge clock)
           begin
           wr_request <= 1;
           word_no <= 8;
+          last_allow_1Gbit <= allow_1Gbit;
           state  <= WRITING;
           init_required <= 0;
           end
@@ -148,8 +137,7 @@ always @(posedge clock)
 
         
         
-       
-          
+        
         
 //-----------------------------------------------------------------------------
 //                        MDIO interface to PHY

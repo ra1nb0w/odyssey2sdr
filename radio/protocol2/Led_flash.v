@@ -28,32 +28,30 @@
 
 //  Turn  LED on  whenever signal is high and then remain on
 //  for 'period' seconds when it goes low
+//  9 Feb 2018 - Inceased period and counter to 25 bits so can clock at 125MHz now 
 
 
 module Led_flash (clock, signal, LED, period);
 
-input clock; // 12.2880 MHz
+input clock;
 input signal;
-output reg LED;
-input [23:0]period;
+output LED;
+input [24:0]period;
 
-reg [23:0]counter;
-
-
+reg [24:0]counter;
+reg LED;
 
 always @ (posedge clock)
 begin
 	if (signal) begin
 		counter <= 0;
-		LED <= 1'b1; 			// turn LED on whilst signal is high
+		LED <= 1'b0; 			// turn LED on whilst signal is high
 		end
 	else begin
 	if (counter == period) begin
-		LED <= 1'b0; 			// turn LED off when signal low after time period
+		LED <= 1'b1; 			// turn LED off when signal low after time period
 		end
 	else counter <= counter + 1'b1;
 	end
-end	
-
+end
 endmodule
-
