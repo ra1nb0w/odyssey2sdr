@@ -502,7 +502,7 @@ localparam TX_FIFO_SZ  = 1024; 			// 16 by 1024 deep TX FIFO
 localparam SP_FIFO_SZ  = 16384; 			// 16 by 16,384 deep SP FIFO
 //
 
-parameter [63:0] fw_version = "1.13 P1";
+parameter [63:0] fw_version = "6.01 P1";
 
 
 // module to comunicate with MCU
