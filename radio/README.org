@@ -61,32 +61,35 @@ as standard Ethernet port.
 
 ** EXT.IO
 
-This table describes the functionalities available from the /Ext.IO/
-D-Sub 15 pins port. The voltage range is GND to 3.3V.
+This table describes the functionalities available on /Ext.IO/
+D-Sub 15 pins port. The voltage range is GND to 3.3V without buffer or protection. Therefore, pay attention!
 
-|-----+------------+-------------------------------------------------------------------------|
-| pin | short name | functionality                                                           |
-|-----+------------+-------------------------------------------------------------------------|
-|   1 | ADC1       | input for measurement of the output power of the transmitter            |
-|   2 | ADC2       | input for measurement of reflected wave for calculating SWR             |
-|   3 | PTT out    | amplifier control output, logic level 3.3 V, TX mode high level         |
-|   4 | TUNE       | not in use at the moment                                                |
-|   5 | UO_0       | User Output 0 (programmable from software)                              |
-|   6 | UO_1       | User Output 1 (programmable from software)                              |
-|   7 | UO_2       | User Output 2 (programmable from software)                              |
-|   8 | UO_3       | User Output 3 (programmable from software)                              |
-|   9 | PTT in     | activate the PTT. Pull-up, to activate close to GND. Use optocoupler    |
-|  10 | VNA        | used for VNA measurement                                                |
-|  11 | ANT        | high level provides a signal to turn on the relay of the second antenna |
-|  12 | DATA       | SPI data (when no Alex board is configured the pin is UO_4)             |
-|  13 | CLOCK      | SPI clock (when no Alex board is configured the pin is UO_5)            |
-|  14 | EN         | SPI enable (when no Alex board is configured the pin is UO_6)           |
-|  15 | GND        | radio ground                                                            |
-|-----+------------+-------------------------------------------------------------------------|
+|-----+--------------+------------+-------------------------------------------------------------------------|
+| pin | Apollo Board | Alex Board | functionality                                                           |
+|-----+--------------+------------+-------------------------------------------------------------------------|
+|   1 | ADC1         | ADC1       | input for measurement of the output power of the transmitter            |
+|   2 | ADC2         | ADC2       | input for measurement of reflected wave for calculating SWR             |
+|   3 | PTT out      | PTT out    | amplifier control output, logic level 3.3 V, TX mode high level         |
+|   4 | TUNE         | TUNE       | Apollo auto-tune control                                                |
+|   5 | UO_0         | UO_0       | User Output 0 (programmable from software)                              |
+|   6 | UO_1         | UO_1       | User Output 1 (programmable from software)                              |
+|   7 | UO_2         | UO_2       | User Output 2 (programmable from software)                              |
+|   8 | UO_3         | UO_3       | User Output 3 (programmable from software)                              |
+|   9 | PTT in       | PTT in     | activate the PTT. Pull-up, to activate close to GND. Use optocoupler    |
+|  10 | VNA          | VNA        | used for VNA measurement                                                |
+|  11 | ANT2         | TX_LOAD    | Apollo: enable the second antenna relay (high level); Alex: SPI tx load |
+|  12 | UO_4         | SDO        | Apollo: User Output 4; Alex: SPI data                                   |
+|  13 | UO_5         | SCK        | Apollo: User Output 5; Alex: SPI clock                                  |
+|  14 | UO_6         | RX_LOAD    | Apollo: User Output 6; Alex: SPI rx load                                |
+|  15 | GND          | GND        | radio ground                                                            |
+|-----+--------------+------------+-------------------------------------------------------------------------|
 
-To control external filters you can use either User Output pins or SPI
-channel with a similar ALEX board. For more information read [[../pcb/docs/Overview of the first firmware for the Odyssey-2 transceiver. — Odyssey.pdf][Overview
-of the first firmware]] by N7DDC.
+You can choose between two SPI protocols in the Alex configuration:
+- by default you get the openHPSDR Alex protocol with TX/RX load usable with the original Alex board (or from TAPR) or the F6ITU Alexandrie.
+- enabling dithering (not available in the used ADCs) you can enable the customized N7DDC protocol.
+
+You can find the SPI protocol definition in the following [[protocol1/SPI.v][file]].
+For the customized protocol you can read [[../pcb/docs/Overview of the first firmware for the Odyssey-2 transceiver. — Odyssey.pdf][Overview of the first firmware]] by N7DDC.
 
 ** Build
 
