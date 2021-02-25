@@ -40,7 +40,7 @@
 ##
 !*.qpf
 !*.qsf
-#!*.qws
+*.qws
 !*.ppf
 !*.qip
 ##
