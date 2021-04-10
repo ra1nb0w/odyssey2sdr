@@ -122,7 +122,7 @@ module tx_pll (
 		altpll_component.clk1_divide_by = 1,
 		altpll_component.clk1_duty_cycle = 50,
 		altpll_component.clk1_multiply_by = 1,
-		altpll_component.clk1_phase_shift = "2000",
+		altpll_component.clk1_phase_shift = "3000",
 		altpll_component.clk2_divide_by = 10,
 		altpll_component.clk2_duty_cycle = 50,
 		altpll_component.clk2_multiply_by = 1,
@@ -133,7 +133,7 @@ module tx_pll (
 		altpll_component.clk3_phase_shift = "0",
 		altpll_component.compensate_clock = "CLK0",
 		altpll_component.inclk0_input_frequency = 8000,
-		altpll_component.intended_device_family = "Cyclone IV GX",
+		altpll_component.intended_device_family = "Cyclone IV E",
 		altpll_component.lpm_hint = "CBX_MODULE_PREFIX=tx_pll",
 		altpll_component.lpm_type = "altpll",
 		altpll_component.operation_mode = "NORMAL",
@@ -229,7 +229,7 @@ endmodule
 // Retrieval info: PRIVATE: INCLK1_FREQ_EDIT_CHANGED STRING "1"
 // Retrieval info: PRIVATE: INCLK1_FREQ_UNIT_CHANGED STRING "1"
 // Retrieval info: PRIVATE: INCLK1_FREQ_UNIT_COMBO STRING "MHz"
-// Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone IV GX"
+// Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone IV E"
 // Retrieval info: PRIVATE: INT_FEEDBACK__MODE_RADIO STRING "1"
 // Retrieval info: PRIVATE: LOCKED_OUTPUT_CHECK STRING "1"
 // Retrieval info: PRIVATE: LONG_SCAN_RADIO STRING "1"
@@ -330,7 +330,7 @@ endmodule
 // Retrieval info: CONSTANT: CLK3_PHASE_SHIFT STRING "0"
 // Retrieval info: CONSTANT: COMPENSATE_CLOCK STRING "CLK0"
 // Retrieval info: CONSTANT: INCLK0_INPUT_FREQUENCY NUMERIC "8000"
-// Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone IV GX"
+// Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone IV E"
 // Retrieval info: CONSTANT: LPM_TYPE STRING "altpll"
 // Retrieval info: CONSTANT: OPERATION_MODE STRING "NORMAL"
 // Retrieval info: CONSTANT: PLL_TYPE STRING "AUTO"

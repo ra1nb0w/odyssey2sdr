@@ -42,7 +42,6 @@ set CBCLK  PLL_IF_inst|altpll_component|auto_generated|pll1|clk[2]
 set CLRCLK PLL_IF_inst|altpll_component|auto_generated|pll1|clk[3]
 
 set clock_12_5MHz network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[2]
-
 set clock_2_5MHz  network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[3]
 
 #**************************************************************
@@ -57,7 +56,7 @@ create_generated_clock -source [get_pins {network_inst|rgmii_send_inst|tx_pll_in
 
 #create generated clock for PLL transmit clock output with 90 phase shift
 create_generated_clock -source [get_pins {network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|inclk[0]}] \
-  -name PHY_TX_CLOCK -phase 90.00 -duty_cycle 50.00 [get_pins {network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[1]}] -add
+  -name PHY_TX_CLOCK -phase 135.00 -duty_cycle 50.00 [get_pins {network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[1]}] -add
 
 # data_clock = CMCLK/2 used by Attenuator and TLV320 SPI
 create_generated_clock -name data_clk -source $CMCLK -divide 2
@@ -65,8 +64,7 @@ create_generated_clock -name data_clk -source $CMCLK -divide 2
 # data_clk2 = CBCLK/4 
 create_generated_clock -name data_clk2 -source $CBCLK -divide 4
 
-
-# PLL generated clocks feeding output pins 
+# PLL generated clocks feeding output pins
 create_generated_clock -name CBCLK   -source $CBCLK  [get_ports CBCLK]
 create_generated_clock -name CMCLK   -source $CMCLK  [get_ports CMCLK]
 create_generated_clock -name CLRCIN  -source $CLRCLK [get_ports CLRCIN]
@@ -112,18 +110,19 @@ set_clock_groups -asynchronous  -group { \
 
 # If setup and hold delays are equal then only need to specify once without max or min 
 
-#122.88MHz clock for Tx DAC 
+#122.88MHz clock for Tx DAC
 set_output_delay 0.8 -clock _122MHz {DACD[*]} -add_delay
 
+## Ethernet PHY TX per AN477, with PHY delay for TX disabled
 set_output_delay  -max 1.0  -clock PHY_TX_CLOCK [get_ports {PHY_TX[*]}] -add_delay
-set_output_delay  -min -0.8 -clock PHY_TX_CLOCK [get_ports {PHY_TX[*]}]  -add_delay
-set_output_delay  -max 1.0  -clock PHY_TX_CLOCK [get_ports {PHY_TX[*]}]  -clock_fall -add_delay
-set_output_delay  -min -0.8 -clock PHY_TX_CLOCK [get_ports {PHY_TX[*]}]  -clock_fall -add_delay 
+set_output_delay  -min -0.8 -clock PHY_TX_CLOCK [get_ports {PHY_TX[*]}] -add_delay
+set_output_delay  -max 1.0  -clock PHY_TX_CLOCK [get_ports {PHY_TX[*]}] -clock_fall -add_delay
+set_output_delay  -min -0.8 -clock PHY_TX_CLOCK [get_ports {PHY_TX[*]}] -clock_fall -add_delay
 
 set_output_delay  -max 1.0  -clock PHY_TX_CLOCK [get_ports {PHY_TX_EN}] -add_delay
-set_output_delay  -min -0.8 -clock PHY_TX_CLOCK [get_ports {PHY_TX_EN}]  -add_delay
-set_output_delay  -max 1.0  -clock PHY_TX_CLOCK [get_ports {PHY_TX_EN}]  -clock_fall -add_delay
-set_output_delay  -min -0.8 -clock PHY_TX_CLOCK [get_ports {PHY_TX_EN}]  -clock_fall -add_delay 
+set_output_delay  -min -0.8 -clock PHY_TX_CLOCK [get_ports {PHY_TX_EN}] -add_delay
+set_output_delay  -max 1.0  -clock PHY_TX_CLOCK [get_ports {PHY_TX_EN}] -clock_fall -add_delay
+set_output_delay  -min -0.8 -clock PHY_TX_CLOCK [get_ports {PHY_TX_EN}] -clock_fall -add_delay
 
 # Set false paths to remove irrelevant setup and hold analysis
 set_false_path -fall_from [get_clocks tx_clock] -rise_to [get_clocks PHY_TX_CLOCK] -setup
@@ -142,13 +141,13 @@ set_output_delay  20 -clock data_clk { MOSI nCS} -add_delay
 set_output_delay  10 -clock $CBCLK {CDIN CMODE} -add_delay
 
 #Alex  uses CBCLK/4
-set_output_delay  10 -clock data_clk2 { SPI_SDO J15_5 J15_6} -add_delay
+set_output_delay  10 -clock data_clk2 { SPI_SDO } -add_delay
 
 #EEPROM (2.5MHz)
 set_output_delay  40 -clock $clock_2_5MHz {SCK SI CS} -add_delay
 
 #ADC78H90 
-set_output_delay  10 -clock data_clk2 {ADCMOSI nADCCS} -add_delay
+set_output_delay  10 -clock data_clk2 {ADCMOSI ADCCS_N} -add_delay
 
 #PHY (2.5MHz)
 set_output_delay  10 -clock $clock_2_5MHz {PHY_MDIO} -add_delay
@@ -159,22 +158,26 @@ set_output_delay  10 -clock $clock_2_5MHz {PHY_MDIO} -add_delay
 
 # If setup and hold delays are equal then only need to specify once without max or min 
 
-# data from LTC2208 +/- 2nS setup and hold 
+# data from LTC2208 +/- 2nS setup and hold
 set_input_delay -add_delay  -clock [get_clocks {virt_122MHz}]  2.000 [get_ports {INA[*]}]
 set_input_delay -add_delay  -clock [get_clocks {virt_122MHz}]  2.000 [get_ports {INA_2[*]}]
 
-## Ethernet PHY RX per AN477, with PHY delay for RX disabled
+## Ethernet PHY RX per AN477, with PHY delay for RX enabled
+## Clock delay added by KSZ9031 is 1.0 to 2.6 per datasheet table 7-1
+## Clock is 90deg shifted, 2ns
+## Max delay is 2.6-2.0 = 0.6
+## Min delay is 1.0-2.0 = -1.0
 
 # data from PHY
-set_input_delay  -max 0.8  -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX[*]}] 
-set_input_delay  -min -0.8 -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX[*]}] 				
-set_input_delay  -max 0.8 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX[*]}]	
-set_input_delay  -min -0.8 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX[*]}]	
+set_input_delay  -max 0.6  -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX[*]}]
+set_input_delay  -min -1.0 -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX[*]}]
+set_input_delay  -max 0.6 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX[*]}]
+set_input_delay  -min -1.0 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX[*]}]
 
-set_input_delay  -max 0.8  -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {RX_DV}] 
-set_input_delay  -min -0.8 -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {RX_DV}] 				
-set_input_delay  -max 0.8 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {RX_DV}]	
-set_input_delay  -min -0.8 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {RX_DV}]	
+set_input_delay  -max 0.6  -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX_DV}]
+set_input_delay  -min -1.0 -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX_DV}]
+set_input_delay  -max 0.6 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX_DV}]
+set_input_delay  -min -1.0 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX_DV}]
 
 # Set false paths to remove irrelevant setup and hold analysis
 set_false_path -fall_from [get_clocks virt_PHY_RX_CLOCK] -rise_to [get_clocks {PHY_RX_CLOCK}] -setup
@@ -248,10 +251,10 @@ set_false_path -to [get_ports {CMCLK CBCLK CLRCIN CLRCOUT ATTN_CLK* SSCK ADCCLK 
 
 # 'get_keepers' denotes either ports or registers
 # don't need fast paths to the LEDs and adhoc outputs so set false paths so Timing will be ignored
-set_false_path -to [get_keepers { Status_LED DEBUG_LED* DITH* FPGA_PTT  NCONFIG  RAND*  USEROUT* FPGA_PLL DAC_ALC}]
+set_false_path -to [get_keepers { Status_LED DEBUG_LED* DEBUG_TP* FPGA_PTT NCONFIG USEROUT* FPGA_PLL DAC_ALC}]
 
 #don't need fast paths from the following inputs
-set_false_path -from [get_keepers  {ANT_TUNE IO4 IO5 IO6 IO8 KEY_DASH KEY_DOT OVERFLOW* PTT PTT2 MODE2}]
+set_false_path -from [get_keepers  {ANT_TUNE KEY_DASH KEY_DOT OVERFLOW* PTT PTT2}]
 
 
 #these registers are set long before they are used

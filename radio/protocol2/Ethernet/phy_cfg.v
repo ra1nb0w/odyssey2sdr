@@ -52,10 +52,10 @@ module phy_cfg(
 //-----------------------------------------------------------------------------
 
 //mdio register values
-logic [15:0] values [8:0];
+logic [15:0] values [18:0];
 
 //mdio register addresses 
-logic [4:0] addresses [8:0];
+logic [4:0] addresses [18:0];
 
 reg [3:0] word_no; 
 
@@ -81,23 +81,51 @@ always @(posedge clock)
   begin
   if (init_request || (allow_1Gbit != last_allow_1Gbit))  begin
     init_required <= 1;
-    values[8] = {6'b0, allow_1Gbit, 9'b0};
-    values[7] = 16'h8104;
-    values[6] = 16'h5270;  // plus rx and tx clock delay, in 0.12 ns units to reg 104h, changed 25 Sept
-    //values[6] = 16'h4477;
-    values[5] = 16'h8105;
-    values[4] = 16'h0000;			// Rx pad skews, reg 105h		
-    values[3] = 16'h8106;
-    values[2] = 16'h7777;			// Tx pad skews, reg 106h, added 25th Sept
+    values[18] = {6'b0, allow_1Gbit, 9'b0};
+
+    values[17] = 16'h0002;
+    values[16] = 16'h0004;
+    values[15] = 16'h4002;
+    values[14] = 16'b0000_0000_0110_0111;  // RX_CTL: -0.06   - TX_CTL: 0.0
+
+    // program address 2 register 5
+    values[13] = 16'h0002;
+    values[12] = 16'h0005;
+    values[11] = 16'h4002;
+    values[10] = 16'b1010_1010_0111_0111;   // RD3: +0.18 - RD2: +0.18 - RD1: 0.0 - RD0: 0.0
+
+    // program address 2 register 6
+    values[9] = 16'h0002;
+    values[8] = 16'h0006;
+    values[7] = 16'h4002;
+    values[6] = 16'b1000_0111_1001_0111;   // TD3: +0.06  - TD2: 0.0  - TD1: +0.12 - TD0: 0.0
+
+    // program address 2 register 8
+    values[5] = 16'h0002;
+    values[4] = 16'h0008;
+    values[3] = 16'h4002;
+    values[2] = 16'b0000_00_00110_11010;  // TX_CLK: -0.54   - RX_CLK: +0.66
+
     values[1] = 16'h1300;
     values[0] = 16'hxxxx;
-    addresses[8] = 9;
-    addresses[7] = 11;
-    addresses[6] = 12;
-    addresses[5] = 11;
-    addresses[4] = 12;
-    addresses[3] = 11;
-    addresses[2] = 12;
+
+    addresses[18] = 9;
+    addresses[17] = 5'h0d;
+    addresses[16] = 5'h0e;
+    addresses[15] = 5'h0d;
+    addresses[14] = 5'h0e;
+    addresses[13] = 5'h0d;
+    addresses[12] = 5'h0e;
+    addresses[11] = 5'h0d;
+    addresses[10] = 5'h0e;
+    addresses[9] = 5'h0d;
+    addresses[8] = 5'h0e;
+    addresses[7] = 5'h0d;
+    addresses[6] = 5'h0e;
+    addresses[5] = 5'h0d;
+    addresses[4] = 5'h0e;
+    addresses[3] = 5'h0d;
+    addresses[2] = 5'h0e;
     addresses[1] = 0;
     addresses[0] = 31; 
   end
@@ -112,7 +140,7 @@ always @(posedge clock)
         if (init_required)
           begin
           wr_request <= 1;
-          word_no <= 8;
+          word_no <= 18;
           last_allow_1Gbit <= allow_1Gbit;
           state  <= WRITING;
           init_required <= 0;
