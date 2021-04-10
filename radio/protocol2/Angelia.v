@@ -519,7 +519,7 @@ module Angelia(
   input  OSC_10MHZ,              //10MHz reference in 
   output FPGA_PLL,               //122.88MHz VCXO contol voltage
 
-  //attenuator (DAT-31-SP+)
+  //attenuator (DAT-31-SP+) we are using F1912N
   // Odyssey2: the DATA and CLK are shared between the two attenuator
   output ATTN_DATA,              //data for input attenuator
   output ATTN_CLK,               //clock for input attenuator
@@ -654,23 +654,8 @@ module Angelia(
   
   // ODYSSEY2: MCU connection
   input MCU_UART_RX,
-  output MCU_UART_TX,
-  
-	// RAM
-  output wire RAM_A0,
-  output wire RAM_A1,
-  output wire RAM_A2,
-  output wire RAM_A3,
-  output wire RAM_A4,
-  output wire RAM_A5,
-  output wire RAM_A6,
-  output wire RAM_A7,
-  output wire RAM_A8,
-  output wire RAM_A9,
-  output wire RAM_A10,
-  output wire RAM_A11,
-  output wire RAM_A12,
-  output wire RAM_A13  
+  output MCU_UART_TX
+
 );
 
 // force open collector drives to off state when code not running.
@@ -684,31 +669,20 @@ assign USEROUT4 = run ? Open_Collector[5] : 1'b0;
 assign USEROUT5 = run ? Open_Collector[6] : 1'b0;
 assign USEROUT6 = run ? Open_Collector[7] : 1'b0; 		
 
-assign RAM_A0  = 0;
-assign RAM_A1  = 0;
-assign RAM_A2  = 0;
-assign RAM_A3  = 0;
-assign RAM_A4  = 0;
-assign RAM_A5  = 0;
-assign RAM_A6  = 0;
-assign RAM_A7  = 0;
-assign RAM_A8  = 0;
-assign RAM_A9  = 0;
-assign RAM_A10  = 0;
-assign RAM_A11  = 0;
-assign RAM_A12  = 0;
-assign RAM_A13  = 0;
-
 // Odyssey 2 : gain and SDHN not available on LTC2165
 //assign PGA = 0;								// 1 = gain of 3dB, 0 = gain of 0dB
 //assign PGA_2 = 0;
 //assign SHDN = 1'b0;				   		// normal LTC2208 operation
 //assign SHDN_2 = 1'b0;
 
-//attenuator (DAT-31-SP+)
+//attenuator
 // Odyssey2: the DATA and CLK are shared between the two attenuator
+wire ATTN_DATA_1;
+wire ATTN_CLK_1;
 wire ATTN_DATA_2;
 wire ATTN_CLK_2;
+assign ATTN_DATA = ATTN_LE ? ATTN_DATA_1 : ATTN_DATA_2;
+assign ATTN_CLK = ATTN_LE ? ATTN_CLK_1 : ATTN_CLK_2;
 
 assign NCONFIG = IP_write_done;
 
@@ -1695,32 +1669,16 @@ wire [11:0] AIN1;  // FWD_power
 wire [11:0] AIN2;  // REV_power
 wire [11:0] AIN3;  // User 1
 wire [11:0] AIN4;  // User 2
-wire [11:0] AIN5;  // holds 12 bit ADC value of Forward Voltage detector.
-wire [11:0] AIN6;  // holds 12 bit ADC of 13.8v measurement 
-// ODYSSEY 2 TODO check
-//wire [11:0] AIN5 = 12'd2048;  // holds 12 bit ADC value of Forward Voltage detector.
-//wire [11:0] AIN6 = 12'd1950;  // holds 12 bit ADC of 13.8v measurement 
+wire [11:0] AIN5 = 12'd2048;  // holds 12 bit ADC value of Forward Voltage detector.
+wire [11:0] AIN6 = 12'd1950;  // holds 12 bit ADC of 13.8v measurement
 wire pk_detect_reset;
 wire pk_detect_ack;
 
 ext_io_adc ADC_SPI(.clock(CLRCLK), .SCLK(ADCCLK), .nCS(ADCCS_N), .MISO(ADCMISO), .MOSI(ADCMOSI),
 				   .AIN1(AIN1), .AIN2(AIN2), .pk_detect_reset(pk_detect_reset), .pk_detect_ack(pk_detect_ack));					   
-				   
-
-// ODYSSEY 2 remove
-//wire Alex_SPI_SDO;
-//wire Alex_SPI_SCK;
-//wire SPI_TX_LOAD;
-//wire SPI_RX_LOAD;
-
-//assign SPI_SDO = Alex_SPI_SDO;		// select which module has control of data
-//assign SPI_SCK = Alex_SPI_SCK;		// and clock for serial data transfer
-//assign J15_5   = SPI_RX_LOAD;			// Alex Rx_load or Apollo Reset
-//assign J15_6   = SPI_TX_LOAD;      // Alex Tx_load or Apollo Enable 
 
 
-	
-				   
+
 //---------------------------------------------------------
 //                 Transmitter code 
 //---------------------------------------------------------	
@@ -1780,7 +1738,7 @@ cpl_cordic # (.IN_WIDTH(17))
 */
 
 always @ (posedge _122_90)
-	DACD <= run ? C122_cordic_i_out[21:8] : 14'b0;   // select top 14 bits for DAC data // disable TX DAC if IO4 active
+	DACD <= run ? {~C122_cordic_i_out[21], C122_cordic_i_out[20:8]} : 14'b0;   // select top 14 bits for DAC data // disable TX DAC if IO4 active
  
 
 
@@ -2095,7 +2053,7 @@ wire [4:0] atten1;
 assign atten0 = FPGA_PTT ? atten0_on_Tx : Attenuator0;
 assign atten1 = FPGA_PTT ? atten1_on_Tx : Attenuator1; 
 
-Attenuator Attenuator_ADC0 (.clk(CBCLK), .data(atten0), .ATTN_CLK(ATTN_CLK),   .ATTN_DATA(ATTN_DATA),   .ATTN_LE(ATTN_LE));
+Attenuator Attenuator_ADC0 (.clk(CBCLK), .data(atten0), .ATTN_CLK(ATTN_CLK_1), .ATTN_DATA(ATTN_DATA_1), .ATTN_LE(ATTN_LE));
 Attenuator Attenuator_ADC1 (.clk(CBCLK), .data(atten1), .ATTN_CLK(ATTN_CLK_2), .ATTN_DATA(ATTN_DATA_2), .ATTN_LE(ATTN_LE_2));
 
 
@@ -2105,7 +2063,7 @@ Attenuator Attenuator_ADC1 (.clk(CBCLK), .data(atten1), .ATTN_CLK(ATTN_CLK_2), .
 
 SPI Alex_SPI_Tx (.reset (IF_rst), .enable(Alex_enable[0]), .Alex_data(SPI_Alex_data), .SPI_data(Alex_SPI_SDO),
                  .SPI_clock(Alex_SPI_SCK), .Tx_load_strobe(Alex_TX_LOAD), .Rx_load_strobe(Alex_RX_LOAD),
-					  .if_DITHER(DITH), .spi_clock(CBCLK));	
+                 .if_DITHER(DITH), .spi_clock(CBCLK));
 
 //---------------------------------------------------------
 //  Debounce inputs - active low
