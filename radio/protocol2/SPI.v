@@ -62,7 +62,7 @@
 	Bit 20 - 30/20 Meters 	U2 - D4
 	Bit 21 - 60/40 Meters 	U2 - D5
 	Bit 22 - 80 Meters 		U2 - D6
-	Bit 24 - 160 Meters 		U2 - D7
+	Bit 23 - 160 Meters 		U2 - D7
 	Bit 24 - ANT #1 			U4 - D0
 	Bit 25 - ANT #2 			U4 - D1
 	Bit 26 - ANT #3 			U4 - D2
