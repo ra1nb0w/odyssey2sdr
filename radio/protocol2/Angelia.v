@@ -1512,7 +1512,7 @@ reg [15:0]temp_ADC_reg[0:1];
 // and not in 2's complement format as Anan devices
 
 always @ (posedge _122_90)
-	temp_DACD <= {~C122_cordic_i_out[21], C122_cordic_i_out[20:8], 2'b00};
+  temp_DACD <= {C122_cordic_i_out[21:8], 2'b00};
 
 always @ (posedge LTC2208_122MHz)
 begin
