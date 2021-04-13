@@ -351,7 +351,6 @@ set_global_assignment -name VERILOG_FILE profile.v
 set_global_assignment -name MIF_FILE profile.mif
 set_global_assignment -name SDC_FILE Angelia.sdc
 set_global_assignment -name VERILOG_FILE PHY_fifo.v
-set_global_assignment -name VERILOG_FILE Angelia_ADC.v
 set_global_assignment -name VERILOG_FILE Angelia.v
 set_global_assignment -name VERILOG_FILE sp_rcv_ctrl.v
 set_global_assignment -name VERILOG_FILE Attenuator.v
