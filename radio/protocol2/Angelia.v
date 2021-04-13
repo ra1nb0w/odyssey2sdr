@@ -836,7 +836,6 @@ wire pc_send;
 wire debug;
 wire seq_error;
 wire erase_ACK;
-wire EPCS_FIFO_enable;
 wire erase;	
 wire send_more;
 wire send_more_ACK;
@@ -856,7 +855,7 @@ sdr_receive sdr_receive_inst(
 	.sending_sync(sending_sync),
 	.broadcast(broadcast),
 	.erase_ACK(busy),						// set when erase is in progress
-	.EPCS_wrused(EPCS_wrused),
+	.EPCS_wrused(),
 	.local_mac(local_mac),
 	.to_port(to_port),
 	.discovery_ACK(discovery_ACK_sync),	// set when discovery reply request received by sdr_send
@@ -866,7 +865,7 @@ sdr_receive sdr_receive_inst(
 	.seq_error(seq_error),
 	.erase(erase),
 	.num_blocks(num_blocks),
-	.EPCS_FIFO_enable(EPCS_FIFO_enable),
+	.EPCS_FIFO_enable(),
 	.set_ip(set_ip),
 	.assign_ip(assign_ip),
 	.sequence_number(PC_seq_number)
@@ -1358,58 +1357,6 @@ wire [47:0] IQ_Tx_data = FPGA_PTT ? C122_IQ1_data : 48'b0;
 //wire almost_empty = (write_used < 13'd512)  ? 1'b1 : 1'b0; //(write_used[11:9] == 4'b0001) ? 1'b1 : 1'b0;  // <= 511 samples
 
 
-
-
-													
-//--------------------------------------------------------------------------
-//			EPCS16 Erase and Program code 
-//--------------------------------------------------------------------------
-
-/*
-					    EPCS_fifo (1k bytes) 
-					
-					    +-------------------+
-	  udp_rx_data   |data[7:0]	         | 
-					    |				         |
- EPCS_FIFO_enable  |wrreq		         | 
-					    |					      |									    
-	    rx_clock	 |>wrclk wrusedw[9:0]| EPCS_wrused
-					    +-------------------+								
-	   EPCS_rdreq   |rdreq		  q[7:0] | EPCS_data
-					    |					      |					  			
-			     	    |   		            |  
-			          |                   | 							
-     clock_12_5MHz |>rdclk rdusedw[9:0]| EPCS_Rx_used	    
-					    +-------------------+								
-					    |                   |
-			  IF_rst  |aclr               |								
-					    +-------------------+						
-*/
-
-wire [7:0]EPCS_data;
-wire [10:0]EPCS_Rx_used;
-wire  EPCS_rdreq;
-wire [31:0] num_blocks;  
-wire EPCS_full;
-wire [10:0] EPCS_wrused;
-
-// ODYSSEY 2 disabled
-//EPCS_fifo EPCS_fifo_inst(.wrclk (rx_clock),.rdreq (EPCS_rdreq),.rdclk (clock_12_5MHz),.wrreq(EPCS_FIFO_enable),  
-//                .data (udp_rx_data),.q (EPCS_data), .rdusedw(EPCS_Rx_used), .aclr(IF_rst), .wrusedw(EPCS_wrused));
-
-//----------------------------
-// 			ASMI Interface
-//----------------------------
-wire busy;				 // drives LED
-wire erase_done;
-wire erase_done_ACK;
-wire reset_FPGA;
-
-// ODYSSEY 2 disabled
-//ASMI_interface  ASMI_int_inst(.clock(clock_12_5MHz), .busy(busy), .erase(erase), .erase_ACK(erase_ACK), .IF_PHY_data(EPCS_data), .checksum(checksum),
-//							 .IF_Rx_used(EPCS_Rx_used), .rdreq(EPCS_rdreq), .erase_done(erase_done), .num_blocks(num_blocks),
-//							 .send_more(send_more), .send_more_ACK(send_more_ACK), .erase_done_ACK(erase_done_ACK), .NCONFIG(reset_FPGA)); 
-							 
 //--------------------------------------------------------------------------------------------
 //  	Iambic CW Keyer
 //--------------------------------------------------------------------------------------------

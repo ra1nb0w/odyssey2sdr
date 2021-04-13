@@ -65,8 +65,6 @@ create_generated_clock -name data_clk -source $CMCLK -divide 2
 # data_clk2 = CBCLK/4 
 create_generated_clock -name data_clk2 -source $CBCLK -divide 4
 
-# userADC_clk = 30.72MHz clock for Angelia_ADC module, results in 7.68MHz clock to the ADC78H90 user ADC chip
-create_generated_clock -name userADC_clk -source _122MHz -divide_by 4 userADC_clk
 
 # PLL generated clocks feeding output pins 
 create_generated_clock -name CBCLK   -source $CBCLK  [get_ports CBCLK]
@@ -87,7 +85,6 @@ set_clock_groups -asynchronous  -group { \
 					PLL_IF_inst|altpll_component|auto_generated|pll1|clk[2] \
 					PLL_IF_inst|altpll_component|auto_generated|pll1|clk[3] \
 					PLL_inst|altpll_component|auto_generated|pll1|clk[0] \
-					userADC_clk \
 					data_clk \
 					data_clk2 \
 					CBCLK \
@@ -114,9 +111,6 @@ set_clock_groups -asynchronous  -group { \
 #**************************************************************
 
 # If setup and hold delays are equal then only need to specify once without max or min 
-
-#12.5MHz clock for Config EEPROM  +/- 10nS
-set_output_delay  10 -clock $clock_12_5MHz {ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_6qs2:ASMI_altasmi_parallel_6qs2_component|sd2~ALTERA_DCLK ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_6qs2:ASMI_altasmi_parallel_6qs2_component|sd2~ALTERA_SCE ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_6qs2:ASMI_altasmi_parallel_6qs2_component|sd2~ALTERA_SDO }
 
 #122.88MHz clock for Tx DAC 
 set_output_delay 0.8 -clock _122MHz {DACD[*]} -add_delay
@@ -164,9 +158,6 @@ set_output_delay  10 -clock $clock_2_5MHz {PHY_MDIO} -add_delay
 #**************************************************************
 
 # If setup and hold delays are equal then only need to specify once without max or min 
-
-#12.5MHz clock for Config EEPROM  +/- 10nS setup and hold
-set_input_delay 10  -clock  $clock_12_5MHz { ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_6qs2:ASMI_altasmi_parallel_6qs2_component|sd2~ALTERA_DATA0 }
 
 # data from LTC2208 +/- 2nS setup and hold 
 set_input_delay -add_delay  -clock [get_clocks {virt_122MHz}]  2.000 [get_ports {INA[*]}]

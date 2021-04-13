@@ -355,10 +355,8 @@ set_global_assignment -name VERILOG_FILE Angelia_ADC.v
 set_global_assignment -name VERILOG_FILE Angelia.v
 set_global_assignment -name VERILOG_FILE sp_rcv_ctrl.v
 set_global_assignment -name VERILOG_FILE Attenuator.v
-set_global_assignment -name VERILOG_FILE ASMI.v
 set_global_assignment -name VERILOG_FILE Led_control.v
 set_global_assignment -name VERILOG_FILE Led_flash.v
-set_global_assignment -name VERILOG_FILE ASMI_interface.v
 set_global_assignment -name VERILOG_FILE EPCS_fifo.v
 set_global_assignment -name VERILOG_FILE Apollo.v
 set_global_assignment -name VERILOG_FILE cdc_mcp.v
@@ -373,7 +371,6 @@ set_global_assignment -name VERILOG_FILE SPI.v
 set_global_assignment -name VERILOG_FILE TLV320_SPI.v
 set_global_assignment -name QIP_FILE PLL_IF.qip
 set_global_assignment -name QIP_FILE SP_fifo.qip
-set_global_assignment -name QIP_FILE ASMI.qip
 set_global_assignment -name VERILOG_FILE Polyphase_FIR/CicInterpM5.v
 set_global_assignment -name VERILOG_FILE mic_I2S.v
 set_global_assignment -name QIP_FILE Rx_Audio_fifo.qip
