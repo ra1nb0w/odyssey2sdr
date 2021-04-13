@@ -538,14 +538,6 @@ module Angelia(
   // PGA, DITH, SHDN is not available on LTC2165
   // LTC6401 has fixed VoCM therefore it is not controlled by LTC2165 (4K7 Ohm)
   //         and add 20dBm
-  //output RAND,            			//high turns ramdom on
-  //output RAND_2,          			//high turns ramdom on
-  //output PGA,            			//high turns LTC2208 internal preamp on
-  //output PGA_2,          			//high turns LTC2208 internal preamp on
-  //output DITH,            			//high turns LTC2208 dither on 
-  //output DITH_2,          			//high turns LTC2208 dither on 
-  //output SHDN,            			//x shuts LTC2208 off
-  //output SHDN_2,          			//x shuts LTC2208 off
 
   //tx adc (AD9744ARU)
   output reg  DAC_ALC,          //sets Tx DAC output level
@@ -594,12 +586,9 @@ module Angelia(
   input  ADCMISO,
   output ADCCS_N, 
  
-  //alex/apollo spi
+  //alex spi
   output SPI_SDO,                //SPI data to Alex or Apollo 
-//  input  SPI_SDI,                //SPI data from Apollo 
-  output SPI_SCK,                //SPI clock to Alex or Apollo 
-  //output J15_5,                  //SPI Rx data load strobe to Alex / Apollo enable
-  //output J15_6,                  //SPI Tx data load strobe to Alex / Apollo ~reset 
+  output SPI_SCK,                //SPI clock to Alex or Apollo
   output SPI_RX_LOAD,            //SPI Rx data load strobe to Alex / Apollo enable
   
   //misc. i/o
@@ -613,41 +602,20 @@ module Angelia(
   input  ANT_TUNE,               //atu
   output VNA_out,                // used for VNA measurement
   output ANT2_RELAY,             // high level provides a signal to turn on the relay of the second antenna
-  // ODYSSEY2: not available
-  //output IO1,                    //high to mute AF amp    
-  //input  IO2,                    //PTT, used by Apollo 
-  
-  //user digital inputs
-  // ODYSSEY2: not available
-  //input  IO4,                    
-  //input  IO5,
-  //input  IO6,
-  //input  IO8,
-  
+                                 // or if Alex is enable used as TX strobe (SPI_TX_LOAD)
+
   //user outputs
   output USEROUT0,               
   output USEROUT1,
   output USEROUT2,
   output USEROUT3,
-  // ODYSSEY2: not available
-  //output USEROUT4,
-  //output USEROUT5,
-  //output USEROUT6,
-  
+
     //debug led's
   output Status_LED,      
   output DEBUG_LED1,             
   output DEBUG_LED2,
   output DEBUG_LED3,
-  // ODYSSEY2: not available
-  //output DEBUG_LED4,
-  //output DEBUG_LED5,
-  //output DEBUG_LED6,
-  //output DEBUG_LED7,
-  //output DEBUG_LED8,
-  //output DEBUG_LED9,
-  //output DEBUG_LED10,
-  
+
   // ODYSSEY2: test point on the left of the Status_LED
   output DEBUG_TP1,
   output DEBUG_TP2,
@@ -669,12 +637,6 @@ assign USEROUT4 = run ? Open_Collector[5] : 1'b0;
 assign USEROUT5 = run ? Open_Collector[6] : 1'b0;
 assign USEROUT6 = run ? Open_Collector[7] : 1'b0; 		
 
-// Odyssey 2 : gain and SDHN not available on LTC2165
-//assign PGA = 0;								// 1 = gain of 3dB, 0 = gain of 0dB
-//assign PGA_2 = 0;
-//assign SHDN = 1'b0;				   		// normal LTC2208 operation
-//assign SHDN_2 = 1'b0;
-
 //attenuator
 // Odyssey2: the DATA and CLK are shared between the two attenuator
 wire ATTN_DATA_1;
@@ -686,11 +648,7 @@ assign ATTN_CLK = ATTN_LE ? ATTN_CLK_1 : ATTN_CLK_2;
 
 assign NCONFIG = IP_write_done;
 
-wire speed = 1'b1; // high for 1000T
-// enable AF Amp
-// ODYSSEY2: not available
-//assign  IO1 = 1'b0;  						// low to enable, high to mute
-
+wire speed = 1'b1; // Ethernet speed; high for 1000T
 localparam NR = 4; 							// number of receivers to implement
 localparam master_clock = 122880000; 	// DSP  master clock in Hz.
 
@@ -725,6 +683,7 @@ assign ANT2_RELAY  = Apollo ? Alex_data[25] : Alex_TX_LOAD;
 assign _122MHz_out = C122_clk;
 
 // mcu UART channel
+// maybe move to CBCLK with division of 160
 mcu #(.fw_version(fw_version)) mcu_uart (
 	.clk(C122_clk),
 	.mcu_uart_rx(MCU_UART_RX),
@@ -742,22 +701,13 @@ assign PHY_RESET_N = (res_cnt == 0);
 //--------------------------------------------------------------
 
 wire  IF_rst;
-// ODYSSEY 2 remove
-//wire SPI_Alex_rst;
 wire C122_rst;
-//wire SPI_clk;
 	
 assign IF_rst = network_state;  // hold code in reset until Ethernet code is running.
 
 // transfer IF_rst to 122.88MHz clock domain to generate C122_rst
 cdc_sync #(1)
 	reset_C122 (.siga(IF_rst), .rstb(0), .clkb(C122_clk), .sigb(C122_rst)); // 122.88MHz clock domain reset
-
-// ODYSSEY 2 remove
-// PHY_RESET_N will go high after ~100ms due to RC, use to create Alex reset pulse
-//pulsegen reset_Alex  (.sig(PHY_RESET_N), .rst(0), .clk(CBCLK), .pulse(SPI_Alex_rst));
-//cdc_sync #(1)
-//	reset_Alex (.siga(run), .rstb(0), .clkb(CBCLK), .sigb(SPI_Alex_rst));  // SPI_clk domain reset
 	
 // Deadman timer - clears run if HW_timer_enable and no C&C commands received for ~2 seconds.
 
@@ -1636,34 +1586,6 @@ endgenerate
 //---------------------------------------------------------
 //    ADC SPI interface 
 //---------------------------------------------------------
-// generate a 30.72 MHz clock for the Angelia_ADC module, results in a 7.68 MHz clock for the ADC78H90 chip
-// ODYSSEY 2 disabled
-/*
-wire userADC_clk;
-reg [1:0] clk_state;
-
-always @ (posedge _122MHz)
-begin									// 30.72 MHz output clock on userADC_clk
-	case (clk_state)
-	0: begin
-			userADC_clk <= 1'b1;
-			clk_state <= 2'd1;
-		end
-	1: begin
-			clk_state <= 2'd2;
-		end
-	2: begin
-			userADC_clk <= 1'b0;
-			clk_state <= 2'd3;
-	   end
-	3: begin
-			clk_state <= 2'd0;
-		end
-	endcase
-	
-end
-*/
-
 
 wire [11:0] AIN1;  // FWD_power
 wire [11:0] AIN2;  // REV_power
@@ -1737,6 +1659,7 @@ cpl_cordic # (.IN_WIDTH(17))
         = cos(f1 + f2) + j sin(f1 + f2)
 */
 
+// we use offset binary not 2 complement
 always @ (posedge _122_90)
 	DACD <= run ? {~C122_cordic_i_out[21], C122_cordic_i_out[20:8]} : 14'b0;   // select top 14 bits for DAC data // disable TX DAC if IO4 active
  
@@ -2077,8 +2000,6 @@ wire debounce_IO5;
 debounce de_PTT	(.clean_pb(debounce_PTT),  .pb(!PTT | !PTT2), .clk(CMCLK));
 debounce de_DOT	(.clean_pb(debounce_DOT),  .pb(!KEY_DOT), .clk(CMCLK));
 debounce de_DASH	(.clean_pb(debounce_DASH), .pb(!KEY_DASH), .clk(CMCLK));
-// ODYSSEY 2 not available
-//debounce de_IO5	(.clean_pb(debounce_IO5),	.pb(!IO5), 		 .clk(CMCLK));
 
 //-------------------------------------------------------
 //    PLLs 
