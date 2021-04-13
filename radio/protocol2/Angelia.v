@@ -568,7 +568,7 @@ module Angelia(
   output PHY_TX_EN,              //PHY Tx enable
   output PHY_TX_CLOCK,           //PHY Tx data clock
   input  [3:0]PHY_RX,     
-  input  RX_DV,                 //PHY has data flag
+  input  PHY_RX_DV,                 //PHY has data flag
   input  PHY_RX_CLOCK,           //PHY Rx data clock
   input  PHY_CLK125,             //125MHz clock from PHY PLL
   //input  PHY_INT_N,              //interrupt (n.c.)
@@ -865,7 +865,7 @@ network network_inst (
   .PHY_TX_EN(PHY_TX_EN),            
   .PHY_TX_CLOCK(PHY_TX_CLOCK),         
   .PHY_RX(PHY_RX),     
-  .PHY_DV(RX_DV),    					// use PHY_DV to be consistent with Metis            
+  .PHY_DV(PHY_RX_DV),    					// use PHY_DV to be consistent with Metis
   .PHY_RX_CLOCK(PHY_RX_CLOCK),         
   .PHY_CLK125(PHY_CLK125),           
   .PHY_MDIO(PHY_MDIO),             
