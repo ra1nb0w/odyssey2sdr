@@ -509,6 +509,10 @@
 
 2019	Apr 17 - (N1GP) Updated phy timing to 5270
 			 - Changed FW version number to v1.20
+
+2019    Apr 28 - (N1GP) Fixed a merge issue which caused the Antenna selection to not work
+                         mistakenly merged some Orion changes in to High_Priority_CC.v
+                         - Changed FW version number to v12.1
 */
 
 module Angelia(
@@ -662,7 +666,7 @@ parameter  protocol_version = 8'd38;	// openHPSDR protocol version implemented
 //--------------------------------------------------------------
 // Odyssey 2: custom things
 //--------------------------------------------------------------
-parameter [63:0] fw_version = "12.01 P2";
+parameter [63:0] fw_version = "12.11 P2";
 assign VNA_out = VNA;
 
 // Odyssey 2 : we share the Alex SPI with the USEROUT4-6
@@ -1019,7 +1023,7 @@ wire 			C122_run;
 
 		Rx_fifo Rx0_fifo_inst(.wrclk (C122_clk),.rdreq (fifo_rdreq[0]),.rdclk (tx_clock),.wrreq (Rx_fifo_wreq[0] && write_enable), 
 							 .data (Rx_fifo_data[0]), .q (Rx_data[0]), .wrfull(Rx_fifo_full[0]), .rdempty(Rx_fifo_empty),
-							 .rdusedw(Rx_used[0]), .aclr (IF_rst | Rx_fifo_clr[0] | !run | fifo_clear ));  											
+							 .rdusedw(Rx_used[0]), .aclr (IF_rst | Rx_fifo_clr[0] | !C122_run | fifo_clear ));
 							  
 		Rx_fifo_ctrl0 #(NR) Rx0_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[0] ), .clock(C122_clk), .data_in_I(rx_I[1]), .data_in_Q(rx_Q[1]), // was rx_Q[1]
 							.spd_rdy(strobe[0]), .spd_rdy2(strobe[1]), .fifo_full(Rx_fifo_full[0]), .Rx_fifo_empty(C122_Rx_fifo_empty),  //.Rx_number(d),
@@ -1349,7 +1353,7 @@ byte_to_48bits #(1029) IQ_byte_to_48bits_inst
 			(.clock(rx_clock), .run(run), .udp_rx_active(udp_rx_active), .udp_rx_data(udp_rx_data), .to_port(to_port),
 			 .fifo_wrreq(Tx1_fifo_wrreq), .data_out(Tx1_IQ_data), .full(1'b0), .sequence_error());					 
 
-// Ensure I&Q data is zero if not trasmitting
+// Ensure I&Q data is zero if not transmitting
 wire [47:0] IQ_Tx_data = FPGA_PTT ? C122_IQ1_data : 48'b0; 													
 
 // indicate how full or empty the FIFO is - was required by Simon G4ELI code but no longer required. 
@@ -1624,7 +1628,7 @@ reg [7:0] PWM_count;
 always @ (posedge rx_clock)
 begin 
 	PWM_count <= PWM_count + 1'b1;
-	if (Drive_Level >= PWM_count)
+	if (Drive_Level + 32'd25 >= PWM_count)
 		DAC_ALC <= 1'b1;
 	else 
 		DAC_ALC <= 1'b0;
@@ -1899,13 +1903,13 @@ CC_encoder #(50, NR) CC_encoder_inst (				// 50mS update rate
 					.User_ADC2 (user_analog2),
 					.User_IO (8'b0),
 					.Debug_data(16'd0),
-					.pk_detect_ack,			// from Angelia_ADC
+					.pk_detect_ack(pk_detect_ack),			// from Angelia_ADC
 					.FPGA_PTT(FPGA_PTT),						// when set change update rate to 1mS
 							
 					//	outputs
 					.CC_data (CC_data),
 					.ready (CC_data_ready),
-					.pk_detect_reset 			// to Angelia_ADC
+					.pk_detect_reset(pk_detect_reset) 			// to Angelia_ADC
 				);
 							
  
@@ -1969,7 +1973,7 @@ wire osc_10MHz;
 
 // Use a PLL to divide 122.88MHz clock to 10MHz							
 
-C122_PLL PLL_inst (.inclk0(_122MHz), .c0(osc_10MHz), .locked());	
+C122_PLL PLL_inst (.inclk0(C122_clk), .c0(osc_10MHz), .locked());
 	
 //Apply to EXOR phase detector 
 assign FPGA_PLL = OSC_10MHZ ^ osc_10MHz;

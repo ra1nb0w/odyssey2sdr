@@ -286,6 +286,9 @@ set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
 set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
 set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
 
+# set_global_assignment -name SMART_RECOMPILE ON
+# set_global_assignment -name remove_redundant_logic_cells ON
+# set_global_assignment -name remove_duplicate_registers ON
 # set_global_assignment -name EDA_SIMULATION_TOOL "<None>"
 # set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
 # set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE BALANCED
@@ -297,7 +300,7 @@ set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
 # set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_RETIMING OFF
 # set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION OFF
 
-# set_global_assignment -name SMART_RECOMPILE ON
+
 # set_global_assignment -name RESERVE_DATA0_AFTER_CONFIGURATION "USE AS REGULAR IO"
 # set_global_assignment -name RESERVE_DATA1_AFTER_CONFIGURATION "USE AS REGULAR IO"
 # set_global_assignment -name RESERVE_FLASH_NCE_AFTER_CONFIGURATION "USE AS REGULAR IO"

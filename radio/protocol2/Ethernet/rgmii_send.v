@@ -43,19 +43,14 @@ module rgmii_send (
 //-----------------------------------------------------------------------------  
 //                              clocks
 //-----------------------------------------------------------------------------
-wire clock_125_mhz_0_deg, clock_125_mhz_90_deg;
-  
 tx_pll	tx_pll_inst (
 	.inclk0 (PHY_CLK125),
-	.c0 (clock_125_mhz_0_deg),
-	.c1 (clock_125_mhz_90_deg),
+	.c0 (clock),
+	.c1 (PHY_TX_CLOCK),
 	.c2 (clock_12_5MHz),
 	.c3 (clock_2_5MHz)
 	);   
    
-
-assign clock = clock_125_mhz_0_deg;
-assign PHY_TX_CLOCK = clock_125_mhz_90_deg;
 
 
  

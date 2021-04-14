@@ -213,7 +213,7 @@ sync sync_inst1(.clock(tx_clock), .sig_in(rx_send_request), .sig_out(send_reques
 //---------------------------------------------------------------
 reg [8:0]  rx_state;
 reg [8:0]  rx_byte_no;
-reg rx_send_request;        // in rx_clock domain
+reg rx_send_request = 1'b0;        // in rx_clock domain
 reg [47:0] target_mac;
 reg [47:0] temp_target_mac;
 reg [15:0] option;        // holds DHCP options

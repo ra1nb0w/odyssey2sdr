@@ -139,8 +139,12 @@ endgenerate
 
 always @(posedge clock)
 begin
-  if(HW_timeout) run <= 1'b0; 							// reset run if HW timeout 
-  
+  if(HW_timeout)
+	begin
+	   run <= 1'b0; 							// reset run if HW timeout
+	   PC_PTT <= 1'b0;
+	end
+
   else if (udp_rx_active && to_port == port)				// look for to_port = 1027
     case (state)
 		IDLE:
