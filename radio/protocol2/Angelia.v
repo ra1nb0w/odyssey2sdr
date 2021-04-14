@@ -1627,7 +1627,7 @@ reg [7:0] PWM_count;
 always @ (posedge rx_clock)
 begin 
 	PWM_count <= PWM_count + 1'b1;
-	if (Drive_Level + 32'd25 >= PWM_count)
+	if (Drive_Level >= PWM_count)
 		DAC_ALC <= 1'b1;
 	else 
 		DAC_ALC <= 1'b0;
@@ -1971,7 +1971,6 @@ debounce de_DASH	(.clean_pb(debounce_DASH), .pb(!KEY_DASH), .clk(CMCLK));
 wire osc_10MHz;
 
 // Use a PLL to divide 122.88MHz clock to 10MHz							
-
 C122_PLL PLL_inst (.inclk0(C122_clk), .c0(osc_10MHz), .locked());
 	
 //Apply to EXOR phase detector 
