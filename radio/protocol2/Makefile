@@ -8,10 +8,13 @@ all: build/$(PROJECT).sof
 build/$(PROJECT).sof:
 	quartus_sh --flow compile $(PROJECT)
 
+recompile:
+	quartus_sh --flow recompile $(PROJECT)
+
 clean:
+	rm -rf build
+
+cleanall:
 	rm -rf build db incremental_db greybox_tmp
 
-#realclean:
-#	rm -rf
-
-.PHONY: all clean
+.PHONY: all recompile clean cleanall
