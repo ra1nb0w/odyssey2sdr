@@ -56,7 +56,7 @@ create_generated_clock -source [get_pins {network_inst|rgmii_send_inst|tx_pll_in
 
 #create generated clock for PLL transmit clock output with 90 phase shift
 create_generated_clock -source [get_pins {network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|inclk[0]}] \
-  -name PHY_TX_CLOCK -phase 135.00 -duty_cycle 50.00 [get_pins {network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[1]}] -add
+  -name PHY_TX_CLOCK -phase 157.50 -duty_cycle 50.00 [get_pins {network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[1]}] -add
 
 # data_clock = CMCLK/2 used by Attenuator and TLV320 SPI
 create_generated_clock -name data_clk -source $CMCLK -divide 2
