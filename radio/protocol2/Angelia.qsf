@@ -71,17 +71,11 @@ set_location_assignment PIN_V4 -to ADCCLK
 set_location_assignment PIN_V3 -to ADCMISO
 set_location_assignment PIN_W2 -to ADCMOSI
 set_location_assignment PIN_R3 -to ADCCS_N
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to ADC*
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to ADC*
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to ADC*
 
 set_location_assignment PIN_Y1 -to ATTN_CLK
 set_location_assignment PIN_Y2 -to ATTN_DATA
 set_location_assignment PIN_AA1 -to ATTN_LE
 set_location_assignment PIN_W1 -to ATTN_LE_2
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to ATTN_*
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to ATTN_*
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to ATTN_*
 
 set_location_assignment PIN_F22 -to CBCLK
 set_location_assignment PIN_F21 -to CDIN
@@ -93,20 +87,6 @@ set_location_assignment PIN_B21 -to nCS
 set_location_assignment PIN_C21 -to MOSI
 set_location_assignment PIN_C22 -to SSCK
 set_location_assignment PIN_E21 -to CDOUT
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to CBCLK
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to CMCLK
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to CLRCIN
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to CLRCOUT
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to CBCLK
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to CDIN
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to CLRCIN
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to CLRCOUT
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to CMCLK
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to CMODE
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to nCS
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to MOSI
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SSCK
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to CDOUT
 
 set_location_assignment PIN_N22 -to DACD[13]
 set_location_assignment PIN_N21 -to DACD[12]
@@ -123,8 +103,6 @@ set_location_assignment PIN_W22 -to DACD[2]
 set_location_assignment PIN_Y21 -to DACD[1]
 set_location_assignment PIN_Y22 -to DACD[0]
 set_location_assignment PIN_K22 -to DAC_ALC
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to DACD[*]
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to DAC_ALC
 
 set_location_assignment PIN_E1 -to DEBUG_LED1
 set_location_assignment PIN_C1 -to DEBUG_LED2
@@ -132,8 +110,6 @@ set_location_assignment PIN_B1 -to DEBUG_LED3
 set_location_assignment PIN_J1 -to DEBUG_TP1
 set_location_assignment PIN_H2 -to DEBUG_TP2
 set_location_assignment PIN_F1 -to Status_LED
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to DEBUG_*
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to Status_LED
 
 set_location_assignment PIN_AB9 -to INA[0]
 set_location_assignment PIN_AA10 -to INA[1]
@@ -151,7 +127,6 @@ set_location_assignment PIN_AA3 -to INA[12]
 set_location_assignment PIN_AB3 -to INA[13]
 set_location_assignment PIN_AB4 -to INA[14]
 set_location_assignment PIN_AA4 -to INA[15]
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to INA[*]
 
 set_location_assignment PIN_AB19 -to INA_2[0]
 set_location_assignment PIN_AA20 -to INA_2[1]
@@ -169,12 +144,9 @@ set_location_assignment PIN_AA13 -to INA_2[12]
 set_location_assignment PIN_AB13 -to INA_2[13]
 set_location_assignment PIN_AB14 -to INA_2[14]
 set_location_assignment PIN_AA14 -to INA_2[15]
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to INA_2[*]
 
 set_location_assignment PIN_Y3 -to OVERFLOW
 set_location_assignment PIN_Y14 -to OVERFLOW_2
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to OVERFLOW
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to OVERFLOW_2
 
 set_location_assignment PIN_AA11 -to LTC2208_122MHz
 set_location_assignment PIN_AA12 -to LTC2208_122MHz_2
@@ -182,12 +154,6 @@ set_location_assignment PIN_T2 -to OSC_10MHZ
 set_location_assignment PIN_T21 -to _122MHz
 set_location_assignment PIN_T20 -to _122MHz_out -comment "physically connected to DAC_122MHz_in"
 set_location_assignment PIN_AA21 -to FPGA_PLL
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to LTC2208_122MHz
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to LTC2208_122MHz_2
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to OSC_10MHz
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to _122MHz
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to _122MHz_out
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to FPGA_PLL
 
 set_location_assignment PIN_B12 -to PHY_CLK125
 set_location_assignment PIN_C13 -to PHY_MDC
@@ -205,9 +171,6 @@ set_location_assignment PIN_A6 -to PHY_TX[1]
 set_location_assignment PIN_B5 -to PHY_TX[0]
 set_location_assignment PIN_E5 -to PHY_TX_CLOCK
 set_location_assignment PIN_A8 -to PHY_TX_EN
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to PHY_*
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to PHY_*
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to PHY_*
 
 set_instance_assignment -name IO_STANDARD "2.5 V" -to PHY_CLK125
 set_instance_assignment -name IO_STANDARD "2.5 V" -to PHY_MDC
@@ -229,9 +192,6 @@ set_instance_assignment -name IO_STANDARD "2.5 V" -to PHY_RX_DV
 set_location_assignment PIN_R2 -to SPI_SCK
 set_location_assignment PIN_U2 -to SPI_SDO
 set_location_assignment PIN_N1 -to SPI_RX_LOAD
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to SPI_*
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SPI_*
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to SPI_*
 
 set_location_assignment PIN_A3 -to CS
 set_location_assignment PIN_A4 -to SCK
@@ -248,40 +208,30 @@ set_location_assignment PIN_L22 -to MCU_UART_RX
 set_location_assignment PIN_L21 -to MCU_UART_TX
 set_location_assignment PIN_J22 -to MCU_NOT_CON -disable
 set_location_assignment PIN_K21 -to MCU_NOT_USED -disable
-set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to MCU_TX
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to MCU_TX
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to MCU_RX
 
 set_location_assignment PIN_H21 -to KEY_DASH
 set_location_assignment PIN_H22 -to KEY_DOT
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to KEY_*
 
 set_location_assignment PIN_J21 -to PTT
 set_location_assignment PIN_P2 -to PTT2
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to PTT*
 
 set_location_assignment PIN_P1 -to FPGA_PTT
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to FPGA_PTT
 
 set_location_assignment PIN_M2 -to USEROUT0
 set_location_assignment PIN_V1 -to USEROUT1
 set_location_assignment PIN_U1 -to USEROUT2
 set_location_assignment PIN_R1 -to USEROUT3
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to USEROUT*
 
 set_location_assignment PIN_N2 -to ANT_TUNE
 set_location_assignment PIN_M1 -to VNA_out
 set_location_assignment PIN_V2 -to ANT2_RELAY
-set_instance_assignment -name FAST_INPUT_REGISTER ON -to ANT_TUNE
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to VNA_out
-set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to ANT2_RELAY
 
 
 set_global_assignment -name ENABLE_OCT_DONE OFF
 set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
 set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
 set_global_assignment -name ALLOW_REGISTER_RETIMING OFF
-set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_RETIMING OFF
+set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_RETIMING ON
 set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
 set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
 set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
@@ -299,8 +249,6 @@ set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
 # set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC OFF
 # set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_RETIMING OFF
 # set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION OFF
-
-
 # set_global_assignment -name RESERVE_DATA0_AFTER_CONFIGURATION "USE AS REGULAR IO"
 # set_global_assignment -name RESERVE_DATA1_AFTER_CONFIGURATION "USE AS REGULAR IO"
 # set_global_assignment -name RESERVE_FLASH_NCE_AFTER_CONFIGURATION "USE AS REGULAR IO"
@@ -309,7 +257,6 @@ set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
 set_global_assignment -name SEARCH_PATH polyphase_fir/ -tag from_archive
 set_global_assignment -name SEARCH_PATH Ethernet/ -tag from_archive
 set_global_assignment -name SEARCH_PATH Polyphase_FIR/ -tag from_archive
-set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 
 set_global_assignment -name VERILOG_FILE ext_io_adc.v
 set_global_assignment -name VERILOG_FILE mcu.v
@@ -398,3 +345,17 @@ set_global_assignment -name QIP_FILE Polyphase_FIR/firromHc.qip
 set_global_assignment -name QIP_FILE Polyphase_FIR/firromHd.qip
 set_global_assignment -name QIP_FILE C10_PLL.qip
 set_global_assignment -name QIP_FILE tx_pll.qip
+
+set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name FINAL_PLACEMENT_OPTIMIZATION AUTOMATICALLY
+set_global_assignment -name QII_AUTO_PACKED_REGISTERS NORMAL
+set_global_assignment -name ROUTER_TIMING_OPTIMIZATION_LEVEL MAXIMUM
+set_global_assignment -name ROUTER_LCELL_INSERTION_AND_LOGIC_DUPLICATION ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION ON
+set_global_assignment -name SMART_RECOMPILE ON
+set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
+set_global_assignment -name ADV_NETLIST_OPT_SYNTH_WYSIWYG_REMAP ON
+set_global_assignment -name MUX_RESTRUCTURE OFF
+set_global_assignment -name ROUTER_CLOCKING_TOPOLOGY_ANALYSIS ON
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
