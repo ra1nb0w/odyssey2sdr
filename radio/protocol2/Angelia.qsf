@@ -309,6 +309,8 @@ set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
 set_global_assignment -name SEARCH_PATH polyphase_fir/ -tag from_archive
 set_global_assignment -name SEARCH_PATH Ethernet/ -tag from_archive
 set_global_assignment -name SEARCH_PATH Polyphase_FIR/ -tag from_archive
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+
 set_global_assignment -name VERILOG_FILE ext_io_adc.v
 set_global_assignment -name VERILOG_FILE mcu.v
 set_global_assignment -name VERILOG_FILE Rx_fifo_ctrl0.v
@@ -396,4 +398,3 @@ set_global_assignment -name QIP_FILE Polyphase_FIR/firromHc.qip
 set_global_assignment -name QIP_FILE Polyphase_FIR/firromHd.qip
 set_global_assignment -name QIP_FILE C10_PLL.qip
 set_global_assignment -name QIP_FILE tx_pll.qip
-set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
