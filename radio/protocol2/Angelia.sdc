@@ -142,6 +142,7 @@ set_output_delay  10 -clock $CBCLK {CDIN CMODE} -add_delay
 
 #Alex  uses CBCLK/4
 set_output_delay  10 -clock data_clk2 { SPI_SDO } -add_delay
+set_output_delay  10 -clock { PLL_IF_inst|altpll_component|auto_generated|pll1|clk[2] } [get_ports {SPI_RX_LOAD}] -add_delay
 
 #EEPROM (2.5MHz)
 set_output_delay  40 -clock $clock_2_5MHz {SCK SI CS} -add_delay
@@ -152,6 +153,10 @@ set_output_delay  10 -clock data_clk2 {ADCMOSI ADCCS_N} -add_delay
 #PHY (2.5MHz)
 set_output_delay  10 -clock $clock_2_5MHz {PHY_MDIO} -add_delay
 
+#MCU
+set_output_delay  10 -clock $CBCLK [get_ports {MCU_UART_TX}] -add_delay
+set_output_delay  10 -clock { PLL_IF_inst|altpll_component|auto_generated|pll1|clk[2] } [get_ports {MCU_UART_TX}] -add_delay
+
 #************************************************************** 
 # Set Input Delay
 #**************************************************************
@@ -161,6 +166,9 @@ set_output_delay  10 -clock $clock_2_5MHz {PHY_MDIO} -add_delay
 # data from LTC2208 +/- 2nS setup and hold
 set_input_delay -add_delay  -clock [get_clocks {virt_122MHz}]  2.000 [get_ports {INA[*]}]
 set_input_delay -add_delay  -clock [get_clocks {virt_122MHz}]  2.000 [get_ports {INA_2[*]}]
+
+# clock to ADC
+set_output_delay -clock { LTC2208_122MHz } -add_delay 2.0 [get_ports {_122MHz_out}]
 
 ## Ethernet PHY RX per AN477, with PHY delay for RX enabled
 ## Clock delay added by KSZ9031 is 1.0 to 2.6 per datasheet table 7-1
@@ -203,25 +211,21 @@ set_input_delay  10  -clock data_clk2 {ADCMISO} -add_delay
 #************************************************************** 
 
 set_max_delay -from tx_clock -to network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] 21
-set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] -to PHY_TX_CLOCK 10
-set_max_delay -from tx_clock -to PHY_TX_CLOCK 10
-#set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[1] -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 3
-set_max_delay -from LTC2208_122MHz -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 7
-set_max_delay -from LTC2208_122MHz -to LTC2208_122MHz 18
 set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] -to tx_clock 21
-set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] -to network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] 21
 set_max_delay -from tx_clock -to tx_clock 21
-#set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] -to PHY_TX_CLOCK 10
-#set_max_delay -from tx_clock -to PHY_TX_CLOCK 10
-set_max_delay -from PHY_RX_CLOCK -to PHY_RX_CLOCK 10
+set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] -to network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] 21
+set_max_delay -from LTC2208_122MHz -to LTC2208_122MHz 18
+set_max_delay -from LTC2208_122MHz -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 7
 set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] -to _122MHz 7
+set_max_delay -from PHY_RX_CLOCK -to PHY_RX_CLOCK 10
+set_max_delay -from tx_clock -to PHY_TX_CLOCK 11
+set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] -to PHY_TX_CLOCK 11
+
 
 #**************************************************************
 # Set Minimum Delay (for hold or removal; low-level, over-riding timing adjustments)
 #**************************************************************
 
-#set_min_delay -from virt_PHY_RX_CLOCK -to PHY_RX_CLOCK -3
-#set_min_delay -from PHY_RX_CLOCK -to PHY_RX_CLOCK -1
 set_min_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[3] -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[2] -1
 
 
@@ -251,7 +255,7 @@ set_false_path -to [get_ports {CMCLK CBCLK CLRCIN CLRCOUT ATTN_CLK* SSCK ADCCLK 
 
 # 'get_keepers' denotes either ports or registers
 # don't need fast paths to the LEDs and adhoc outputs so set false paths so Timing will be ignored
-set_false_path -to [get_keepers { Status_LED DEBUG_LED* DEBUG_TP* FPGA_PTT NCONFIG USEROUT* FPGA_PLL DAC_ALC}]
+set_false_path -to [get_keepers { Status_LED DEBUG_LED* DEBUG_TP* FPGA_PTT NCONFIG USEROUT* FPGA_PLL DAC_ALC ANT2_RELAY PHY_RESET_N VNA_out}]
 
 #don't need fast paths from the following inputs
 set_false_path -from [get_keepers  {ANT_TUNE KEY_DASH KEY_DOT OVERFLOW* PTT PTT2}]
