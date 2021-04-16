@@ -71,6 +71,7 @@ set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
 set_global_assignment -name ENABLE_NCE_PIN OFF
 set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
 set_global_assignment -name CONFIGURATION_VCCIO_LEVEL 3.3V
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY build
 set_location_assignment PIN_AA11 -to INA_CLK
 set_location_assignment PIN_B12 -to PHY_CLK125
 set_location_assignment PIN_C13 -to PHY_MDC
