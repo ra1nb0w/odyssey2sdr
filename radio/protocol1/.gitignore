@@ -67,5 +67,7 @@
 !docs/
 !README.org
 
+!Makefile
+
 !Ethernet/
 !Polyphase_FIR/
