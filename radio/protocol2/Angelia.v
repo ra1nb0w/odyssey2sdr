@@ -1411,7 +1411,7 @@ reg [15:0]temp_ADC_reg[0:1];
 // ODYSEEY 2: we are using ADC and DAC in offset binary mode
 // and not in 2's complement format as Anan devices
 
-always @ (posedge _122_90)
+always @ (posedge _122MHz)
   temp_DACD <= {C122_cordic_i_out[21:8], 2'b00};
 
 always @ (posedge LTC2208_122MHz)
@@ -1610,7 +1610,7 @@ cpl_cordic # (.IN_WIDTH(17))
 */
 
 // we use offset binary not 2 complement
-always @ (posedge _122_90)
+always @ (posedge _122MHz)
 	DACD <= run ? {~C122_cordic_i_out[21], C122_cordic_i_out[20:8]} : 14'b0;   // select top 14 bits for DAC data // disable TX DAC if IO4 active
  
 
