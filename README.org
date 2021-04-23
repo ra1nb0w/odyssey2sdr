@@ -9,7 +9,7 @@
 
 ** Why I started this repository?
 
-The hardware project was done by David Fainitski N7DDC and you can find all
+The hardware project was made by David Fainitski N7DDC and you can find all
 his work at this [[https://github.com/Dfinitski/Odyssey-2_2017_TRX][url]].
 
 I started this repository for the following reasons:
@@ -19,8 +19,10 @@ I started this repository for the following reasons:
 - fully remote controllable radio without any external hardware;
 - a future proof code that will work for the next decade;
 - comprehensive radio documentation;
+- maintain an up-to-date gateware (radio firmware) in sync with the
+  Anan 100D;
 - learn PIC architecture and FPGA ecosystem (with Verilog HDL in
-  this case);
+  this case).
 
 ** Features
 
