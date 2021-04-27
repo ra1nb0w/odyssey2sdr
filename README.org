@@ -55,6 +55,24 @@ found in the [[./mcu/README.org][mcu]] readme.
 For the FPGA you can find the bootloader specifications in [[./bootloader/README.org][bootloader]]
 readme and the radio details in the [[./radio/README.org][radio]] readme.
 
+** Flash the radio
+
+To use the radio you need to flash different kind of firmwares. Take the
+following steps:
+
+- program the MCU with the file /mcu-[version].hex/ via In-Circuit port and the
+  programmer. More information at this [[./mcu/README.org#Flash][page]];
+- program the bootloader with the gateware /bootloader-[version].pof/ using the
+  Altera Quartus programmer. Read the steps at this [[./bootloader/README.org#Flash][page]];
+- start the radio in the bootloader mode: either connecting both iambic keys
+  to GND or with the programmer software;
+- use the programmer to write the /odyssey2-[version]_[protocol].rbf/ in the
+  first slot; refer to the following [[./programmer/README.org#help-screen][page]] for the help.
+
+If you don't want to use the bootloader you can also build the radio gateware
+yourself and write the /pof/ directly to the FPGA using the JTAG port. Note that,
+in this way, you loose many facilities to manage and maintain the radio.
+
 ** Folders
 
 - [[./bootloader][bootloader]] : contains the verilog code for the bootloader and can be

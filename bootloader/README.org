@@ -106,20 +106,19 @@ Quartus documentation and try to understand what are you doing.
 
 You have two choice:
 
+- use the Altera USB Blaster and /pof/ file.
 - use the /rbl/ file and write the firmware to slot 0 with the
   programmer (useful only when you have a fully functional radio).
-- use the Altera USB Blaster.
 
-For the first solution refer to the [[../programmer][programmer]] documentation.
-To program the radio with Altera USB Blaster you need to attach the
-programming cable on the socket near the Ethernet port (pay attention
-on pin one). The you can use the programmer included in the Altera
-Quartus Prime if you have installed the entire suite or you can
-install only the [[https://www.intel.com/content/www/us/en/programmable/downloads/software/prog-software/121.html][Quartus II Stand-Alone Programmer]]. Open the
-programmer, select /Active Serial Programming/ from /Mode/, choose the
-hardware device and load the /Bootloader.pof/ file. Be sure that
-/Programm-Configure/, /Verify/, /Blank-Check/ are checked. Then you can
-start the programming. If it fails check cable connection.
+For the second solution refer to the [[../programmer][programmer]] documentation.
+To program the radio with Altera USB Blaster you need to attach the programming
+cable to the JTAG socket near the Ethernet port (pay attention on pin one). The
+you can use the programmer included in the Altera Quartus Prime if you have
+installed the entire suite or you can install only the [[https://www.intel.com/content/www/us/en/programmable/downloads/software/prog-software/121.html][Quartus II Stand-Alone
+Programmer]]. Open the programmer, select /Active Serial Programming/ from /Mode/,
+choose the hardware device and load the /Bootloader.pof/ file. Be sure that
+/Program-Configure/, /Verify/, /Blank-Check/ are checked. Then you can start the
+programming. If it fails check cable connection.
 
 ** License
 
