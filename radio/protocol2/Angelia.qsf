@@ -258,6 +258,26 @@ set_global_assignment -name SEARCH_PATH polyphase_fir/ -tag from_archive
 set_global_assignment -name SEARCH_PATH Ethernet/ -tag from_archive
 set_global_assignment -name SEARCH_PATH Polyphase_FIR/ -tag from_archive
 
+
+set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
+set_global_assignment -name FINAL_PLACEMENT_OPTIMIZATION AUTOMATICALLY
+set_global_assignment -name QII_AUTO_PACKED_REGISTERS NORMAL
+set_global_assignment -name ROUTER_TIMING_OPTIMIZATION_LEVEL MAXIMUM
+set_global_assignment -name ROUTER_LCELL_INSERTION_AND_LOGIC_DUPLICATION ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION ON
+set_global_assignment -name SMART_RECOMPILE ON
+set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
+set_global_assignment -name ADV_NETLIST_OPT_SYNTH_WYSIWYG_REMAP ON
+set_global_assignment -name MUX_RESTRUCTURE OFF
+set_global_assignment -name ROUTER_CLOCKING_TOPOLOGY_ANALYSIS ON
+
+# new
+set_location_assignment PLL_3 -to "network:network_inst|rgmii_send:rgmii_send_inst|tx_pll:tx_pll_inst|altpll:altpll_component|tx_pll_altpll:auto_generated|pll1"
+
+
+set_global_assignment -name VERILOG_FILE Mux_clear.v
+set_global_assignment -name VERILOG_FILE sync.v
 set_global_assignment -name VERILOG_FILE ext_io_adc.v
 set_global_assignment -name VERILOG_FILE mcu.v
 set_global_assignment -name VERILOG_FILE Rx_fifo_ctrl0.v
@@ -276,7 +296,6 @@ set_global_assignment -name VERILOG_FILE Ethernet/rgmii_recv.v
 set_global_assignment -name VERILOG_FILE iambic.v
 set_global_assignment -name VERILOG_FILE Ethernet/udp_send.v
 set_global_assignment -name VERILOG_FILE Ethernet/udp_recv.v
-set_global_assignment -name VERILOG_FILE Ethernet/sync.v
 set_global_assignment -name VERILOG_FILE Ethernet/sdr_send.v
 set_global_assignment -name VERILOG_FILE Ethernet/sdr_receive.v
 set_global_assignment -name VERILOG_FILE Ethernet/rgmii_send.v
@@ -345,18 +364,4 @@ set_global_assignment -name QIP_FILE Polyphase_FIR/firromHc.qip
 set_global_assignment -name QIP_FILE Polyphase_FIR/firromHd.qip
 set_global_assignment -name QIP_FILE C10_PLL.qip
 set_global_assignment -name QIP_FILE tx_pll.qip
-
-set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
-set_global_assignment -name FINAL_PLACEMENT_OPTIMIZATION AUTOMATICALLY
-set_global_assignment -name QII_AUTO_PACKED_REGISTERS NORMAL
-set_global_assignment -name ROUTER_TIMING_OPTIMIZATION_LEVEL MAXIMUM
-set_global_assignment -name ROUTER_LCELL_INSERTION_AND_LOGIC_DUPLICATION ON
-set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
-set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION ON
-set_global_assignment -name SMART_RECOMPILE ON
-set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
-set_global_assignment -name ADV_NETLIST_OPT_SYNTH_WYSIWYG_REMAP ON
-set_global_assignment -name MUX_RESTRUCTURE OFF
-set_global_assignment -name ROUTER_CLOCKING_TOPOLOGY_ANALYSIS ON
-
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

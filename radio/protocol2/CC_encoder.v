@@ -37,8 +37,14 @@ Format changed to match Protocol Discussion paper 5 Dec 2014
 			23	27	Reverse Power - Alex 2	[7:0]
 			24	28	Reverse Power - Alex 3	[15:8]
 			25	29	Reverse Power - Alex 3	[7:0]
+			26	30	Debug Data (FW debug)	[15:8]
+			27	31	Debug Data (FW debug)	[7:0]
+			28	32	Sequence Errors		[31:24]
+			29	33	Sequence Errors		[23:16]
+			30	34	Sequence Errors		[15:8]
+			31	35	Sequence Errors		[7:0]
 			
-			RAM 26 to 44 and Bytes 30 to 48 currently not used.
+			RAM 32 to 44 and Bytes 36 to 48 currently not used.
 
 			45	49	Supply Volts				[15:8]
 			46	50	Supply Volts				[7:0]
@@ -78,6 +84,7 @@ module CC_encoder (
 							input pk_detect_ack,		// from Orion_ADC
 							input FPGA_PTT,
 							input [15:0] Debug_data,
+							input [31:0] sequence_errors,
 						
 							output reg [7:0] CC_data[0:55],
 							output reg ready,
@@ -93,7 +100,7 @@ parameter NR;
 reg [7:0] memory[0:56];    // 57 by 8 bit ram
 reg [7:0] temp[0:56];
 reg [7:0] previous[0:2];
-reg 		 new_frequency;
+reg new_frequency;
 reg [$clog2(NR)-1:0] x;
 
 // initial clear of all RAM
@@ -105,14 +112,15 @@ begin
 	temp[t]   = 8'd0;
 end
 	
+reg [1:0] seq_err_type;
 
 always @ (posedge clock)
 begin 
 
 	begin 
-			if (frequency_change[0] || frequency_change[1] ) 		// this is from Rx clock domain!!
-				new_frequency <= 1'b1;
-			else new_frequency <= 0;	
+		if (frequency_change[0] || frequency_change[1] ) 		// this is from Rx clock domain!!
+			new_frequency <= 1'b1;
+		else new_frequency <= 0;	
 	end
 
 	{memory[0],    temp[0]}  <=  {temp[0],  3'b0, locked_10MHz, new_frequency, Dash, Dot, PTT};  // sent in real time
@@ -124,10 +132,15 @@ begin
 	{memory[18],  temp[18]}  <= {temp[18],  REV_power[15:8]};
 	{memory[19],  temp[19]}  <= {temp[19],  REV_power[7:0]};	
 	
-	// RAM 20 - 44 not presently used - intialised to zero
+	// RAM 20 - 26 not presently used - intialised to zero
 	{memory[26],  temp[26]}  <= {temp[26],  Debug_data[15:8]};
 	{memory[27],  temp[27]}  <= {temp[27],  Debug_data[7:0]};
-	
+	{memory[28],  temp[28]}  <= {temp[28],  sequence_errors[31:24]};
+	{memory[29],  temp[29]}  <= {temp[29],  sequence_errors[23:16]};
+	{memory[30],  temp[30]}  <= {temp[30],  sequence_errors[15:8]};
+	{memory[31],  temp[31]}  <= {temp[31],  sequence_errors[7:0]};
+
+	// RAM 32 - 44 not presently used - intialised to zero
 	{memory[45],  temp[45]}  <= {temp[45],  Supply_volts[15:8]}; 								
 	{memory[46],  temp[46]}  <= {temp[46],  Supply_volts[7:0]}; 
 	
@@ -168,8 +181,8 @@ begin
 				previous[1] <= memory[55];
 				counter <= 0;							// no need to send a periodic update							
 				state <= 1;
-			end 				
-			else  	
+			end
+			else
 				for (count = 0; count < 6'd56; count = count + 6'd1) // update all status (56 bytes)
 				CC_data[count] <= memory[count];
 		end 

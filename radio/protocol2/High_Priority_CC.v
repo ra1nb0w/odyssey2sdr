@@ -59,9 +59,7 @@
 
         345	Tx0 Drive Level			0-255
 	
-	    1430 Alex 1						[47:40]  //Orion MkII uses a 48-bit Alex data word
-		 1431 Alex 1						[39:32]
-		 1432	Alex 0						[31:24]
+	    1432	Alex 0						[31:24]
 		 1433	Alex 0						[23:16]
 		 1434	Alex 0						[15:8]
 		 1435	Alex 0						[7:0]
@@ -81,24 +79,23 @@ module High_Priority_CC
 				input udp_rx_active,
 				input [7:0] udp_rx_data,
 				input HW_timeout,
-			   output reg run,
+				output reg run,
 				output reg PC_PTT,
 				output reg CWX,
 				output reg Dot,
 				output reg Dash,
 				output reg [31:0]Rx_frequency[0:NR-1] /* ramstyle = "logic" */,		
 				output reg [31:0]Tx0_frequency,
-				output reg [47:0]Alex_data,
+				output reg [31:0]Alex_data,
 				output reg  [7:0]drive_level,
-				output reg  [4:0]Attenuator0,
-				output reg  [4:0]Attenuator1,
+				output [4:0]Attenuator0,
+				output [4:0]Attenuator1,
 				output reg  [7:0]Open_Collector,
 				output reg  [7:0]User_Outputs,
 				output reg  [7:0]Mercury_Attenuator,				
 				output reg Alex_data_ready,
 				output  HW_reset,
-				output reg  [7:0]DLE_outputs  // XVTR_enable & IO1 output
-				
+				output reg [31:0]sequence_errors
 			);
 			
 parameter port = 16'd1027;	
@@ -108,13 +105,14 @@ localparam
 				IDLE = 1'd0,
 				PROCESS = 1'd1;
 			
-//reg [31:0] CC_sequence_number;
+reg [31:0] sequence_number;
+reg [31:0] last_sequence_number;
 reg [10:0] byte_number;
 reg state;
 
 
 reg [31:0]temp_Rx_frequency[0:NR-1];
-reg [47:0]temp_Alex_data;
+reg [31:0]temp_Alex_data;
 
 // per NR number
 genvar i;
@@ -129,7 +127,7 @@ for (i=0; i<NR; i=i+1) begin : rxloop
 						i*4 + 9:	temp_Rx_frequency [i][31:24] <= udp_rx_data; 
 						i*4 + 10:	temp_Rx_frequency [i][23:16] <= udp_rx_data;
 						i*4 + 11:	temp_Rx_frequency [i][15:8]  <= udp_rx_data;
-						i*4 + 12:	temp_Rx_frequency [i][7:0]   <= udp_rx_data; 
+						i*4 + 12:	temp_Rx_frequency [i][7:0]   <= udp_rx_data;
 						350:		Rx_frequency[i] <= temp_Rx_frequency[i];
 		    		endcase
 	    		endcase
@@ -139,33 +137,42 @@ endgenerate
 
 always @(posedge clock)
 begin
+  if (!run)
+	sequence_errors <= 32'd0;
+
   if(HW_timeout)
 	begin
-	   run <= 1'b0; 							// reset run if HW timeout
+	   run <= 1'b0;		// reset run if HW timeout
 	   PC_PTT <= 1'b0;
 	end
 
-  else if (udp_rx_active && to_port == port)				// look for to_port = 1027
+  else if (udp_rx_active && to_port == port)	// look for to_port = 1027
     case (state)
 		IDLE:
 			begin
 				byte_number <= 11'd1;
 				Alex_data_ready <= 1'b0;
-				//CC_sequence_number <= {CC_sequence_number[31-8:0], udp_rx_data};  //save MSB of sequence number
+				sequence_number[31:24] <= udp_rx_data;  //save MSB of sequence number
 				state <= PROCESS;
 			end 
 
 		PROCESS:
 			begin
 				case (byte_number) 	//save balance of sequence number
-				  1,2,3: begin
+						1: begin 
+							sequence_number[23:16] <= udp_rx_data;
 							Alex_data_ready <= 1'b0;
 						//	HW_reset <= 1'b1;						
-						//	CC_sequence_number <= {CC_sequence_number[31-8:0], udp_rx_data};
-							end
+						   end
+						2: 	sequence_number[15:8] <= udp_rx_data;
+						3: 	sequence_number[7:0] <= udp_rx_data;
 						4: begin 
 							run <= udp_rx_data[0];
-							PC_PTT <= udp_rx_data[1];
+							PC_PTT <= udp_rx_data[1]; //PTT0
+							// 2-4 = PTT1-PTT3
+							if (sequence_number != last_sequence_number + 1'b1)
+								sequence_errors <= sequence_errors + 1'b1;
+							last_sequence_number <= sequence_number;
 						   end
 						5: begin
 							CWX  <= udp_rx_data[0];
@@ -180,18 +187,14 @@ begin
 
 						 345: drive_level <= udp_rx_data;
 
-						1400:	DLE_outputs		  <=  udp_rx_data; // for ANAN-8000DLE (XVTR_enable & user IO1 output)
 						1401:	Open_Collector 		  <=  udp_rx_data;
 						1402:	User_Outputs 			  <=  udp_rx_data;
 						1403:	Mercury_Attenuator     <=  udp_rx_data;	
 						
-						// parse the Alex data bytes into temp_Alex_data
-						1430: temp_Alex_data [47:40]	<= udp_rx_data; // Rx1 filters high byte
-						1431: temp_Alex_data [39:32]	<= udp_rx_data; // Rx1 filters low byte
-						1432:	temp_Alex_data [31:24]  <= udp_rx_data; // Tx filters data high byte
-						1433:	temp_Alex_data [23:16]  <= udp_rx_data; // Tx filters data low byte
-						1434:	temp_Alex_data [15:8]   <= udp_rx_data; // Rx0 filters data high byte
-						1435:	temp_Alex_data [7:0]    <= udp_rx_data; // Rx0 filters data low byte	
+						1432:	temp_Alex_data [31:24]      <= udp_rx_data;
+						1433:	temp_Alex_data [23:16]      <= udp_rx_data;					
+						1434:	temp_Alex_data [15:8]       <= udp_rx_data;
+						1435:	temp_Alex_data [7:0]        <= udp_rx_data;	
 		
 						1437:	Alex_data <= temp_Alex_data;
 		

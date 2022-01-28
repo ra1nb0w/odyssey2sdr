@@ -513,6 +513,19 @@
 2019    Apr 28 - (N1GP) Fixed a merge issue which caused the Antenna selection to not work
                          mistakenly merged some Orion changes in to High_Priority_CC.v
                          - Changed FW version number to v12.1
+
+2020   Jan 4 - (N1GP) Fixed DHCP issue where a dhcp transaction not bound for the local MAC would get passed up and interfere
+                        with ongoing network traffic. Passed dhcp_enable down to udp_recv.v so the request was only considered
+                        when enabled. Enforced that TR relay was disabled if PA_Enable was set to disable.
+                        Moved the LED clock to CLK_25MHZ, added 'set_clock_groups -exclusive -group' for various clocks.
+
+2021   Jul 8 - (N1GP) Added beta_version for better tracking of test releases (byte 23 of discovery, per protocol2 doc v3.8).
+                       Removed/fixed stuck mode in sdr_send.v, merged HL2 dhcp and icmp updates in.
+                       Experimenting with phase step adjustment of tx_pll PHY_TX_CLOCK. 8 RX slices are enabled.
+                         - Changed FW version number to v12.1
+
+2021   Aug 10 - (N1GP) Updated to Quartus 20.1. Removed for loops in sdr_send.v, seemed to fix a lot of SEQ errors.
+
 */
 
 module Angelia(
@@ -661,12 +674,13 @@ parameter IF_TPD  = 2;
 
 localparam board_type = 8'h03;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
 parameter  Angelia_version = 8'd121;	// FPGA code version
-parameter  protocol_version = 8'd38;	// openHPSDR protocol version implemented
+parameter  beta_version = 8'd6;         // Should be 0 for official release
+parameter  protocol_version = 8'd39;	// openHPSDR protocol version implemented
 
 //--------------------------------------------------------------
 // Odyssey 2: custom things
 //--------------------------------------------------------------
-parameter [63:0] fw_version = "12.11 P2";
+parameter [63:0] fw_version = "12.1.6P2";
 assign VNA_out = VNA;
 
 // Odyssey 2 : we share the Alex SPI with the USEROUT4-6
@@ -706,7 +720,7 @@ assign PHY_RESET_N = (res_cnt == 0);
 wire  IF_rst;
 wire C122_rst;
 	
-assign IF_rst = network_state;  // hold code in reset until Ethernet code is running.
+assign IF_rst = !network_state;  // hold code in reset until Ethernet code is running.
 
 // transfer IF_rst to 122.88MHz clock domain to generate C122_rst
 cdc_sync #(1)
@@ -775,8 +789,15 @@ wire IP_write_done;
 wire static_ip_assigned;
 wire dhcp_timeout;
 wire dhcp_success;
-wire dhcp_failed;
 wire icmp_rx_enable;
+wire phaseupdown, phasestep;
+reg [7:0] phaseval;
+reg [7:0] skew_rxtxc;
+reg [7:0] skew_rxtxd;
+reg [10:0] skew_rxtxclk21;
+reg [7:0] reg_rxtxc;
+reg [7:0] reg_rxtxd;
+reg [10:0] reg_rxtxclk21;
 	
 network network_inst (
 
@@ -802,6 +823,12 @@ network network_inst (
   .IP_write_done(IP_write_done),
   .icmp_rx_enable(icmp_rx_enable),   // test for ping bug
   .to_port(to_port),   					// UDP port the PC is sending to
+  .skew_rxtxc(skew_rxtxc),
+  .skew_rxtxd(skew_rxtxd),
+  .skew_rxtxclk21(skew_rxtxclk21),
+  .reg_rxtxc(reg_rxtxc),
+  .reg_rxtxd(reg_rxtxd),
+  .reg_rxtxclk21(reg_rxtxclk21),
 
 	// status outputs
   .speed_1Gbit(speed_1Gbit),	
@@ -810,7 +837,7 @@ network network_inst (
   .static_ip_assigned(static_ip_assigned),
   .dhcp_timeout(dhcp_timeout),
   .dhcp_success(dhcp_success),
-  .dhcp_failed(dhcp_failed),  
+  .phasedone(phasedone),
 
   //make hardware pins available inside this module
   .MODE2(1'b1),
@@ -848,6 +875,7 @@ wire [15:0]to_port;
 wire [31:0] PC_seq_number;				// sequence number sent by PC when programming
 wire discovery_ACK;
 wire discovery_ACK_sync;
+wire phasedone;
 
 
 sdr_receive sdr_receive_inst(
@@ -862,7 +890,9 @@ sdr_receive sdr_receive_inst(
 	.local_mac(local_mac),
 	.to_port(to_port),
 	.discovery_ACK(discovery_ACK_sync),	// set when discovery reply request received by sdr_send
-	
+    .phasedone(phasedone),
+    .dashdot({KEY_DASH, KEY_DOT}),
+
 	//outputs
 	.discovery_reply(discovery_reply),
 	.seq_error(seq_error),
@@ -871,7 +901,13 @@ sdr_receive sdr_receive_inst(
 	.EPCS_FIFO_enable(),
 	.set_ip(set_ip),
 	.assign_ip(assign_ip),
-	.sequence_number(PC_seq_number)
+    .phaseupdown(phaseupdown),
+    .phasestep(phasestep),
+    .phaseval(phaseval),
+    .sequence_number(PC_seq_number),
+    .skew_rxtxc(skew_rxtxc),
+    .skew_rxtxd(skew_rxtxd),
+    .skew_rxtxclk21(skew_rxtxclk21)
 	);
 			        
 
@@ -916,6 +952,7 @@ sdr_send #(board_type, NR, master_clock, protocol_version) sdr_send_inst(
 	.sp_fifo_rddata(sp_fifo_rddata),		// **** why the odd name - use spectrum_data ?
 	.local_mac(local_mac),
 	.code_version(Angelia_version),
+    .beta_version(beta_version),
 	.Rx_data(Rx_data),						// Rx I&Q data to send to PHY
 	.udp_tx_enable(udp_tx_enable),
 	.erase_done(erase_done | erase),    // send ACK when erase command received and when erase complete
@@ -930,7 +967,11 @@ sdr_send #(board_type, NR, master_clock, protocol_version) sdr_send_inst(
 	.tx_length(tx_length),
 	.Wideband_packets_per_frame(Wideband_packets_per_frame),  
 	.checksum(checksum),  
-	
+    .phaseval(phaseval),
+    .reg_rxtxc(reg_rxtxc),
+    .reg_rxtxd(reg_rxtxd),
+    .reg_rxtxclk(reg_rxtxclk21),
+
 	//outputs
 	.udp_tx_data(udp_tx_data),
 	.udp_tx_length(udp_tx_length),
@@ -1042,7 +1083,7 @@ cdc_sync #(1) cdc_phyready  (.siga(phy_ready), .rstb(C122_rst), .clkb(C122_clk),
 cdc_sync #(1) cdc_Rx_fifo_empty  (.siga(Rx_fifo_empty), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_Rx_fifo_empty));
 
 cdc_sync #(1) C122_run_sync  (.siga(run), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_run));
-cdc_sync #(16) C122_EnableRx0_7_sync  (.siga(EnableRx0_7), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_EnableRx0_7));
+cdc_sync #(8) C122_EnableRx0_7_sync  (.siga(EnableRx0_7), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_EnableRx0_7));
 
 Mux_clear Mux_clear_inst( .clock(C122_clk), .Mux(C122_SyncRx[0][1]), .phy_ready(C122_phy_ready), .convert_state(convert_state), .SampleRate(C122_SampleRate[0]),
 								  .fifo_clear(fifo_clear), .fifo_clear1(fifo_clear1), .fifo_write_enable(write_enable), .fifo_empty(C122_Rx_fifo_empty), .reset(!C122_run));	
@@ -1072,8 +1113,8 @@ for (d = 2 ; d < NR; d++)
 		// If Sync[n] enabled then select the data from the receiver to be synchronised.
 		// Do this by using C122_SyncRx(n) to select the required receiver I & Q data.
 
-		Rx_fifo_ctrl #(NR) Rx0_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[d]), .clock(C122_clk),   
-							.spd_rdy(strobe[d]), .fifo_full(Rx_fifo_full[d]), //.Rx_number(d),
+		Rx_fifo_ctrl #(NR) Rx0_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[d]), .clock(C122_clk),
+                            .spd_rdy(strobe[d]), .fifo_full(Rx_fifo_full[d]), .SampleRate(C122_SampleRate[d]),
 							.wrenable(Rx_fifo_wreq[d]), .data_out(Rx_fifo_data[d]), .fifo_clear(Rx_fifo_clr[d]),
 							.Sync_data_in_I(rx_I[d]), .Sync_data_in_Q(rx_Q[d]), .Sync(0));
 													
@@ -1247,7 +1288,6 @@ wire Audio_full;
 wire Audio_empty;
 wire get_samples;
 wire [31:0]audio_data;
-wire Audio_seq_err;
 reg [12:0]Rx_Audio_Used;
 
 Rx_Audio_fifo Rx_Audio_fifo_inst(.wrclk (rx_clock),.rdreq (get_audio_samples),.rdclk (CBCLK),.wrreq(Rx_Audio_fifo_wrreq), 
@@ -1256,7 +1296,7 @@ Rx_Audio_fifo Rx_Audio_fifo_inst(.wrclk (rx_clock),.rdreq (get_audio_samples),.r
 // Manage Rx Audio data to feed to Audio FIFO  - parameter is port #
 byte_to_32bits #(1028) Audio_byte_to_32bits_inst
 			(.clock(rx_clock), .run(run), .udp_rx_active(udp_rx_active), .udp_rx_data(udp_rx_data), .to_port(to_port),
-			 .fifo_wrreq(Rx_Audio_fifo_wrreq), .data_out(audio_data), .sequence_error(Audio_seq_err), .full(Audio_full));
+             .fifo_wrreq(Rx_Audio_fifo_wrreq), .data_out(audio_data), .sequence_errors(Audio_sequence_errors), .full(Audio_full));
 			
 // select sidetone when CW key active and sidetone_level is not zero else Rx audio.
 reg [31:0] Rx_audio;
@@ -1293,7 +1333,7 @@ begin
 
         62:
         begin
-            if (CW_PTT && (sidetone_level != 0))
+            if (CW_PTT && sidetone)
             begin
                 if (break_in)
                 begin
@@ -1350,7 +1390,7 @@ Tx1_IQ_fifo Tx1_IQ_fifo_inst(.wrclk (rx_clock),.rdreq (req1),.rdclk (C122_clk),.
 // Manage Tx I&Q data to feed to Tx  - parameter is port #
 byte_to_48bits #(1029) IQ_byte_to_48bits_inst
 			(.clock(rx_clock), .run(run), .udp_rx_active(udp_rx_active), .udp_rx_data(udp_rx_data), .to_port(to_port),
-			 .fifo_wrreq(Tx1_fifo_wrreq), .data_out(Tx1_IQ_data), .full(1'b0), .sequence_error());					 
+             .fifo_wrreq(Tx1_fifo_wrreq), .data_out(Tx1_IQ_data), .full(1'b0), .sequence_errors(DUC_sequence_errors));
 
 // Ensure I&Q data is zero if not transmitting
 wire [47:0] IQ_Tx_data = FPGA_PTT ? C122_IQ1_data : 48'b0; 													
@@ -1770,7 +1810,7 @@ High_Priority_CC #(1027, NR) High_Priority_CC_inst  // parameter is port number 
 				.udp_rx_data(udp_rx_data),
 				.HW_timeout(HW_timeout),					// used to clear run if HW timeout.
 				// outputs
-			   .run(run),
+			    .run(run),
 				.PC_PTT(PC_PTT),
 				.CWX(CWX),
 				.Dot(Dot),
@@ -1785,7 +1825,8 @@ High_Priority_CC #(1027, NR) High_Priority_CC_inst  // parameter is port number 
 			//	.User_Outputs(),
 			//	.Mercury_Attenuator(),	
 				.Alex_data_ready(Alex_data_ready),
-				.HW_reset(HW_reset2)
+				.HW_reset(HW_reset2),
+                .sequence_errors(HP_sequence_errors)
 			);
 
 // if break_in is selected then CW_PTT can activate the FPGA_PTT. 
@@ -1793,8 +1834,8 @@ High_Priority_CC #(1027, NR) High_Priority_CC_inst  // parameter is port number 
 // inhibit T/R switching if IO4 TX INHIBIT is active (low)		
 assign FPGA_PTT = run && ((break_in && CW_PTT) || PC_PTT || debounce_PTT); // CW_PTT is used when internal CW is selected
 
-// clear TR relay and Open Collectors if run not set 
-wire [31:0]runsafe_Alex_data 		  = {Alex_data[31:28], run ? (FPGA_PTT | Alex_data[27]) : 1'b0, Alex_data[26:0]};
+// clear TR relay and Open Collectors if run not set or disabled
+wire [31:0]runsafe_Alex_data = {Alex_data[31:28], run ? ((PA_enable ? FPGA_PTT : 1'b0) | Alex_data[27]) : 1'b0, Alex_data[26:0]};
 
 Tx_specific_CC #(1026)Tx_specific_CC_inst //   // parameter is port number  ***** this data is in rx_clock domain *****
 			( 	
@@ -1836,6 +1877,7 @@ Rx_specific_CC #(1025, NR) Rx_specific_CC_inst // parameter is port number
 				.to_port(to_port),
 				.udp_rx_active(udp_rx_active),
 				.udp_rx_data(udp_rx_data),
+                .run(run),
 				// outputs
 				.dither(dither),
 				.random(random),
@@ -1845,7 +1887,8 @@ Rx_specific_CC #(1025, NR) Rx_specific_CC_inst // parameter is port number
 				.EnableRx0_7(EnableRx0_7),
 				.Rx_data_ready(Rx_data_ready),
 				.Mux(Mux),
-				.HW_reset(HW_reset4)
+				.HW_reset(HW_reset4),
+                .sequence_errors(Rx_spec_sequence_errors)
 			);			
 			
 assign  RAND   = random[0] | random[1];        		//high turns random on
@@ -1863,7 +1906,6 @@ cdc_mcp #(8) Mux_inst
 // move Alex data into CBCLK domain
 wire  [31:0] SPI_Alex_data;
 cdc_sync #(32) SPI_Alex (.siga(runsafe_Alex_data), .rstb(IF_rst), .clkb(CBCLK), .sigb(SPI_Alex_data));
- 
 
  
 
@@ -1882,7 +1924,18 @@ wire [15:0] REV_power     = FPGA_PTT ? {4'b0,AIN2} : 16'b0;
 wire [15:0] user_analog1  = {4'b0, AIN3}; 
 wire [15:0] user_analog2  = {4'b0, AIN4}; 
 wire locked_10MHz;
- 
+
+reg [31:0] HP_sequence_errors;
+reg [31:0] Audio_sequence_errors;
+reg [31:0] DUC_sequence_errors;
+reg [31:0] Rx_spec_sequence_errors;
+reg [31:0] ALL_sequence_errors;
+reg [31:0] ALL_sequence_errors_tx;
+
+assign ALL_sequence_errors = HP_sequence_errors + Audio_sequence_errors + DUC_sequence_errors + Rx_spec_sequence_errors;
+
+cdc_sync #(32)cdc_sync_ALL (.siga(ALL_sequence_errors), .rstb(1'b0), .clkb(tx_clock), .sigb(ALL_sequence_errors_tx));
+
 CC_encoder #(50, NR) CC_encoder_inst (				// 50mS update rate
 					//	inputs
 					.clock(tx_clock),					// tx_clock  125MHz
@@ -1901,10 +1954,11 @@ CC_encoder #(50, NR) CC_encoder_inst (				// 50mS update rate
 					.User_ADC1 (user_analog1),
 					.User_ADC2 (user_analog2),
 					.User_IO (8'b0),
-					.Debug_data(16'd0),
 					.pk_detect_ack(pk_detect_ack),			// from Angelia_ADC
 					.FPGA_PTT(FPGA_PTT),						// when set change update rate to 1mS
-							
+					.Debug_data(16'd0),
+                    .sequence_errors(ALL_sequence_errors_tx),
+
 					//	outputs
 					.CC_data (CC_data),
 					.ready (CC_data_ready),
@@ -1971,7 +2025,7 @@ debounce de_DASH	(.clean_pb(debounce_DASH), .pb(!KEY_DASH), .clk(CMCLK));
 wire osc_10MHz;
 
 // Use a PLL to divide 122.88MHz clock to 10MHz							
-C122_PLL PLL_inst (.inclk0(C122_clk), .c0(osc_10MHz), .locked());
+C122_PLL PLL_inst (.inclk0(_122MHz), .c0(osc_10MHz), .locked(locked_10MHz));
 	
 //Apply to EXOR phase detector 
 assign FPGA_PLL = OSC_10MHZ ^ osc_10MHz;

@@ -215,12 +215,11 @@ set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|au
 set_max_delay -from tx_clock -to tx_clock 21
 set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] -to network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] 21
 set_max_delay -from LTC2208_122MHz -to LTC2208_122MHz 18
-set_max_delay -from LTC2208_122MHz -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 7
+set_max_delay -from LTC2208_122MHz -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 9
 set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] -to _122MHz 7
 set_max_delay -from PHY_RX_CLOCK -to PHY_RX_CLOCK 10
-set_max_delay -from tx_clock -to PHY_TX_CLOCK 11
-set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] -to PHY_TX_CLOCK 11
-
+set_max_delay -from tx_clock -to PHY_TX_CLOCK 10
+set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] -to PHY_TX_CLOCK 10
 
 #**************************************************************
 # Set Minimum Delay (for hold or removal; low-level, over-riding timing adjustments)
