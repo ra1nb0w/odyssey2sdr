@@ -148,9 +148,22 @@ always @(posedge tx_clock)
 				sp_fifo_rdreq <= 1'b0;
 				mic_fifo_rdreq <= 1'b0;
 				udp_tx_length <= 16'd0;
- 			    for (i = 0; i < NR; i = i+1) begin
-				   fifo_rdreq[i] <= 1'b0;
-				end
+				fifo_rdreq[0] <= 1'b0;
+				fifo_rdreq[1] <= 1'b0;
+				if (NR > 2) fifo_rdreq[2] <= 1'b0;
+				if (NR > 3) fifo_rdreq[3] <= 1'b0;
+				if (NR > 4) fifo_rdreq[4] <= 1'b0;
+				if (NR > 5) fifo_rdreq[5] <= 1'b0;
+				if (NR > 6) fifo_rdreq[6] <= 1'b0;
+				if (NR > 7) fifo_rdreq[7] <= 1'b0;
+				if (NR > 8) fifo_rdreq[8] <= 1'b0;
+				if (NR > 9) fifo_rdreq[9] <= 1'b0;
+				if (NR > 10) fifo_rdreq[10] <= 1'b0;
+				if (NR > 11) fifo_rdreq[11] <= 1'b0;
+				if (NR > 12) fifo_rdreq[12] <= 1'b0;
+				if (NR > 13) fifo_rdreq[13] <= 1'b0;
+				if (NR > 14) fifo_rdreq[14] <= 1'b0;
+				if (NR > 15) fifo_rdreq[15] <= 1'b0;
 				if (!send_more)  send_more_ACK  <= 1'b0;		// clear ACK when sdr_receiver has seen our ACK
 				if (!erase_done) erase_done_ACK <= 1'b0;		// clear ACK when ASMI_interface has seen our ACK
 				if (!discovery)  discovery_ACK  <= 1'b0;		// clear ACK when sdr_receiver has seen our ACK
@@ -203,9 +216,22 @@ always @(posedge tx_clock)
 				end 
 					
 				else  if (!run) begin 		// not running so reset all sequence numbers.
-				    for (i = 0; i < NR; i = i+1) begin
-				        Rx_sequence_number[i] <= 32'b0;
-				    end
+					Rx_sequence_number[0] <= 32'd0;
+					Rx_sequence_number[1] <= 32'd0;
+					if (NR > 2) Rx_sequence_number[2] <= 32'd0;
+					if (NR > 3) Rx_sequence_number[3] <= 32'd0;
+					if (NR > 4) Rx_sequence_number[4] <= 32'd0;
+					if (NR > 5) Rx_sequence_number[5] <= 32'd0;
+					if (NR > 6) Rx_sequence_number[6] <= 32'd0;
+					if (NR > 7) Rx_sequence_number[7] <= 32'd0;
+					if (NR > 8) Rx_sequence_number[8] <= 32'd0;
+					if (NR > 9) Rx_sequence_number[9] <= 32'd0;
+					if (NR > 10) Rx_sequence_number[10] <= 32'd0;
+					if (NR > 11) Rx_sequence_number[11] <= 32'd0;
+					if (NR > 12) Rx_sequence_number[12] <= 32'd0;
+					if (NR > 13) Rx_sequence_number[13] <= 32'd0;
+					if (NR > 14) Rx_sequence_number[14] <= 32'd0;
+					if (NR > 15) Rx_sequence_number[15] <= 32'd0;
    					mic_seq_number <= 32'd0;
 					CC_seq_number <= 32'd0;
 					spec_seq_number <= 32'd0;
@@ -329,7 +355,7 @@ always @(posedge tx_clock)
 								fifo_rdreq[select] <= 1'b1;		// set fifo read true one clock before needed 
 							 end 							
 						16'd14: tx_data <= samples_frame[7:0];
-						udp_tx_length - 3: fifo_rdreq[select] <= 1'b0;		// set fifo read false one clock before needed 		   				 
+						udp_tx_length - 16'd3: fifo_rdreq[select] <= 1'b0;		// set fifo read false one clock before needed 		   				 
 					endcase
 				
 					if (byte_no > 16'd14) tx_data <=  Rx_data[select];

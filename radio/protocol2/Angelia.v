@@ -674,13 +674,13 @@ parameter IF_TPD  = 2;
 
 localparam board_type = 8'h03;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
 parameter  Angelia_version = 8'd121;	// FPGA code version
-parameter  beta_version = 8'd6;         // Should be 0 for official release
+parameter  beta_version = 8'd8;         // Should be 0 for official release
 parameter  protocol_version = 8'd39;	// openHPSDR protocol version implemented
 
 //--------------------------------------------------------------
 // Odyssey 2: custom things
 //--------------------------------------------------------------
-parameter [63:0] fw_version = "12.1.6P2";
+parameter [63:0] fw_version = "12.1.8P2";
 assign VNA_out = VNA;
 
 // Odyssey 2 : we share the Alex SPI with the USEROUT4-6
@@ -698,7 +698,7 @@ assign SPI_RX_LOAD = Apollo ? USEROUT6 : Alex_RX_LOAD;
 assign ANT2_RELAY  = Apollo ? Alex_data[25] : Alex_TX_LOAD;
 
 // we use the main clock to pilot DAC
-assign _122MHz_out = C122_clk;
+assign _122MHz_out = _122MHz;
 
 // mcu UART channel
 mcu #(.fw_version(fw_version)) mcu_uart (
@@ -762,7 +762,8 @@ wire _122_90;
 
 // Generate _122_90 (122.88Mhz 90deg) CMCLK (12.288MHz), CBCLK(3.072MHz) and CLRCLK (48kHz) from 122.88MHz using PLL
 // NOTE: CBCLK is generated at 180 degs, as in P1: so that LRCLK occurs on negative edge of BCLK
-PLL_IF PLL_IF_inst (.inclk0(C122_clk), .c0(_122_90), .c1(CMCLK), .c2(CBCLK), .c3(CLRCLK), .locked());
+//PLL_IF PLL_IF_inst (.inclk0(C122_clk), .c0(_122_90), .c1(CMCLK), .c2(CBCLK), .c3(CLRCLK), .locked());
+PLL_IF PLL_IF_inst (.inclk0(_122MHz), .c0(_122_90), .c1(CMCLK), .c2(CBCLK), .c3(CLRCLK), .locked());
 //pulsegen pulse  (.sig(CBCLK), .rst(IF_rst), .clk(!CMCLK), .pulse(C122_cbrise));  // pulse on rising edge of BCLK for Rx/Tx frequency calculations
 
 //-----------------------------------------------------------------------------
@@ -1051,7 +1052,7 @@ wire  [7:0] Rx_fifo_data[0:NR-1];
 wire        Rx_fifo_full[0:NR-1];
 wire [11:0] Rx_used[0:NR-1];
 wire        Rx_fifo_clr[0:NR-1];
-wire 			Rx_fifo_empty;
+wire 			Rx_fifo_empty[0:NR-1];
 wire 			fifo_clear;
 wire 			fifo_clear1;
 wire 			write_enable;
@@ -1059,67 +1060,55 @@ wire 			phy_ready;
 wire 			convert_state;
 wire 			C122_run;
 
-// This is just for Rx0 since it can sync with Rx1.
-
-		Rx_fifo Rx0_fifo_inst(.wrclk (C122_clk),.rdreq (fifo_rdreq[0]),.rdclk (tx_clock),.wrreq (Rx_fifo_wreq[0] && write_enable), 
-							 .data (Rx_fifo_data[0]), .q (Rx_data[0]), .wrfull(Rx_fifo_full[0]), .rdempty(Rx_fifo_empty),
-							 .rdusedw(Rx_used[0]), .aclr (IF_rst | Rx_fifo_clr[0] | !C122_run | fifo_clear ));
-							  
-		Rx_fifo_ctrl0 #(NR) Rx0_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[0] ), .clock(C122_clk), .data_in_I(rx_I[1]), .data_in_Q(rx_Q[1]), // was rx_Q[1]
-							.spd_rdy(strobe[0]), .spd_rdy2(strobe[1]), .fifo_full(Rx_fifo_full[0]), .Rx_fifo_empty(C122_Rx_fifo_empty),  //.Rx_number(d),
-							.wrenable(Rx_fifo_wreq[0]), .data_out(Rx_fifo_data[0]), .fifo_clear(Rx_fifo_clr[0]),
-							.Sync_data_in_I(rx_I[0]), .Sync_data_in_Q(rx_Q[0]), .Sync(C122_SyncRx[0]), .convert_state(convert_state));	
-													
-		assign  fifo_ready[0] = (Rx_used[0] > 12'd1427) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
-		
-// When Mux first set, inhibit fifo write then wait for PHY to be looking for more Rx0 data to ensure there is no data in transit.
-// Then reset fifo then wait for 48 to 8 converter to be looking for Rx0 DDC data at first byte. Then enable write to fifo again.
-
-
 // move flags into correct clock domains
 wire C122_phy_ready;
-wire C122_Rx_fifo_empty;
+wire C122_Rx_fifo_empty[0:NR-1];
+
 cdc_sync #(1) cdc_phyready  (.siga(phy_ready), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_phy_ready));
-cdc_sync #(1) cdc_Rx_fifo_empty  (.siga(Rx_fifo_empty), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_Rx_fifo_empty));
+//cdc_sync #(16) cdc_Rx_fifo_empty  (.siga(Rx_fifo_empty), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_Rx_fifo_empty));
 
 cdc_sync #(1) C122_run_sync  (.siga(run), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_run));
-cdc_sync #(8) C122_EnableRx0_7_sync  (.siga(EnableRx0_7), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_EnableRx0_7));
+cdc_sync #(16) C122_EnableRx0_15_sync  (.siga({EnableRx8_15,EnableRx0_7}), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_EnableRx0_15));
 
-Mux_clear Mux_clear_inst( .clock(C122_clk), .Mux(C122_SyncRx[0][1]), .phy_ready(C122_phy_ready), .convert_state(convert_state), .SampleRate(C122_SampleRate[0]),
-								  .fifo_clear(fifo_clear), .fifo_clear1(fifo_clear1), .fifo_write_enable(write_enable), .fifo_empty(C122_Rx_fifo_empty), .reset(!C122_run));	
-								  
-		Rx_fifo Rx1_fifo_inst(.wrclk (C122_clk),.rdreq (fifo_rdreq[1]),.rdclk (tx_clock),.wrreq (Rx_fifo_wreq[1]), 
-							 .data (Rx_fifo_data[1]), .q (Rx_data[1]), .wrfull(Rx_fifo_full[1]),
-							 .rdusedw(Rx_used[1]), .aclr (IF_rst | Rx_fifo_clr[1] | !C122_run | fifo_clear1));   // ***** added fifo_clear1
+   // This is just for Rx0 since it can sync with Rx1.
+   Rx_fifo Rx0_fifo_inst(.wrclk (C122_clk),.rdreq (fifo_rdreq[0]),.rdclk (tx_clock),.wrreq (Rx_fifo_wreq[0]), .rdempty(Rx_fifo_empty[0]),
+                                                   .data (Rx_fifo_data[0]), .q (Rx_data[0]), .wrfull(Rx_fifo_full[0]),
+                                                   .rdusedw(Rx_used[0]), .aclr (IF_rst | Rx_fifo_clr[0] | !C122_run));
 
-		Rx_fifo_ctrl #(NR) Rx1_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[1]), .clock(C122_clk),   
-							.spd_rdy(strobe[1]), .fifo_full(Rx_fifo_full[1]), //.Rx_number(d),
-							.wrenable(Rx_fifo_wreq[1]), .data_out(Rx_fifo_data[1]), .fifo_clear(Rx_fifo_clr[1]),
-							.Sync_data_in_I(rx_I[1]), .Sync_data_in_Q(rx_Q[1]), .Sync(0));
-													
-		assign  fifo_ready[1] = (Rx_used[1] > 12'd1427) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
+   Rx_fifo_ctrl #(NR) Rx0_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_15[0] ), .clock(C122_clk), .data_in_I(rx_I[1]), .data_in_Q(rx_Q[1]),
+                                                 .spd_rdy(strobe[0]), .spd_rdy2(strobe[1]), .fifo_full(Rx_fifo_full[0]), .SampleRate(C122_SampleRate[0]),
+                                                 .wrenable(Rx_fifo_wreq[0]), .data_out(Rx_fifo_data[0]), .fifo_clear(Rx_fifo_clr[0]),
+                                                 .Sync_data_in_I(rx_I[0]), .Sync_data_in_Q(rx_Q[0]), .Sync(C122_SyncRx[0][1]));
+
+   always @ (posedge tx_clock)
+       fifo_ready[0] = (Rx_used[0] > 12'd1499) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
+           //fifo_ready[0] = (Rx_used[0] > 12'd1427) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
+
+// When Mux first set, inhibit fifo write then wait for PHY to be looking for more Rx0 data to ensure there is no data in transit.
+// Then reset fifo then wait for 48 to 8 converter to be looking for Rx0 DDC data at first byte. Then enable write to fifo again.
 
 generate
 genvar d;
 
-for (d = 2 ; d < NR; d++)
+for (d = 1 ; d < NR; d++)
 	begin:p
 
-		Rx_fifo Rx_fifo_inst(.wrclk (C122_clk),.rdreq (fifo_rdreq[d]),.rdclk (tx_clock),.wrreq (Rx_fifo_wreq[d]), 
+		Rx_fifo RxX_fifo_inst(.wrclk (C122_clk),.rdreq (fifo_rdreq[d]),.rdclk (tx_clock),.wrreq (Rx_fifo_wreq[d]), .rdempty(Rx_fifo_empty[d]),
 							 .data (Rx_fifo_data[d]), .q (Rx_data[d]), .wrfull(Rx_fifo_full[d]),
 							 .rdusedw(Rx_used[d]), .aclr (IF_rst | Rx_fifo_clr[d] | !C122_run));
 
-		// Convert 48 bit Rx I&Q data (24bit I, 24 bit Q) into 8 bits to feed Tx FIFO. Only run if EnableRx0_7[x] is set.
+		// Convert 48 bit Rx I&Q data (24bit I, 24 bit Q) into 8 bits to feed Tx FIFO. Only run if EnableRx0_15[x] is set.
 		// If Sync[n] enabled then select the data from the receiver to be synchronised.
 		// Do this by using C122_SyncRx(n) to select the required receiver I & Q data.
 
-		Rx_fifo_ctrl #(NR) Rx0_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[d]), .clock(C122_clk),
-                            .spd_rdy(strobe[d]), .fifo_full(Rx_fifo_full[d]), .SampleRate(C122_SampleRate[d]),
+        Rx_fifo_ctrl #(NR) RxX_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_15[d]), .clock(C122_clk), .data_in_I(), .data_in_Q(),
+                            .spd_rdy(strobe[d]), .spd_rdy2(), .fifo_full(Rx_fifo_full[d]), .SampleRate(C122_SampleRate[d]),
 							.wrenable(Rx_fifo_wreq[d]), .data_out(Rx_fifo_data[d]), .fifo_clear(Rx_fifo_clr[d]),
-							.Sync_data_in_I(rx_I[d]), .Sync_data_in_Q(rx_Q[d]), .Sync(0));
-													
-		assign  fifo_ready[d] = (Rx_used[d] > 12'd1427) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
+							.Sync_data_in_I(rx_I[d]), .Sync_data_in_Q(rx_Q[d]), .Sync(1'b0));
 
+        always @ (posedge tx_clock)
+            fifo_ready[d] = (Rx_used[d] > 12'd1499) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
+            //fifo_ready[d] = (Rx_used[d] > 12'd1427) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
 	end
 endgenerate
 
@@ -1230,9 +1219,7 @@ SP_fifo  SPF (.aclr(!wideband), .wrclk (C122_clk), .rdclk(tx_clock),
 sp_rcv_ctrl SPC (.clk(C122_clk), .reset(0), .sp_fifo_wrempty(sp_fifo_wrempty),
                  .sp_fifo_wrfull(sp_fifo_wrfull), .write(sp_fifo_wrreq), .have_sp_data(have_sp_data));	
 				 
-// **** TODO: change number of samples in FIFO (presently 16k) based on user selection **** 
-
-
+// **** TODO: change number of samples in FIFO (presently 16k) based on user selection ****
 // wire [:0] update_rate = 100T ?  12500 : 125000; // **** TODO: need to change counter target when run at 100T.
 wire [17:0] update_rate = 125000;
 
@@ -1446,13 +1433,13 @@ sidetone sidetone_inst( .clock(CLRCLK), .enable(sidetone), .tone_freq(tone_freq)
 
 reg [15:0]temp_ADC[0:1];
 reg [15:0] temp_DACD;
-reg [15:0]temp_ADC_reg[0:1];
+//reg [15:0]temp_ADC_reg[0:1];
 
 // ODYSEEY 2: we are using ADC and DAC in offset binary mode
 // and not in 2's complement format as Anan devices
-
-always @ (posedge _122MHz)
-  temp_DACD <= {C122_cordic_i_out[21:8], 2'b00};
+/*
+always @ (posedge _122_90)
+    temp_DACD <= {C122_cordic_i_out[21:8], 2'b00};
 
 always @ (posedge LTC2208_122MHz)
 begin
@@ -1466,6 +1453,13 @@ always @(posedge C122_clk)
 begin
    temp_ADC[0] <= temp_ADC_reg[0];
    temp_ADC[1] <= temp_ADC_reg[1];
+end
+*/
+always @ (posedge C122_clk)
+begin
+    temp_DACD <= {C122_cordic_i_out[21:8], 2'b00};
+    temp_ADC[0] <= {~INA[15], INA[14:0]};
+    temp_ADC[1] <= {~INA_2[15], INA_2[14:0]};
 end
 
 
@@ -1489,7 +1483,7 @@ wire       [7:0] C122_RxADC[0:NR-1];
 wire       [7:0] C122_SyncRx[0:NR-1];
 wire      [31:0] C122_phase_word[0:NR-1]; 
 wire [15:0] select_input_RX[0:NR-1];		// set receiver module input sources
-reg	frequency_change[0:NR-1];  // bit set when frequency of Rx[n] changes
+//reg	frequency_change[0:NR-1];  // bit set when frequency of Rx[n] changes
 
 generate
 genvar c;
@@ -1509,7 +1503,7 @@ genvar c;
 	cdc_sync #(32) Rx_freqX
 	(.siga(Rx_frequency[c]), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_frequency_HZ[c]));
 
-	if (c > 1) begin
+	if (c > 0) begin
 	receiver2 receiver_instX(   
 	//control
 	//.reset(fifo_clear || !C122_run),
@@ -1524,17 +1518,12 @@ genvar c;
 	.out_data_I(rx_I[c]),
 	.out_data_Q(rx_Q[c])
 	);
-	end
-  end
-endgenerate
+	end // if (c > 0)
 
-genvar e;
-generate
-for (e = 0; e < NR; e = e + 1) begin : rxloop
 	always @(posedge C122_clk)
 	begin
-		if (e == 1) select_input_RX[e] = C122_RxADC[e] == 8'd2 ? temp_DACD : (C122_RxADC[e] == 8'd1 ? temp_ADC[1] : temp_ADC[0]);
-		else select_input_RX[e] = C122_RxADC[e] == 8'd1 ? temp_ADC[1] : temp_ADC[0];
+		if (c == 1) select_input_RX[c] = C122_RxADC[c] == 8'd2 ? temp_DACD : (C122_RxADC[c] == 8'd1 ? temp_ADC[1] : temp_ADC[0]);
+		else select_input_RX[c] = C122_RxADC[c] == 8'd1 ? temp_ADC[1] : temp_ADC[0];
 	end
 end
 endgenerate
@@ -1551,20 +1540,6 @@ endgenerate
 	//output
 	.out_data_I(rx_I[0]),
 	.out_data_Q(rx_Q[0])
-	);
-
-	receiver2 receiver_inst1(   
-	//control
-	.reset(fifo_clear || !C122_run),
-	.clock(C122_clk),
-	.sample_rate(C122_SampleRate[1]),
-	.frequency(C122_frequency_HZ[1]),     // PC send phase word now
-	.out_strobe(strobe[1]),
-	//input
-	.in_data(select_input_RX[1]),			  // to allow for both Diversity and PureSignal operations
-	//output
-	.out_data_I(rx_I[1]),
-	.out_data_Q(rx_Q[1])
 	);
 
 // only using Rx0 and Rx1 Sync for now so can use simpler code
@@ -1605,7 +1580,7 @@ ext_io_adc ADC_SPI(.clock(CLRCLK), .SCLK(ADCCLK), .nCS(ADCCS_N), .MISO(ADCMISO),
 wire req1;
 wire [16:0] y2_r, y2_i;
 
-CicInterpM5 #(.RRRR(640), .IBITS(24), .OBITS(17), .GBITS(38)) in2 (C122_clk, 1'd1, req1, IQ_Tx_data[47:24],
+CicInterpM5 #(.RRRR(640), .IBITS(24), .OBITS(17), .GBITS(38)) in2 (_122MHz, 1'd1, req1, IQ_Tx_data[47:24],
 					IQ_Tx_data[23:0], y2_r, y2_i); 
 
 	
@@ -1633,8 +1608,8 @@ assign I =  VNA ? 17'd19000 : ((CW_PTT & break_in) ? CW_RF: ((CW_PTT & PC_PTT) ?
 assign Q = (VNA | CW_PTT)  ? 17'd0 : y2_r; 					
 
 
-cpl_cordic # (.IN_WIDTH(17)) 
- 		cordic_inst (.clock(C122_clk), .frequency(C122_frequency_HZ_Tx), .in_data_I(I),  
+cpl_cordic # (.IN_WIDTH(17))
+        cordic_inst (.clock(_122MHz), .frequency(C122_frequency_HZ_Tx), .in_data_I(I),
 		.in_data_Q(Q), .out_data_I(C122_cordic_i_out), .out_data_Q());							// .out_data is 22 bits.
 			 	 
 /* 
@@ -1649,8 +1624,9 @@ cpl_cordic # (.IN_WIDTH(17))
         = cos(f1 + f2) + j sin(f1 + f2)
 */
 
-// we use offset binary not 2 complement
-always @ (posedge _122MHz)
+// ODYSSEY 2: we use offset binary not 2 complement
+// TODO always @ (posedge _122MHz)
+always @ (posedge _122_90)
 	DACD <= run ? {~C122_cordic_i_out[21], C122_cordic_i_out[20:8]} : 14'b0;   // select top 14 bits for DAC data // disable TX DAC if IO4 active
  
 
@@ -1721,7 +1697,8 @@ wire 			 Tx_data_ready;		// indicated Tx_specific data available
 wire   [7:0] Mux;						// Rx in mux mode when bit set, [0] = Rx0, [1] = Rx1 etc 
 wire   [7:0] SyncRx[0:NR-1];			// bit set selects Rx to sync or mux with
 wire 	 [7:0] EnableRx0_7;			// Rx enabled when bit set, [0] = Rx0, [1] = Rx1 etc
-wire 	 [7:0] C122_EnableRx0_7;
+wire    [7:0] EnableRx8_15;
+wire    [15:0] C122_EnableRx0_15;
 wire  [15:0] Rx_Specific_port;	// 
 wire  [15:0] Tx_Specific_port;
 wire  [15:0] High_Prioirty_from_PC_port;
@@ -1885,6 +1862,7 @@ Rx_specific_CC #(1025, NR) Rx_specific_CC_inst // parameter is port number
 				.RxADC(RxADC),	
 				.SyncRx(SyncRx),
 				.EnableRx0_7(EnableRx0_7),
+                .EnableRx8_15(EnableRx8_15),
 				.Rx_data_ready(Rx_data_ready),
 				.Mux(Mux),
 				.HW_reset(HW_reset4),
@@ -1943,7 +1921,7 @@ CC_encoder #(50, NR) CC_encoder_inst (				// 50mS update rate
 					.PTT ((break_in & CW_PTT) | debounce_PTT),
 					.Dot (debounce_DOT),
 					.Dash(debounce_DASH),
-					.frequency_change(frequency_change),
+					//.frequency_change(frequency_change),
 					.locked_10MHz(locked_10MHz),		// set if the 10MHz divider PLL is locked.
 					.ADC0_overload (OVERFLOW),
 					.ADC1_overload (OVERFLOW_2),

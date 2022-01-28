@@ -113,7 +113,8 @@ begin
   if (mod_reset == 1'b0) begin
       skew_dashdot <= ~dashdot;
       mod_reset <= 1'b1;
-      skew_changed <= skew_changed ^ 1'b1;
+      skew_count <= 32'h3B9ACA0; // 1/2 second
+      skew_count_enable <= 1'b1;
   end
   else if (n_skew_reset == 1'b0) begin
     skew_count_enable <= 1'b0;
@@ -153,7 +154,6 @@ begin
       skew_changed <= skew_changed ^ 1'b1;
     end
   end
-
 
   // 1 step is 4.5 degrees of phase
   if (phasego) begin

@@ -119,7 +119,7 @@ module SPI(
 reg [2:0] spi_state;
 reg [4:0] data_count;
 reg [31:0] previous_Alex_data; 
-//reg loop_count; 					// used to send data word twice each time data word has changed
+reg loop_count; 					// used to send data word twice each time data word has changed
 
 // if we are using DITHER use the David customized protocol otherwise the standard one
 wire [31:0] send_data = if_DITHER ?
@@ -168,14 +168,14 @@ case (spi_state)
 	end
 3'd6:	begin
 	Rx_load_strobe <= 1'b0;				// reset Rx strobe
-//	loop_count <= loop_count + 1'b1; // loop_count increments each time the SPI data word is sent after a word change is detected
-//	if (loop_count == 1'b1) begin			
-//			data_count <= 5'd31;		// set starting bit count to 31
-//			spi_state <= 3'd1;			// send data word twice
-//		end
-//		else begin
-			spi_state <= 3'd0;			// reset for next run
-//		end
+	loop_count <= loop_count + 1'b1; // loop_count increments each time the SPI data word is sent after a word change is detected
+	if (loop_count == 1'b1) begin
+			data_count <= 5'd31;		// set starting bit count to 31
+			spi_state <= 3'd1;			// send data word twice
+		end
+		else begin
+		   spi_state <= 3'd0;			// reset for next run
+		end
 	end
 	
 endcase
