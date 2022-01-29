@@ -58,12 +58,12 @@ module phy_cfg(
 //-----------------------------------------------------------------------------
 
 //mdio register values
-logic [15:0] values [8:0];
+logic [15:0] values [18:0];
 
 //mdio register addresses 
-logic [4:0] addresses [8:0];
+logic [4:0] addresses [18:0];
 
-reg [3:0] word_no, stop_word_no; 
+reg [4:0] word_no, stop_word_no;
 
 
 //-----------------------------------------------------------------------------
@@ -85,48 +85,66 @@ reg update_skew;
 localparam READING = 1'b0, WRITING = 1'b1;
 reg state = READING;  
 
-assign values[8] = {6'b0, allow_1Gbit, 9'b0};
-assign values[7] = 16'h8104; // Rx clk/ctrl and Tx clk/ctrl delay, in 0.12 ns units to reg 104h
-assign values[5] = 16'h8105; // Rx pad skews, reg 105h
-assign values[3] = 16'h8106; // Tx pad skews, reg 106h, added 25th Sept
-// register values moved to sdr_received.v
+assign values[18] = {6'b0, allow_1Gbit, 9'b0};
+assign values[17] = 16'h0002;
+assign values[16] = 16'h0004;
+assign values[15] = 16'h4002;
+// --    values[14] = 16'b0000_0000_0111_0111;  // RX_CTL: +0.0   - TX_CTL: 0.0
+assign values[13] = 16'h0002;
+assign values[12] = 16'h0005;
+assign values[11] = 16'h4002;
+// --    values[10] = 16'b0111_0111_0111_0111;   // RD3: +0.0 - RD2: +0.0 - RD1: 0.0 - RD0: 0.0
+assign values[9] = 16'h0002;
+assign values[8] = 16'h0006;
+assign values[7] = 16'h4002;
+// --    values[6] = 16'b0111_0111_0111_0111;   // TD3: +0.0  - TD2: 0.0  - TD1: +0.0 - TD0: 0.0
+assign values[5] = 16'h0002;
+assign values[4] = 16'h0008;
+assign values[3] = 16'h4002;
+// --   values[2] = 16'b0000_00_01111_10000;  // TX_CLK: -0.0   - RX_CLK: +0.06
 assign values[1] = 16'h1300;
 assign values[0] = 16'hxxxx;
 
-// program address 2 register 8
-//values[5] = 16'h0002;
-//values[4] = 16'h0008;
-//values[3] = 16'h4002;
-//values[2] = 16'b0000_00_00110_11010;  // TX_CLK: -0.54   - RX_CLK: +0.66
-//values[2] = 16'b0000_00_01111_10000;  // TX_CLK: -0.0   - RX_CLK: +0.06
-
-assign addresses[8] = 9;
-assign addresses[7] = 11;
-assign addresses[6] = 12;
-assign addresses[5] = 11;
-assign addresses[4] = 12;
-assign addresses[3] = 11;
-assign addresses[2] = 12;
+assign addresses[18] = 9;
+assign addresses[17] = 5'h0d;
+assign addresses[16] = 5'h0e;
+assign addresses[15] = 5'h0d;
+assign addresses[14] = 5'h0e;
+assign addresses[13] = 5'h0d;
+assign addresses[12] = 5'h0e;
+assign addresses[11] = 5'h0d;
+assign addresses[10] = 5'h0e;
+assign addresses[9] = 5'h0d;
+assign addresses[8] = 5'h0e;
+assign addresses[7] = 5'h0d;
+assign addresses[6] = 5'h0e;
+assign addresses[5] = 5'h0d;
+assign addresses[4] = 5'h0e;
+assign addresses[3] = 5'h0d;
+assign addresses[2] = 5'h0e;
 assign addresses[1] = 0;
-assign addresses[0] = 31; 
+assign addresses[0] = 31;
+
 
 always @(posedge clock)  begin
   if ((init_request || skew_rxtxclk21[10] != last_skew_changed) && !init_required) begin
     if (last_skew_changed != skew_rxtxclk21[10]) begin
       last_skew_changed <= skew_rxtxclk21[10];
-      stop_word_no <= 4'd2;
+      stop_word_no <= 5'd2;
     end
     else
-      stop_word_no <= 4'd1;
+      stop_word_no <= 5'd1;
 
     update_skew <= 1'b1;
     status_ignore <= 23'd0;
     init_required <= 1'b1;
   end
-  else if (update_skew) begin  
-    values[6] <= {skew_rxtxclk21[8:5], skew_rxtxc[7:4], skew_rxtxclk21[3:0], skew_rxtxc[3:0]};
-    values[4] <= {skew_rxtxd[7:4], skew_rxtxd[7:4], skew_rxtxd[7:4], skew_rxtxd[7:4]};
-    values[2] <= {skew_rxtxd[3:0], skew_rxtxd[3:0], skew_rxtxd[3:0], skew_rxtxd[3:0]};
+  else if (update_skew) begin
+    // 67 is rx-ctl,tx-ctl . 46 is rx-data,tx-data . 07 is rxclk . 0f is txclk . 00 is cmd to set
+    values[14] <= { 8'b0000_0000, skew_rxtxc[7:4], skew_rxtxc[3:0] };
+    values[10] <= { skew_rxtxd[7:4], skew_rxtxd[7:4], skew_rxtxd[7:4], skew_rxtxd[7:4]};
+    values[6] <= { skew_rxtxd[3:0], skew_rxtxd[3:0], skew_rxtxd[3:0], skew_rxtxd[3:0]};
+    values[2] <= { 6'b0000_00, skew_rxtxclk21[4:0], skew_rxtxclk21[9:5] };
     reg_rxtxc <= skew_rxtxc;
     reg_rxtxd <= skew_rxtxd;
     reg_rxtxclk21 <= skew_rxtxclk21;
@@ -144,12 +162,12 @@ always @(posedge clock)  begin
 
         if (init_required) begin
           wr_request <= 1'b1;
-          word_no <= 4'd8;
+          word_no <= 5'd18;
           state <= WRITING;
           init_required <= 1'b0;
         end
         else begin
-          word_no <= 4'd0;
+          word_no <= 5'd0;
           rd_request <= 1'b1;
         end
       end
@@ -157,7 +175,7 @@ always @(posedge clock)  begin
       WRITING: begin
         if (word_no == stop_word_no) state <= READING;
         else wr_request <= 1'b1;
-        word_no <= word_no - 4'b1;		  
+        word_no <= word_no - 5'b1;
       end
 
       endcase

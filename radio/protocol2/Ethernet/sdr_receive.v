@@ -103,13 +103,6 @@ begin
   // 67 is rx-ctl,tx-ctl . 46 is rx-data,tx-data . 07 is rxclk . 0f is txclk . 00 is cmd to set
   //
   // defaults
-  //
-  //assign values[6] = 16'b0000_0000_0111_0111;  // RX_CTL: +0.0   - TX_CTL: 0.0
-  //  values[6] <= {skew_rxtxclk21[8:5], skew_rxtxc[7:4], skew_rxtxclk21[3:0], skew_rxtxc[3:0]};
-  //assign values[4] = 16'b0111_0111_0111_0111;   // RD3: +0.0 - RD2: +0.0 - RD1: 0.0 - RD0: 0.0
-  //  values[4] <= {skew_rxtxd[7:4], skew_rxtxd[7:4], skew_rxtxd[7:4], skew_rxtxd[7:4]};
-  //assign values[2] = 16'b0111_0111_0111_0111;   // TD3: +0.0  - TD2: 0.0  - TD1: +0.0 - TD0: 0.0
-  // values[2] <= {skew_rxtxd[3:0], skew_rxtxd[3:0], skew_rxtxd[3:0], skew_rxtxd[3:0]};
   if (mod_reset == 1'b0) begin
       skew_dashdot <= ~dashdot;
       mod_reset <= 1'b1;
@@ -124,13 +117,13 @@ begin
         begin
           skew_rxtxc <= 8'h77;
           skew_rxtxd <= 8'h77;
-          skew_rxtxclk21 <= {skew_changed, 10'b00111_00111}; //9021 NOTE: RXTX
+          skew_rxtxclk21 <= {skew_changed, 10'b01111_01111}; //9031 NOTE: RXTX
         end
       1:
         begin
-          skew_rxtxc <= 8'h56;
-          skew_rxtxd <= 8'h56;
-          skew_rxtxclk21 <= {skew_changed, 10'b01000_01011}; //9021 NOTE: RXTX
+          skew_rxtxc <= 8'h77; // 56
+          skew_rxtxd <= 8'h77; // 56
+          skew_rxtxclk21 <= {skew_changed, 10'b10000_01111}; //9031 NOTE: RXTX
         end
       2:
         begin
