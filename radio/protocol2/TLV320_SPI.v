@@ -60,7 +60,7 @@ input  wire boost;
 input  wire line;   // set when using line rather than mic input
 input wire [4:0] line_in_gain;
 
-reg   [4:0] load;
+reg   [3:0] load;
 reg   [3:0] TLV;
 reg  [15:0] TLV_data;
 reg  [15:0] latch_TLV_data;
@@ -69,21 +69,18 @@ reg         prev_boost;
 reg         prev_line;
 reg	[4:0] prev_line_in_gain;
 
-// Set up TLV320 data to send
-// https://www.ti.com/lit/ds/symlink/tlv320aic23.pdf
+// Set up TLV320 data to send 
 always @*	
 begin
   case (load)
-  5'd0: TLV_data = 16'h1E00;  			// data to load into TLV320
-  5'd1: TLV_data = 16'h1201;
-  5'd2: TLV_data = line ? 16'h0810 : (16'h0814 + boost);	// D/A on
-  5'd3: TLV_data = 16'h0C00;
-  5'd4: TLV_data = 16'h0E02;
-  5'd5: TLV_data = 16'h1000;
-  5'd6: TLV_data = 16'h0A00;
-  5'd7: TLV_data = {11'b0, line_in_gain};				// set line in gain
-  5'd8: TLV_data = 16'b0000010_0_1_1110011; // lower the left headphone volume to have more slider on software
-  5'd9: TLV_data = 16'b0000011_0_1_1110011; // lower the right headphone volume to have more slider on software
+  4'd0: TLV_data = 16'h1E00;  			// data to load into TLV320
+  4'd1: TLV_data = 16'h1201;
+  4'd2: TLV_data = line ? 16'h0810 : (16'h0814 + boost);	// D/A on
+  4'd3: TLV_data = 16'h0C00;
+  4'd4: TLV_data = 16'h0E02;
+  4'd5: TLV_data = 16'h1000;
+  4'd6: TLV_data = 16'h0A00;
+  4'd7: TLV_data = {11'b0, line_in_gain};				// set line in gain
   //4'd8: TLV_data = 16'h0000;
   default: TLV_data = 0;
   endcase
@@ -150,7 +147,7 @@ begin
 
   4'd5:
   begin
-    if (load == 5'd9) begin					// stop when all data sent, and wait for boost to change
+    if (load == 7) begin					// stop when all data sent, and wait for boost to change 
 		nCS <= 1'b1;        					// set CS high               
 		  if (boost != prev_boost || line != prev_line || line_in_gain != prev_line_in_gain) begin  // has boost or line in or line-in gain changed?
 			load <= 0;
@@ -160,7 +157,7 @@ begin
 	end
     else begin									// else get next data             	
       TLV  <= 4'd0;           
-      load <= load + 5'b1;  				// select next data word to send
+      load <= load + 3'b1;  				// select next data word to send
     end
   end
   
