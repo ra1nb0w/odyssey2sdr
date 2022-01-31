@@ -701,8 +701,9 @@ assign ANT2_RELAY  = Apollo ? Alex_data[25] : Alex_TX_LOAD;
 assign _122MHz_out = _122MHz;
 
 // mcu UART channel
+// maybe move to CBCLK with division of 160
 mcu #(.fw_version(fw_version)) mcu_uart (
-	.clk(CBCLK),
+	.clk(C122_clk),
 	.mcu_uart_rx(MCU_UART_RX),
 	.mcu_uart_tx(MCU_UART_TX),
 	.ptt(FPGA_PTT)

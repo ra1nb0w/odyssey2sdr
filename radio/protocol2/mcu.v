@@ -22,6 +22,7 @@
 module mcu
 #(parameter [63:0] fw_version = 64'b0)
 (
+	// 122.88 MHz
 	input clk,
 	
 	// UART interface to MCU
@@ -39,7 +40,7 @@ module mcu
 // in this case: 122880000/9600
 // since we are using as parameters 9600-8N1  = 12800
 // since we are using as parameters 19200-8N1 = 6400
-localparam uart_clock_per_bit = 160;
+localparam uart_clock_per_bit = 6400;
 // high when the byte is transmitted
 wire uart_tx_done;
 // high when the UART needs to send the byte
