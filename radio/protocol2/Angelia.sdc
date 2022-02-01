@@ -54,12 +54,12 @@ set clock_2_5MHz  network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto
 create_generated_clock -source [get_pins {network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|inclk[0]}] \
   -name tx_clock -duty_cycle 50.00 [get_pins {network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0]}] -add
 
-create_generated_clock -source [get_pins {PLL_IF_inst|altpll_component|auto_generated|pll1|inclk[0]}] \
-  -name _122_90 -phase 90 -duty_cycle 50.00 [get_pins {PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0]}] -add
-
 #create generated clock for PLL transmit clock output with 90 phase shift
 create_generated_clock -source [get_pins {network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|inclk[0]}] \
-  -name PHY_TX_CLOCK -phase 135.00 -duty_cycle 50.00 [get_pins {network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[1]}] -add
+  -name PHY_TX_CLOCK -phase 157.50 -duty_cycle 50.00 [get_pins {network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[1]}] -add
+
+create_generated_clock -source [get_pins {PLL_IF_inst|altpll_component|auto_generated|pll1|inclk[0]}] \
+  -name _122_90 -phase 90 -duty_cycle 50.00 [get_pins {PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0]}] -add
 
 # data_clock = CMCLK/2 used by Attenuator and TLV320 SPI
 create_generated_clock -name data_clk -source $CMCLK -divide 2
@@ -81,7 +81,7 @@ derive_clock_uncertainty
 set_clock_groups -asynchronous  -group { \
 					LTC2208_122MHz \
 					_122MHz \
-					_122_90 \
+                    _122_90 \
 					PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] \
 					PLL_IF_inst|altpll_component|auto_generated|pll1|clk[1] \
 					PLL_IF_inst|altpll_component|auto_generated|pll1|clk[2] \
@@ -119,6 +119,7 @@ set_clock_groups -asynchronous  -group { \
 set_output_delay -max 2.0 -clock _122_90 {DACD[*]} -add_delay
 # -tH
 set_output_delay -min -1.5 -clock _122_90 {DACD[*]} -add_delay
+#set_output_delay 0.8 -clock _122MHz {DACD[*]} -add_delay
 
 ## Ethernet PHY TX per AN477, with PHY delay for TX disabled
 set_output_delay  -max 1.0  -clock PHY_TX_CLOCK [get_ports {PHY_TX[*]}] -add_delay
@@ -222,14 +223,16 @@ set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|au
 set_max_delay -from tx_clock -to tx_clock 21
 set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] -to network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] 21
 set_max_delay -from LTC2208_122MHz -to LTC2208_122MHz 18
+set_max_delay -from LTC2208_122MHz -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 9
+set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] -to _122MHz 7
 set_max_delay -from PHY_RX_CLOCK -to PHY_RX_CLOCK 10
 set_max_delay -from tx_clock -to PHY_TX_CLOCK 11
 set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] -to PHY_TX_CLOCK 11
 set_max_delay -from _122_90 -to _122_90 12
 set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] -to _122_90 12
-set_max_delay -from _122MHz -to _122_90 9
-set_max_delay -from _122MHz -to _122MHz 10
-set_max_delay -from _122MHz -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 9
+set_max_delay -from LTC2208_122MHz -to _122_90 9
+set_max_delay -from LTC2208_122MHz -to _122MHz 10
+set_max_delay -from LTC2208_122MHz -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 9
 
 #**************************************************************
 # Set Minimum Delay (for hold or removal; low-level, over-riding timing adjustments)

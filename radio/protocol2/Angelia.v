@@ -1451,31 +1451,9 @@ sidetone sidetone_inst( .clock(CLRCLK), .enable(sidetone), .tone_freq(tone_freq)
 
 reg [15:0]temp_ADC[0:1];
 reg [15:0] temp_DACD;
-//reg [15:0]temp_ADC_reg[0:1];
 
-// ODYSEEY 2: we are using ADC and DAC in offset binary mode
-// and not in 2's complement format as Anan devices
-/*
-always @ (posedge _122_90)
-    temp_DACD <= {C122_cordic_i_out[21:8], 2'b00};
-
-always @ (posedge LTC2208_122MHz)
-begin
-    temp_ADC_reg[0] <= {~INA[15], INA[14:0]};
-end
-
-always @ (posedge LTC2208_122MHz_2)
-    temp_ADC_reg[1] <= {~INA_2[15], INA_2[14:0]};
-
-always @(posedge C122_clk)
-begin
-   temp_ADC[0] <= temp_ADC_reg[0];
-   temp_ADC[1] <= temp_ADC_reg[1];
-end
-*/
 always @ (posedge C122_clk)
 begin
-    temp_DACD <= {C122_cordic_i_out[21:8], 2'b00};
     temp_ADC[0] <= {~INA[15], INA[14:0]};
     temp_ADC[1] <= {~INA_2[15], INA_2[14:0]};
 end
@@ -1645,8 +1623,10 @@ cpl_cordic # (.IN_WIDTH(17))
 // ODYSSEY 2: we use offset binary not 2 complement
 // TODO always @ (posedge _122MHz)
 always @ (posedge _122_90)
+begin
+    temp_DACD <= {C122_cordic_i_out[21:8], 2'b00};
 	DACD <= run ? {~C122_cordic_i_out[21], C122_cordic_i_out[20:8]} : 14'b0;   // select top 14 bits for DAC data // disable TX DAC if IO4 active
- 
+end
 
 
 //------------------------------------------------------------
