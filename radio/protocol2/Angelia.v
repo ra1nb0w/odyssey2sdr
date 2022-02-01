@@ -528,15 +528,33 @@
 
 */
 
+/*
+ * == Clock distribution ==
+ *
+ * _122MHz not connected to VCTXCO(pin T20, T21 and T22)
+ * _122MHz_out send clock to TX DAC (pin T20, T21 and T22)
+ *
+ * In Angelia, we have _122MHz connected directly to the output of VCTCXO but
+ * in Odyssey2 is not. It is floatting and MUST be assignet to LTC2208_122MHz.
+ *
+ * OSC_10MHZ receive 10MHz from internal TCXO or automatically switched with
+ *           a trasistor from an external reference (pin T1 and T2)
+ * FPGA_PLL set voltage VC of TCXO through RC pass filter (pin AA21)
+ *
+ * LTC2208_122MHz receive clock directly from ADC1/C1 (pin AA11 and AB11)
+ * LTC2208_122MHz_2 receive clock directly from ADC2/C2 (pin AA12 and AB12)
+ */
+
+
 module Angelia(
   //clock PLL
   //the DAC are the wired together
-  input _122MHz,                 //122.88MHz from VCXO
+  input _122MHz,                 //same pin of _122MHz_out
   output _122MHz_out,            //122.88MHz to DAC
   input  OSC_10MHZ,              //10MHz reference in 
   output FPGA_PLL,               //122.88MHz VCXO contol voltage
 
-  //attenuator (DAT-31-SP+) we are using F1912N
+  // attenuator (DAT-31-SP+) we are using F1912N
   // Odyssey2: the DATA and CLK are shared between the two attenuator
   output ATTN_DATA,              //data for input attenuator
   output ATTN_CLK,               //clock for input attenuator
@@ -698,7 +716,7 @@ assign SPI_RX_LOAD = Apollo ? USEROUT6 : Alex_RX_LOAD;
 assign ANT2_RELAY  = Apollo ? Alex_data[25] : Alex_TX_LOAD;
 
 // we use the main clock to pilot DAC
-assign _122MHz_out = _122MHz;
+assign _122MHz_out = LTC2208_122MHz;
 
 // mcu UART channel
 // maybe move to CBCLK with division of 160
@@ -718,7 +736,7 @@ assign PHY_RESET_N = (res_cnt == 0);
 // Reset Lines - C122_rst, IF_rst, SPI_Alex_reset
 //--------------------------------------------------------------
 
-wire  IF_rst;
+wire IF_rst;
 wire C122_rst;
 	
 assign IF_rst = !network_state;  // hold code in reset until Ethernet code is running.
@@ -763,8 +781,7 @@ wire _122_90;
 
 // Generate _122_90 (122.88Mhz 90deg) CMCLK (12.288MHz), CBCLK(3.072MHz) and CLRCLK (48kHz) from 122.88MHz using PLL
 // NOTE: CBCLK is generated at 180 degs, as in P1: so that LRCLK occurs on negative edge of BCLK
-//PLL_IF PLL_IF_inst (.inclk0(C122_clk), .c0(_122_90), .c1(CMCLK), .c2(CBCLK), .c3(CLRCLK), .locked());
-PLL_IF PLL_IF_inst (.inclk0(_122MHz), .c0(_122_90), .c1(CMCLK), .c2(CBCLK), .c3(CLRCLK), .locked());
+PLL_IF PLL_IF_inst (.inclk0(C122_clk), .c0(_122_90), .c1(CMCLK), .c2(CBCLK), .c3(CLRCLK), .locked());
 //pulsegen pulse  (.sig(CBCLK), .rst(IF_rst), .clk(!CMCLK), .pulse(C122_cbrise));  // pulse on rising edge of BCLK for Rx/Tx frequency calculations
 
 //-----------------------------------------------------------------------------
@@ -1581,7 +1598,7 @@ ext_io_adc ADC_SPI(.clock(CLRCLK), .SCLK(ADCCLK), .nCS(ADCCS_N), .MISO(ADCMISO),
 wire req1;
 wire [16:0] y2_r, y2_i;
 
-CicInterpM5 #(.RRRR(640), .IBITS(24), .OBITS(17), .GBITS(38)) in2 (_122MHz, 1'd1, req1, IQ_Tx_data[47:24],
+CicInterpM5 #(.RRRR(640), .IBITS(24), .OBITS(17), .GBITS(38)) in2 (C122_clk, 1'd1, req1, IQ_Tx_data[47:24],
 					IQ_Tx_data[23:0], y2_r, y2_i); 
 
 	
@@ -1610,7 +1627,7 @@ assign Q = (VNA | CW_PTT)  ? 17'd0 : y2_r;
 
 
 cpl_cordic # (.IN_WIDTH(17))
-        cordic_inst (.clock(_122MHz), .frequency(C122_frequency_HZ_Tx), .in_data_I(I),
+        cordic_inst (.clock(C122_clk), .frequency(C122_frequency_HZ_Tx), .in_data_I(I),
 		.in_data_Q(Q), .out_data_I(C122_cordic_i_out), .out_data_Q());							// .out_data is 22 bits.
 			 	 
 /* 
@@ -2004,7 +2021,7 @@ debounce de_DASH	(.clean_pb(debounce_DASH), .pb(!KEY_DASH), .clk(CMCLK));
 wire osc_10MHz;
 
 // Use a PLL to divide 122.88MHz clock to 10MHz							
-C122_PLL PLL_inst (.inclk0(_122MHz), .c0(osc_10MHz), .locked(locked_10MHz));
+C122_PLL PLL_inst (.inclk0(LTC2208_122MHz), .c0(osc_10MHz), .locked(locked_10MHz));
 	
 //Apply to EXOR phase detector 
 assign FPGA_PLL = OSC_10MHZ ^ osc_10MHz;
