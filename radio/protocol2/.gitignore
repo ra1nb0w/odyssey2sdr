@@ -63,6 +63,8 @@
 !*.sdc
 !*.tcl
 
+!*.py
+
 !binary/
 !docs/
 !README.org
