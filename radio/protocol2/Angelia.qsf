@@ -278,13 +278,14 @@ set_global_assignment -name ROUTER_CLOCKING_TOPOLOGY_ANALYSIS ON
 # new
 set_location_assignment PLL_3 -to "network:network_inst|rgmii_send:rgmii_send_inst|tx_pll:tx_pll_inst|altpll:altpll_component|tx_pll_altpll:auto_generated|pll1"
 
+
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+
 set_global_assignment -name VERILOG_FILE sync.v
 set_global_assignment -name VERILOG_FILE ext_io_adc.v
 set_global_assignment -name VERILOG_FILE mcu.v
 set_global_assignment -name QIP_FILE Multiply2.qip
 set_global_assignment -name VERILOG_FILE Ethernet/Rx_fifo.v
-set_global_assignment -name VERILOG_FILE Polyphase_FIR/firram48.v
-set_global_assignment -name VERILOG_FILE sine_table_256.v
 set_global_assignment -name QIP_FILE sine_table_256.qip
 set_global_assignment -name MIF_FILE sine_256.mif
 set_global_assignment -name VERILOG_FILE Ethernet/send_data.v
@@ -316,7 +317,6 @@ set_global_assignment -name VERILOG_FILE Ethernet/arp.v
 set_global_assignment -name VERILOG_FILE Polyphase_FIR/firx2r2.v
 set_global_assignment -name VERILOG_FILE receiver2.v
 set_global_assignment -name VERILOG_FILE sidetone.v
-set_global_assignment -name VERILOG_FILE profile_ROM.v
 set_global_assignment -name QIP_FILE profile_ROM.qip
 set_global_assignment -name VERILOG_FILE profile.v
 set_global_assignment -name MIF_FILE profile.mif
@@ -364,5 +364,3 @@ set_global_assignment -name QIP_FILE Polyphase_FIR/firromHc.qip
 set_global_assignment -name QIP_FILE Polyphase_FIR/firromHd.qip
 set_global_assignment -name QIP_FILE C10_PLL.qip
 set_global_assignment -name QIP_FILE tx_pll.qip
-
-set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
