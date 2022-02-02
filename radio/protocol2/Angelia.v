@@ -1621,7 +1621,7 @@ cpl_cordic # (.IN_WIDTH(17))
 
 // ODYSSEY 2: we use offset binary not 2 complement
 // TODO always @ (posedge _122MHz)
-always @ (posedge _122_90)
+always @ (posedge C122_clk)
 begin
     temp_DACD <= {C122_cordic_i_out[21:8], 2'b00};
 	DACD <= run ? {~C122_cordic_i_out[21], C122_cordic_i_out[20:8]} : 14'b0;   // select top 14 bits for DAC data // disable TX DAC if IO4 active
