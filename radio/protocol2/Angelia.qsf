@@ -238,42 +238,12 @@ set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
 set_global_assignment -name FITTER_AUTO_EFFORT_DESIRED_SLACK_MARGIN "1 ns"
 set_global_assignment -name AUTO_MERGE_PLLS OFF
 set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
-
-# set_global_assignment -name SMART_RECOMPILE ON
-# set_global_assignment -name remove_redundant_logic_cells ON
-# set_global_assignment -name remove_duplicate_registers ON
-# set_global_assignment -name EDA_SIMULATION_TOOL "<None>"
-# set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
-# set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE BALANCED
-# set_global_assignment -name ADV_NETLIST_OPT_SYNTH_WYSIWYG_REMAP ON
-# set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
-# set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
-# set_global_assignment -name AUTO_MERGE_PLLS OFF
-# set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC OFF
-# set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_RETIMING OFF
-# set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION OFF
-# set_global_assignment -name RESERVE_DATA0_AFTER_CONFIGURATION "USE AS REGULAR IO"
-# set_global_assignment -name RESERVE_DATA1_AFTER_CONFIGURATION "USE AS REGULAR IO"
-# set_global_assignment -name RESERVE_FLASH_NCE_AFTER_CONFIGURATION "USE AS REGULAR IO"
-# set_global_assignment -name RESERVE_DCLK_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name SMART_RECOMPILE OFF
 
 set_global_assignment -name SEARCH_PATH polyphase_fir/ -tag from_archive
 set_global_assignment -name SEARCH_PATH Ethernet/ -tag from_archive
 set_global_assignment -name SEARCH_PATH Polyphase_FIR/ -tag from_archive
 
-
-set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE SPEED
-set_global_assignment -name FINAL_PLACEMENT_OPTIMIZATION AUTOMATICALLY
-set_global_assignment -name QII_AUTO_PACKED_REGISTERS NORMAL
-set_global_assignment -name ROUTER_TIMING_OPTIMIZATION_LEVEL MAXIMUM
-set_global_assignment -name ROUTER_LCELL_INSERTION_AND_LOGIC_DUPLICATION ON
-set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
-set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION ON
-set_global_assignment -name SMART_RECOMPILE ON
-set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
-set_global_assignment -name ADV_NETLIST_OPT_SYNTH_WYSIWYG_REMAP ON
-set_global_assignment -name MUX_RESTRUCTURE OFF
-set_global_assignment -name ROUTER_CLOCKING_TOPOLOGY_ANALYSIS ON
 
 # new
 set_location_assignment PLL_3 -to "network:network_inst|rgmii_send:rgmii_send_inst|tx_pll:tx_pll_inst|altpll:altpll_component|tx_pll_altpll:auto_generated|pll1"
