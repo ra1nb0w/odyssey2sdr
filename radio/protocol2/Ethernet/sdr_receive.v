@@ -117,13 +117,13 @@ begin
         begin
           skew_rxtxc <= 8'h77;
           skew_rxtxd <= 8'h77;
-          skew_rxtxclk21 <= {skew_changed, 10'b01111_01111}; //9031 NOTE: RXTX
+          skew_rxtxclk21 <= {skew_changed, 10'b10000_01111}; //9031 NOTE: RXTX
         end
       1:
         begin
           skew_rxtxc <= 8'h77; // 56
           skew_rxtxd <= 8'h77; // 56
-          skew_rxtxclk21 <= {skew_changed, 10'b10000_01111}; //9031 NOTE: RXTX
+          skew_rxtxclk21 <= {skew_changed, 10'b01111_01111}; //9031 NOTE: RXTX
         end
       2:
         begin
