@@ -47,8 +47,8 @@ module mdio(
 
 
 //bits to send
-wire [63:0] wr_bits = {32'hFFFFFFFF, 9'b010100001, addr, 2'b10, wr_data};
-wire [63:0] rd_bits = {32'hFFFFFFFF, 9'b011000001, addr, 2'bxx, 16'hFFFF};
+wire [63:0] wr_bits = {32'hFFFFFFFF, 9'b010100011, addr, 2'b10, wr_data};
+wire [63:0] rd_bits = {32'hFFFFFFFF, 9'b011000011, addr, 2'bxx, 16'hFFFF};
 reg[ 5:0] bit_no;
   
 
