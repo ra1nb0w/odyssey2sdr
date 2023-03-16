@@ -22,9 +22,9 @@
 #
 # -------------------------------------------------------------------------- #
 
-QUARTUS_VERSION = "13.1"
-DATE = "17:55:28  March 26, 2015"
+QUARTUS_VERSION = "16.0"
+DATE = "17:55:28  Dec 27, 2016"
 
 # Revisions
 
-PROJECT_REVISION = "Angelia"
+PROJECT_REVISION = "Orion"

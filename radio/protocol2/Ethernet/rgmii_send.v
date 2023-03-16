@@ -25,10 +25,13 @@ module rgmii_send (
   input speed_1Gbit, 
   input [7:0] data,
   input tx_enable,   
+  input phaseupdown,   
+  input phasestep,   
   output active,  
   output clock, 
   output clock_2_5MHz,
   output clock_12_5MHz,
+  output phasedone,
   
   //hardware pins
   output [3:0]PHY_TX,
@@ -36,10 +39,8 @@ module rgmii_send (
   output PHY_TX_CLOCK,    
   input  PHY_CLK125
   );
-  
 
-  
-  
+
 //-----------------------------------------------------------------------------  
 //                              clocks
 //-----------------------------------------------------------------------------
@@ -48,7 +49,12 @@ tx_pll	tx_pll_inst (
 	.c0 (clock),
 	.c1 (PHY_TX_CLOCK),
 	.c2 (clock_12_5MHz),
-	.c3 (clock_2_5MHz)
+	.c3 (clock_2_5MHz),
+	.phasecounterselect(3'b011),
+	.phaseupdown(phaseupdown),
+	.scanclk(PHY_CLK125),
+	.phasestep(phasestep),
+	.phasedone(phasedone)
 	);   
    
 

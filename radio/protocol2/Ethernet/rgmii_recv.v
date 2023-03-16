@@ -110,7 +110,7 @@ reg [2:0] preamble_cnt;
 reg payload_coming = 0;
 
 
-always @(posedge clock) 
+always @(posedge clock) begin
   //RX-DV low, nothing is being received
   if (!data_coming) begin payload_coming <= 1'b0; preamble_cnt <= MIN_PREAMBLE_LENGTH; end
   //RX-DV high, but payload is not being received yet
@@ -121,8 +121,8 @@ always @(posedge clock)
     else if ((preamble_cnt == 0) && (data == 8'hD5)) payload_coming <= 1'b1;
     //wrong byte received, reset preamble byte count
     else preamble_cnt <= MIN_PREAMBLE_LENGTH;
-      
-      
+end
+
 assign active = data_coming & payload_coming;
       
 

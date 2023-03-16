@@ -45,8 +45,8 @@ parameter clock_speed = 1;
 
 // calculate timer variables based on clock_speed passed
 
-localparam slow_period = clock_speed/4'd2;		// one flash per second
-localparam fast_period = clock_speed/4'd10;		// 5 flashes per second
+localparam slow_period = clock_speed/2;		// one flash per second
+localparam fast_period = clock_speed/10;		// 5 flashes per second
 
 
 reg [23:0]counter;
@@ -56,7 +56,7 @@ reg [1:0]swap;
 always @ (posedge clock)
 begin
 		if (on)
-			LED <= 1;
+			LED <= 0;
 		else if (vary) begin
 			if (swap == 0 || swap == 1)
 			 period <= slow_period;
@@ -84,6 +84,6 @@ begin
 			else counter <= counter + 1'b1;
 		end
   
-		else LED <= 1'b0;    // LED off 		
+		else LED <= 1'b1;    // LED off 		
 end
 endmodule

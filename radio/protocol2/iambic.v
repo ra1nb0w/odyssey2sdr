@@ -106,7 +106,7 @@ module iambic (
 				input CWX,						   // CW data from PC active high
 				input paddle_swap,				// swap if set
 				output reg keyer_out,			// keyer output, active high
-				input IO5							// additional CW key via digital input IO5, debounced, inverted
+				input IO8							// additional CW key via digital input IO8, debounced, inverted
 				);
 				
 parameter   clock_speed = 30;					// default clock speed of 30kHz from PLL 
@@ -164,7 +164,7 @@ LOOP:
 				key_state <= PREDOT;
 			else if (dash)
 				key_state <= PREDASH;
-			else keyer_out <= (CWX || IO5);					// neither so use CWX or IO5 ext CW digital input
+			else keyer_out <= (CWX || IO8);					// neither so use CWX or IO8 ext CW digital input
 		end 	
 	end 
 		

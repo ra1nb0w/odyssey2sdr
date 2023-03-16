@@ -58,7 +58,8 @@ always @ (posedge clock)
 begin 
 	case (state)
 	0: begin 
-	   counter <= 16'd2000; //RRK was 1000
+	   //counter <= 16'd2000; //RRK was 1000
+	   counter <= 16'd0;
 			if (Mux != previous_mux  || SampleRate != previous_SampleRate) begin 	// if Mux or sampleRate changes state then continue
 					fifo_write_enable <= 0;  	// prevent writing to fifo input
 					// wait for output side of fifo to empty

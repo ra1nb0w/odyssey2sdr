@@ -41,17 +41,15 @@ input [24:0]period;
 reg [24:0]counter;
 reg LED;
 
-// Odyssey 2: we invert the LED signal
-
 always @ (posedge clock)
 begin
 	if (signal) begin
 		counter <= 0;
-		LED <= 1'b1; 			// turn LED on whilst signal is high
+		LED <= 1'b0; 			// turn LED on whilst signal is high
 		end
 	else begin
 	if (counter == period) begin
-		LED <= 1'b0; 			// turn LED off when signal low after time period
+		LED <= 1'b1; 			// turn LED off when signal low after time period
 		end
 	else counter <= counter + 1'b1;
 	end
