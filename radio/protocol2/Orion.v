@@ -2246,7 +2246,6 @@ debounce de_DASH	(.clean_pb(debounce_DASH), .pb(!KEY_DASH), .clk(CMCLK));
 	via circuitry on the MkII board.  
 */
 
-
 wire osc_10MHZ; 
 wire locked_10MHz; 
 

@@ -236,6 +236,10 @@ set_location_assignment PIN_V2 -to ANT2_RELAY
 
 set_global_assignment -name SMART_RECOMPILE ON
 
+
+set_global_assignment -name EDA_SIMULATION_TOOL "Questa Intel FPGA (Verilog)"
+set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
+set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation
 set_global_assignment -name VERILOG_FILE ext_io_adc.v
 set_global_assignment -name VERILOG_FILE mcu.v
 set_global_assignment -name VERILOG_FILE Mux_clear.v
@@ -310,7 +314,6 @@ set_global_assignment -name QIP_FILE Rx_Audio_fifo.qip
 set_global_assignment -name QIP_FILE Mic_fifo.qip
 set_global_assignment -name QIP_FILE Tx1_IQ_fifo.qip
 set_global_assignment -name QIP_FILE Ethernet/icmp_fifo.qip
-set_global_assignment -name QIP_FILE PLL_30MHz.qip
 set_global_assignment -name VERILOG_FILE Polyphase_FIR/CicInterpM5.v
 set_global_assignment -name VERILOG_FILE mic_I2S.v
 set_global_assignment -name VERILOG_FILE cdc_sync_strobe.v
@@ -322,8 +325,4 @@ set_global_assignment -name VERILOG_FILE High_Priority_CC.v
 set_global_assignment -name VERILOG_FILE General_CC.v
 set_global_assignment -name VERILOG_FILE tx_atten.v
 set_global_assignment -name VERILOG_FILE tx_dac.v
-
-set_global_assignment -name EDA_SIMULATION_TOOL "Questa Intel FPGA (Verilog)"
-set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
-set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
