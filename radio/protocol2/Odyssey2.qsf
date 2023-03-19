@@ -89,7 +89,6 @@ set_global_assignment -name PROJECT_OUTPUT_DIRECTORY build
 set_global_assignment -name SEARCH_PATH ethernet/
 set_global_assignment -name SEARCH_PATH Ethernet/
 set_global_assignment -name SEARCH_PATH Polyphase_FIR/
-set_global_assignment -name SEARCH_PATH polyphase_fir/
 set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF
 set_global_assignment -name DEVICE_MIGRATION_LIST EP4CE55F23C8
 

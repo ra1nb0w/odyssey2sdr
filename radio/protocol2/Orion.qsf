@@ -362,4 +362,3 @@ set_global_assignment -name VERILOG_FILE tx_dac.v
 set_global_assignment -name SEARCH_PATH ethernet/
 set_global_assignment -name SEARCH_PATH Ethernet/
 set_global_assignment -name SEARCH_PATH Polyphase_FIR/
-set_global_assignment -name SEARCH_PATH polyphase_fir/
