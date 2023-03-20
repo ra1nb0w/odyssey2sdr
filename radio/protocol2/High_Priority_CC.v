@@ -115,7 +115,7 @@ reg state;
 
 
 reg [31:0]temp_Rx_frequency[0:NR-1];
-reg [47:0]temp_Alex_data;
+reg [47:0]temp_Alex_data = 48'b0;
 
 // per NR number
 genvar i;
@@ -197,12 +197,50 @@ begin
 						
 						// parse the Alex data bytes into temp_Alex_data
 						// NOTE: Tx filters data is on top 16 bits for ANAN-7000-8000
-						1430: temp_Alex_data [31:24]	<= udp_rx_data; // Rx1 filters high byte
-						1431: temp_Alex_data [23:16]	<= udp_rx_data; // Rx1 filters low byte
-						1432:	temp_Alex_data [47:40]  <= udp_rx_data; // Tx filters data high byte
-						1433:	temp_Alex_data [39:32]  <= udp_rx_data; // Tx filters data low byte
-						1434:	temp_Alex_data [15:8]   <= udp_rx_data; // Rx0 filters data high byte
-						1435:	temp_Alex_data [7:0]    <= udp_rx_data; // Rx0 filters data low byte	
+						// Changed to support more PA/filter board
+						`ifdef ORION_MKII_TYPE
+							1430: temp_Alex_data [31:24]	<= udp_rx_data; // Rx1 filters high byte
+							1431: temp_Alex_data [23:16]	<= udp_rx_data; // Rx1 filters low byte
+							1432:	temp_Alex_data [47:40]  <= udp_rx_data; // Tx filters data high byte
+							1433:	temp_Alex_data [39:32]  <= udp_rx_data; // Tx filters data low byte
+							1434:	temp_Alex_data [15:8]   <= udp_rx_data; // Rx0 filters data high byte
+							1435:	temp_Alex_data [7:0]    <= udp_rx_data; // Rx0 filters data low byte
+						`elsif ANGELIA_FAINITSKI_TYPE
+							1432:	begin
+								temp_Alex_data [15] <= udp_rx_data[3]; // T/R Relay
+								temp_Alex_data [14] <= udp_rx_data[2]; // ANT #3
+								temp_Alex_data [13] <= udp_rx_data[1]; // ANT #2
+								temp_Alex_data [5] <= udp_rx_data[6]; // 12/10 Meters
+								temp_Alex_data [4] <= udp_rx_data[5]; // 17/15 Meters
+							end
+							1433:	begin
+								temp_Alex_data [3]  <= udp_rx_data[4]; // 30/20 Meters
+								temp_Alex_data [2]  <= udp_rx_data[5]; // 60/40 Meters
+								temp_Alex_data [1]  <= udp_rx_data[6]; // 80 Meters
+								temp_Alex_data [0]  <= udp_rx_data[7]; // 160 Meters
+							end
+							1434:	begin
+								temp_Alex_data [11]   <= udp_rx_data[4]; // bypass
+							end
+							1435:	begin
+								temp_Alex_data [12]    <= udp_rx_data[3]; // 6M bypass
+								temp_Alex_data [10]    <= udp_rx_data[2]; // 20 MHz HPF
+								temp_Alex_data [9]    <= udp_rx_data[1]; // 13 MHz HPF
+								temp_Alex_data [8]    <= udp_rx_data[4]; // 9.5 MHz HPF
+								temp_Alex_data [7]    <= udp_rx_data[5]; // 6.5 MHz HPF
+								temp_Alex_data [6]    <= udp_rx_data[6]; // 1.5 MHz HPF
+							end
+						`else // default use Angelia 100D type
+							1432:	temp_Alex_data [31:24]  <= udp_rx_data; // Tx filters data high byte
+							1433:	begin
+								temp_Alex_data [23:16]  <= udp_rx_data; // Tx filters data low byte
+								// required by F6ITU filter board
+								// and not always configured by software
+								temp_Alex_data [18] <= temp_Alex_data[27];
+							end
+							1434:	temp_Alex_data [15:8]   <= udp_rx_data; // Rx0 filters data high byte
+							1435:	temp_Alex_data [7:0]    <= udp_rx_data; // Rx0 filters data low byte	
+						`endif
 		
 						1437:	Alex_data <= temp_Alex_data;
 		
