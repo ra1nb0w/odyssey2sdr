@@ -87,7 +87,6 @@ set_clock_groups -asynchronous  -group { \
 				-group {LTC2208_122MHz_2} \
 				-group { \
 					LTC2208_122MHz \
-					_122MHz \
 					_122MHz_out \
 					PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] \
 					PLL_IF_inst|altpll_component|auto_generated|pll1|clk[1] \
@@ -146,13 +145,13 @@ set_output_delay  20 -clock data_clk { MOSI nCS} -add_delay
 set_output_delay  10 -clock $CBCLK {CDIN CMODE} -add_delay
 
 #Alex  uses CBCLK/4
-set_output_delay  10 -clock data_clk2 { SPI_SDO J15_5 J15_6} -add_delay
+set_output_delay  10 -clock data_clk2 { SPI_SDO SPI_RX_LOAD ANT2_RELAY} -add_delay
 
 #EEPROM (2.5MHz)
 set_output_delay  40 -clock $clock_2_5MHz {SCK SI CS} -add_delay
 
 #ADC78H90 
-set_output_delay  10 -clock data_clk2 {ADCMOSI nADCCS} -add_delay
+set_output_delay  10 -clock data_clk2 {ADCMOSI ADCCS_N} -add_delay
 
 #PHY (2.5MHz)
 set_output_delay  10 -clock $clock_2_5MHz {PHY_MDIO} -add_delay
@@ -178,10 +177,10 @@ set_input_delay  -min -0.8 -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get
 set_input_delay  -max 0.8 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX[*]}]	
 set_input_delay  -min -0.8 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX[*]}]	
 
-set_input_delay  -max 0.8  -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {RX_DV}] 
-set_input_delay  -min -0.8 -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {RX_DV}] 				
-set_input_delay  -max 0.8 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {RX_DV}]	
-set_input_delay  -min -0.8 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {RX_DV}]	
+set_input_delay  -max 0.8  -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX_DV}] 
+set_input_delay  -min -0.8 -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX_DV}] 				
+set_input_delay  -max 0.8 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX_DV}]	
+set_input_delay  -min -0.8 -clock_fall -clock [get_clocks virt_PHY_RX_CLOCK] -add_delay [get_ports {PHY_RX_DV}]	
 
 # Set false paths to remove irrelevant setup and hold analysis
 set_false_path -fall_from [get_clocks virt_PHY_RX_CLOCK] -rise_to [get_clocks {PHY_RX_CLOCK}] -setup
@@ -206,6 +205,10 @@ set_input_delay  10  -clock data_clk2 {ADCMISO} -add_delay
 # Set Maximum Delay (for setup or recovery; low-level, over-riding timing adjustments)
 #************************************************************** 
 
+# TO check
+#Warning (15064): PLL "network:network_inst|rgmii_send:rgmii_send_inst|tx_pll:tx_pll_inst|altpll:altpll_component|tx_pll_altpll:auto_generated|pll1" output port clk[3] feeds output pin "SCK~output" via non-dedicated routing -- jitter performance depends on switching rate of other design elements. Use PLL dedicated clock outputs to ensure jitter performance
+#Warning (15064): PLL "network:network_inst|rgmii_send:rgmii_send_inst|tx_pll:tx_pll_inst|altpll:altpll_component|tx_pll_altpll:auto_generated|pll1" output port clk[3] feeds output pin "PHY_MDC~output" via non-dedicated routing -- jitter performance depends on switching rate of other design elements. Use PLL dedicated clock outputs to ensure jitter performance
+
 set_max_delay -from LTC2208_122MHz -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 6
 set_max_delay -from LTC2208_122MHz -to LTC2208_122MHz 18
 #set_max_delay -from network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] -to tx_clock 20
@@ -215,9 +218,11 @@ set_max_delay -from tx_clock -to tx_clock 21
 #set_max_delay -from tx_clock -to PHY_TX_CLOCK 9
 set_max_delay -from PHY_RX_CLOCK -to PHY_RX_CLOCK 9
 #set_max_delay -from tx_clock -to network_inst|rgmii_send_inst|tx_pll_inst|altpll_component|auto_generated|pll1|clk[0] 20
-set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] -to _122MHz 8
+set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] -to LTC2208_122MHz 8
 set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[1] -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 3
 #set_max_delay -from LTC2208_122MHz -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 6
+set_max_delay -from LTC2208_122MHz -to _122MHz_out 6
+set_max_delay -from _122MHz_out -to  LTC2208_122MHz 6
 
 #**************************************************************
 # Set Minimum Delay (for hold or removal; low-level, over-riding timing adjustments)
