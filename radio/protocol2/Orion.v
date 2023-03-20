@@ -677,8 +677,8 @@ module Orion(
   output SPI_SDO,                //SPI data to Alex or Apollo 
 //  input  SPI_SDI,                //SPI data from Apollo 
   output SPI_SCK,                //SPI clock to Alex or Apollo 
-  output SPI_RX_LOAD,                  //SPI Rx data load strobe to Alex / Apollo enable
-  //output SPI_TX_LOAD see ANT2_RELAY,                  //SPI Tx data load strobe to Alex / Apollo ~reset 
+  output SPI_RX_LOAD,                  // J15_5 - SPI Rx data load strobe to Alex / Apollo enable
+  //output SPI_TX_LOAD see ANT2_RELAY,                  // J15_6 - SPI Tx data load strobe to Alex / Apollo ~reset 
   
   //mic and osc configuration
   // Odyssey2: via boot menu
@@ -690,7 +690,7 @@ module Orion(
   input  KEY_DASH,               //dash input from J11
   output FPGA_PTT,               //high turns Q4 on for PTTOUT
   //input  MODE2,                  //jumper J14 on Orion: 1 if removed = ECPS128; 0 if jumpered = ECPQ128A
-  input  ANT_TUNE,               //atu
+  output  ANT_TUNE,               // atu
   output VNA_out,                // used for VNA measurement
   output ANT2_RELAY,             // high level provides a signal to turn on the relay of the second antenna
                                  // or if Alex is enable used as TX strobe (SPI_TX_LOAD)
@@ -759,11 +759,9 @@ assign RAM_A11  = 0;
 assign RAM_A12  = 0;
 assign RAM_A13  = 0;
 
-// Odyssey2: TODO: we should have this on EXT_IO
-//assign atu_ctrl = run ? AUTO_TUNE : 1'b0;		// high turns on auto-tune for 7/8000DLE
+assign ANT_TUNE = run ? AUTO_TUNE : 1'b0;		// high turns on auto-tune for 7/8000DLE
 
-// Odyssey2: implements reset FPGA from network
-assign NCONFIG = IP_write_done; // || reset_FPGA;
+assign NCONFIG = IP_write_done;
 
 wire speed = 1'b1; // high for 1000T
 
@@ -779,7 +777,18 @@ localparam master_clock = 122880000; 	// DSP  master clock in Hz.
 parameter M_TPD   = 4;
 parameter IF_TPD  = 2;
 
+// since we can use different filter board we need to
+// change the board type; there are not other differences
+// if you use ANAN 7000/8000 PA/filter board set ORION_MKII_TYPE
+// otherwise ANGELIA_FAINITSKI_TYPE (selecting Anan 100D);
+// by default is Angelia 100D PA/filter type
+//
+// Changes in High_Priority_CC.v and SPI.v
+`ifdef ORION_MKII_TYPE
 localparam board_type = 8'h05;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
+`else
+localparam board_type = 8'h03;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
+`endif
 parameter  Orion_version = 8'd21;			// FPGA code version
 parameter  beta_version = 8'd19;	// Should be 0 for official release
 parameter  protocol_version = 8'd39;	// openHPSDR protocol version implemented
@@ -810,6 +819,15 @@ assign ANT2_RELAY  = Apollo ? Alex_data[25] : Alex_TX_LOAD;
 
 // we use the main clock to pilot DAC
 assign _122MHz_out = LTC2208_122MHz;
+
+//attenuator
+// Odyssey2: the DATA and CLK are shared between the two attenuator
+wire ATTN_DATA_1;
+wire ATTN_CLK_1;
+wire ATTN_DATA_2;
+wire ATTN_CLK_2;
+assign ATTN_DATA = ATTN_LE ? ATTN_DATA_1 : ATTN_DATA_2;
+assign ATTN_CLK = ATTN_LE ? ATTN_CLK_1 : ATTN_CLK_2;
 
 // mcu UART channel
 mcu #(.fw_version(fw_version)) mcu_uart (
@@ -1005,6 +1023,10 @@ wire [31:0] PC_seq_number;				// sequence number sent by PC when programming
 wire discovery_ACK;
 wire discovery_ACK_sync;
 wire phasedone;
+wire busy;
+wire erase_done;
+wire erase_done_ACK;
+wire num_blocks;
 
 
 sdr_receive sdr_receive_inst(
@@ -1015,7 +1037,7 @@ sdr_receive sdr_receive_inst(
 	.sending_sync(sending_sync),
 	.broadcast(broadcast),
 	.erase_ACK(busy),						// set when erase is in progress
-	.EPCS_wrused(EPCS_wrused),
+	.EPCS_wrused(),
 	.local_mac(local_mac),
 	.to_port(to_port),
 	.discovery_ACK(discovery_ACK_sync),	// set when discovery reply request received by sdr_send
@@ -1761,7 +1783,7 @@ endgenerate
 //    ADC SPI interface 
 //---------------------------------------------------------
 // generate a 30.72MHz clock for the Orion_ADC module, results in a 7.68MHz clock to the ADC78H90 chip
-PLL_30MHz PLL_30MHz_inst(.inclk0(C122_clk), .c0(userADC_clock));
+//PLL_30MHz PLL_30MHz_inst(.inclk0(C122_clk), .c0(userADC_clock));
 
 wire [11:0] AIN1;  // FWD_power
 wire [11:0] AIN2;  // REV_power
@@ -1848,28 +1870,6 @@ end
 //  Set Power Output 
 //------------------------------------------------------------
 
-/*
-	Code used to set power output depends on hardware. If TX_ATTEN_SELECT is high then PWM DAC drive current is used.
-	If low then a digital attenuator (0-31dB in 0.5dB steps) is used to control power output.
-	Since 0.5dB steps are too course, the PWM DAC is used for fine control. The selection of attenuator step and DAC PWM 
-	settings, based on Drive_Level,is done via ROMs (Tx_Atten and Tx_DAC).
-
-*/
-
-// select Tx attenuator parallel load mode
-
-assign TX_ATTN_LE = 1'b1;
-assign TX_ATTN_MODE = 0;
-
-wire [7:0] Drive_PWM;
-
-Tx_Atten Tx_Attn_inst (.clock(CMCLK), .address(Drive_Level), .q( TX_ATTEN));  // ROM for Tx attenuator settings
-Tx_DAC   Tx_DAC_inst  (.clock(CMCLK), .address(Drive_Level), .q(Drive_PWM)); // ROM for Tx DAC settings
-
-// select DAC PWM source based on Tx_ATTEN_SELECT 
-wire [7:0] PWM_source =  TX_ATTEN_SELECT ? Drive_Level : Drive_PWM;
-
-
 // PWM DAC to set drive current to DAC. PWM_count increments 
 // using rx_clock. If the count is less than the drive 
 // level set by the PC then DAC_ALC will be high, otherwise low.  
@@ -1878,12 +1878,11 @@ reg [7:0] PWM_count;
 always @ (posedge rx_clock)
 begin 
 	PWM_count <= PWM_count + 1'b1;
-	if (PWM_source >= PWM_count)
+	if (Drive_Level >= PWM_count)
 		DAC_ALC <= 1'b1;
 	else 
 		DAC_ALC <= 1'b0;
 end 
-
 
 //---------------------------------------------------------
 //              Decode Command & Control data
@@ -2186,7 +2185,7 @@ CC_encoder #(50, NR) CC_encoder_inst (				// 50mS update rate
 					.Supply_volts ({4'b0,AIN6}),  
 					.User_ADC1 (user_analog1),
 					.User_ADC2 (user_analog2),
-					.User_IO ({3'b0, IO2, debounce_IO8, IO6, debounce_IO5, IO4}),
+					.User_IO (8'b0),
 					.pk_detect_ack(pk_detect_ack),		// from Orion_ADC
 					.FPGA_PTT(FPGA_PTT),						// when set change update rate to 1mS
 					.Debug_data(16'd0),
@@ -2215,7 +2214,6 @@ assign atten1 = FPGA_PTT ? atten1_on_Tx : Attenuator1;
 
 Attenuator Attenuator_ADC0 (.clk(CBCLK), .data(atten0), .ATTN_CLK(ATTN_CLK_1),   .ATTN_DATA(ATTN_DATA_1),   .ATTN_LE(ATTN_LE));
 Attenuator Attenuator_ADC1 (.clk(CBCLK), .data(atten1), .ATTN_CLK(ATTN_CLK_2), .ATTN_DATA(ATTN_DATA_2), .ATTN_LE(ATTN_LE_2));
-
 
 //----------------------------------------------
 //		Alex SPI interface
@@ -2254,7 +2252,7 @@ wire locked_10MHz;
 
 // Use a PLL to divide 122.88MHz clock to 10MHz for XOR operation to generate feedback voltage for 
 // the 122.88 MHz osc module							
-C122_PLL PLL_inst ( .areset(0), .inclk0(_122MHz), .c0(osc_10MHZ), .locked(locked_10MHz));
+C122_PLL PLL_inst ( .areset(0), .inclk0(LTC2208_122MHz), .c0(osc_10MHZ), .locked(locked_10MHz));
 	
 //Apply to EXOR phase detector 
 
@@ -2264,6 +2262,12 @@ assign FPGA_PLL = osc_10MHZ ^ OSC_10MHZ;		// Orion MkII
 //  LED Control  
 //-----------------------------------------------------------
 
+parameter half_second = 2_500_000; // at 12.288MHz clock rate
+
+// Odyssey 2 : LED dimmer
+wire led1;
+wire led2;
+wire led3;
 
 // LED bright 0 - 100 %
 parameter dimmer = 8'd3;
