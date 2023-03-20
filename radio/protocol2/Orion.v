@@ -2064,7 +2064,11 @@ assign AUTO_TUNE = DLE_outputs[2];			// high to enable auto-tune
 assign FPGA_PTT = run && ((break_in && CW_PTT) || PC_PTT); // CW_PTT is used when internal CW is selected
 
 // clear TR relay and Open Collectors if run not set 
+`ifdef ORION_MKII_TYPE
 wire [47:0]runsafe_Alex_data = {Alex_data[47:44], run ? ((PA_enable ? FPGA_PTT : 1'b0) | Alex_data[43]) : 1'b0, Alex_data[42:0]};
+`else
+wire [47:0]runsafe_Alex_data = {16'b0, Alex_data[31:28], run ? ((PA_enable ? FPGA_PTT : 1'b0) | Alex_data[27]) : 1'b0, Alex_data[26:0]};
+`endif
 
 Tx_specific_CC #(1026)Tx_specific_CC_inst //   // parameter is port number  ***** this data is in rx_clock domain *****
 			( 	
