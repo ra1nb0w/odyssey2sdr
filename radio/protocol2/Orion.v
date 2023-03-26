@@ -651,7 +651,7 @@ module Orion(
   input  PHY_RX_CLOCK,           //PHY Rx data clock
   input  PHY_CLK125,             //125MHz clock from PHY PLL
   //input  PHY_INT_N,              //interrupt (n.c.)
-  input  PHY_RESET_N,
+  output  PHY_RESET_N,
   //input  CLK_25MHZ,              //25MHz clock (n.c.)  
   
 	//phy mdio (KSZ9021RL)
@@ -837,10 +837,11 @@ mcu #(.fw_version(fw_version)) mcu_uart (
         .ptt(FPGA_PTT)
 );
 
-// CHECK: PHY reset after a while
-//reg [31:0] res_cnt = master_clock;  // 1 sec delay
-//always @(posedge C122_clk) if (res_cnt != 0) res_cnt <= res_cnt - 1'd1;
-//assign PHY_RESET_N = (res_cnt == 0);
+// seems that sometimes it doesn't reset the filter
+// and use wrong MAC address; why since eeprom is right?
+reg [31:0] res_cnt = master_clock;  // 1 sec delay
+always @(posedge C122_clk) if (res_cnt != 0) res_cnt <= res_cnt - 1'd1;
+assign PHY_RESET_N = (res_cnt == 0);
 
 //--------------------------------------------------------------
 // Reset Lines - C122_rst, IF_rst, SPI_Alex_reset
@@ -1859,7 +1860,7 @@ cpl_cordic # (.IN_WIDTH(17))
         = cos(f1 + f2) + j sin(f1 + f2)
 */
 
-always @ (posedge _122_90)
+always @ (posedge _122MHz)
 begin
  	   DACD <= run ? {~C122_cordic_i_out[21], C122_cordic_i_out[20:8]} : 14'b0; 				// convert to 16-bit offset binary format and assign to DACD
 		//DACD <= {C122_cordic_i_out[22], ~C122_cordic_i_out[21:7]};  // convert top 16-bits to offset binary for TxDAC
