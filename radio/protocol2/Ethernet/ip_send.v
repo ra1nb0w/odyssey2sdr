@@ -49,7 +49,7 @@ wire [15:0] ip_packet_length = 16'd20 + length;
   
   
 //ip checksum: 16 bit one's complement of the one's complement sum
-wire [19:0] sum = 20'h0C500 + {4'b0, ip_packet_length} + {12'b0, protocol_code} + 
+wire [19:0] sum = 20'h0C5B8 + {4'b0, ip_packet_length} + {12'b0, protocol_code} + 
   {4'b0, local_ip[31:16]} + {4'b0, local_ip[15:0]} + 
   {4'b0, destination_ip[31:16]} + {4'b0, destination_ip[15:0]};  
   
@@ -60,7 +60,7 @@ wire [15:0] checksum = ~({15'b0, checksum_and_carry[16]} + checksum_and_carry[15
 //ip header
 localparam HDR_LEN = 5'd22;
 localparam HI_BIT = HDR_LEN * 8 - 1;
-wire [HI_BIT:0] tx_bits = {16'h0800, 16'h4500, ip_packet_length, 40'h0000_0000_80, protocol_code, checksum, local_ip, destination_ip};
+wire [HI_BIT:0] tx_bits = {16'h0800, 16'h45B8, ip_packet_length, 40'h0000_0000_80, protocol_code, checksum, local_ip, destination_ip};
 reg [4:0] byte_no;
 
 
