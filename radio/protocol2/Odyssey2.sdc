@@ -115,7 +115,7 @@ set_clock_groups -asynchronous  -group { \
 set_output_delay  10 -clock $clock_12_5MHz {ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_smm2:ASMI_altasmi_parallel_smm2_component|cycloneii_asmiblock2~ALTERA_DCLK ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_smm2:ASMI_altasmi_parallel_smm2_component|cycloneii_asmiblock2~ALTERA_SCE ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_smm2:ASMI_altasmi_parallel_smm2_component|cycloneii_asmiblock2~ALTERA_SDO }
 
 #122.88MHz clock for Tx DAC 
-set_output_delay 0.5 -clock _122MHz {DACD[*]} -add_delay
+set_output_delay 0.8 -clock _122MHz {DACD[*]} -add_delay
 
 set_output_delay  -max 1.0  -clock PHY_TX_CLOCK [get_ports {PHY_TX[*]}] -add_delay
 set_output_delay  -min -0.8 -clock PHY_TX_CLOCK [get_ports {PHY_TX[*]}]  -add_delay
