@@ -596,6 +596,14 @@
  *
  * LTC2208_122MHz receive clock directly from ADC1/C1 (pin AA11 and AB11)
  * LTC2208_122MHz_2 receive clock directly from ADC2/C2 (pin AA12 and AB12)
+ *
+ *
+ *
+ * IMPORTANT:
+ *  - at relase check the output signal quality:
+ *    set Mode: USB, Drive 100%, click TUNE with Drive power
+ *    check the VNA port with an oscilloscope. The sin must be stable!
+ *    The same check can be done with a spectral analyzer
  */
 
 module Orion(
