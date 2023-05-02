@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP OPA2677U
+D Texas Instruments OPA2677U, Dual Current Feedback Op Amp, 2000MHz, 5 V, 8-Pin SOIC
+K
+F http://www.ti.com/lit/gpn/opa2677
+$ENDCMP
+#
+#End Doc Library

@@ -1,0 +1,31 @@
+(kicad_sch (version 20230121) (generator eeschema)
+
+  (uuid 4c74995a-222e-4091-a599-1106b683f6b3)
+
+  (paper "A4")
+
+  (lib_symbols
+  )
+
+
+  (sheet (at 26.67 27.305) (size 26.67 10.795) (fields_autoplaced)
+    (stroke (width 0.1524) (type solid))
+    (fill (color 0 0 0 0.0000))
+    (uuid a118d13e-c8be-4f5a-924c-600204625cb9)
+    (property "Sheetname" "amplifier" (at 26.67 26.5934 0)
+      (effects (font (size 1.27 1.27)) (justify left bottom))
+    )
+    (property "Sheetfile" "amplifier.kicad_sch" (at 26.67 38.6846 0)
+      (effects (font (size 1.27 1.27)) (justify left top))
+    )
+    (instances
+      (project "odyssey2"
+        (path "/4c74995a-222e-4091-a599-1106b683f6b3" (page "2"))
+      )
+    )
+  )
+
+  (sheet_instances
+    (path "/" (page "1"))
+  )
+)
