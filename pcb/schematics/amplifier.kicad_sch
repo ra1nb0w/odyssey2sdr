@@ -2222,10 +2222,6 @@
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 4245a904-b6eb-4571-aea3-7316bd1ba1da)
   )
-  (text "~4.25V to\nminimize IMD" (at 147.32 85.09 0)
-    (effects (font (size 1.27 1.27)) (justify left bottom))
-    (uuid 4443e392-d246-4435-b970-e4cd6d360bd2)
-  )
   (text "TC4-1T" (at 111.76 147.32 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 6380f9bc-d74a-4abe-9371-71e7e594bfba)
@@ -2243,12 +2239,12 @@
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 979a2cf3-557f-40a4-8fba-e432d2ff1bd3)
   )
-  (text "DUMP high\nfrequency oscillation\nwhen start TX\nMY TEST: not noted"
-    (at 147.32 76.2 0)
+  (text "DUMP high\nfrequency oscillation\nwhen start TX\nMY TEST: not noted\nuse ~1-3 Ohm resistor"
+    (at 147.32 78.74 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid a293de5f-dc45-4f12-8721-dd90d87fb293)
   )
-  (text "IM3 test using Thetis\nTX @30dBm 14.1 MHz\n |-> 46dBm attenuator\n |-> RX1 with DUP active\nIM3: -45.5 dBc\nTX @27dBm 14.1 MHz\nIM3: -51 dBc"
+  (text "IM3 test using Thetis\nwith bias 4.2V. Use 3.96V!\nTX @30dBm 14.1 MHz\n |-> 46dBm attenuator\n |-> RX1 with DUP active\nIM3: -45.5 dBc\nTX @27dBm 14.1 MHz\nIM3: -51 dBc"
     (at 252.73 36.83 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid a67e6256-c51d-43db-a9a1-1c459ad7938b)
@@ -2270,7 +2266,8 @@
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid c581b451-fd8b-4f6c-b38f-143005661b47)
   )
-  (text "I use\nERT-J0ER104F" (at 190.5 90.17 0)
+  (text "Instead of R8 and TH1\nI use 1N4148W with\n3.96V of bias.\nVery linear current\nand stable RF power"
+    (at 190.5 90.17 0)
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid ccb811f3-caaa-4772-a0bd-8212498feb38)
   )
