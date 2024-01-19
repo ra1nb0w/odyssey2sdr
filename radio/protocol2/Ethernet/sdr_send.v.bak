@@ -90,13 +90,11 @@ localparam
     CC_SEND_2   = 10'd512;
 	
 	
-`ifdef ORION_MKII_TYPE
-localparam HEADER_LENGTH = 16'd30; // number of bytes in response  udp header
-`else
-localparam HEADER_LENGTH = 16'd22; // number of bytes in response  udp header
-`endif
-
+	
+	
+	
 localparam 
+	HEADER_LENGTH	= 16'd30,		// number of bytes in response  udp header
 	PC_LENGTH	= 16'd4,		// number of bytes in sequence number
 	RES_H_BIT	= HEADER_LENGTH*8 -1,  	// response header bits
 	PC_H_BIT	= PC_LENGTH*8 -1,
@@ -167,15 +165,8 @@ always @(posedge tx_clock)
 				// *** NOTE: can reply to Discovery if already running *****	
 				if (discovery) begin
 					// sequence number set to zero for future use
-					`ifdef ORION_MKII_TYPE
 					response_tx_bits <= {32'd0, (8'd02 + {7'b0,run}), local_mac, board_type, protocol_version, code_version, 48'd0, number_Rx, 8'd1,
 						8'd0, beta_version, 8'd0, phaseval, reg_rxtxc, reg_rxtxd, {3'b0, reg_rxtxclk[9:5]}, {is_9031, 2'b0, reg_rxtxclk[4:0]}};
-					`else
-					// I don't know why; essentialy if we use the line above the discovery packet
-					// broke starting from the mac address.
-					// using zeros after beta_version broke anyway the packet
-					response_tx_bits <= {32'd0, (8'd02 + {7'b0,run}), local_mac, board_type, protocol_version, code_version, 48'd0, number_Rx, 8'd1}; 	// sequence number set to zero for future use
-					`endif
 					state <= response;			// **** change HEADER_LENGTH when making changes here ****
 				end 
 				
@@ -400,11 +391,7 @@ always @(posedge tx_clock)
 						
 		response:  
 			begin 
-				`ifdef ORION_MKII_TYPE
 				udp_tx_length <= 16'd30 + HEADER_LENGTH;	// Total of 60 bytes (was 16'd50)
-				`else
-				udp_tx_length <= 16'd38 + HEADER_LENGTH;	// Total of 60 bytes (was 16'd50)
-				`endif
 				response_shift_reg <= response_tx_bits;
 				udp_tx_request <= 1'b1;	
 				if (udp_tx_enable) begin
