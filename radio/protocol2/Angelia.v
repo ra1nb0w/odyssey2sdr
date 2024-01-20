@@ -515,6 +515,32 @@
                          - Changed FW version number to v12.1
 */
 
+/*
+ * == Odyssey2 Clock distribution ==
+ *
+ * _122MHz not connected to VCTXCO(pin T20, T21 and T22)
+ * _122MHz_out send clock to TX DAC (pin T20, T21 and T22)
+ *
+ * In Angelia, we have _122MHz connected directly to the output of VCTCXO but
+ * in Odyssey2 is not. It is floatting and MUST be assignet to LTC2208_122MHz.
+ *
+ * OSC_10MHZ receive 10MHz from internal TCXO or automatically switched with
+ *           a trasistor from an external reference (pin T1 and T2)
+ * FPGA_PLL set voltage VC of TCXO through RC pass filter (pin AA21)
+ *
+ * LTC2208_122MHz receive clock directly from ADC1/C1 (pin AA11 and AB11)
+ * LTC2208_122MHz_2 receive clock directly from ADC2/C2 (pin AA12 and AB12)
+ */
+
+/* == IMPORTANT NOTES ==
+ *
+ *  - at relase check the output signal quality:
+ *    set Mode: USB, Drive 100%, click TUNE with Drive power
+ *    check the VNA port with an oscilloscope. The sin must be stable!
+ *    The same check can be done with a spectral analyzer
+ */
+ */
+
 module Angelia(
   //clock PLL
   //the DAC are the wired together
