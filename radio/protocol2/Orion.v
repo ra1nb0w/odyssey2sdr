@@ -595,17 +595,35 @@
 
 */
 
+/*
+ * == Odyssey2 Clock distribution ==
+ *
+ * _122MHz not connected to VCTXCO(pin T20, T21 and T22)
+ * _122MHz_out send clock to TX DAC (pin T20, T21 and T22)
+ *
+ * In Angelia, we have _122MHz connected directly to the output of VCTCXO but
+ * in Odyssey2 is not. It is floatting and MUST be assignet to LTC2208_122MHz.
+ *
+ * OSC_10MHZ receive 10MHz from internal TCXO or automatically switched with
+ *           a trasistor from an external reference (pin T1 and T2)
+ * FPGA_PLL set voltage VC of TCXO through RC pass filter (pin AA21)
+ *
+ * LTC2208_122MHz receive clock directly from ADC1/C1 (pin AA11 and AB11)
+ * LTC2208_122MHz_2 receive clock directly from ADC2/C2 (pin AA12 and AB12)
+ */
+
 module Orion(
 	//clock PLL
-  input _122MHz,                 //122.88MHz from VCXO
+  input _122MHz,                 //122.88MHz from VCXO  - same pin of _122MHz_out
+  output _122MHz_out,            //122.88MHz to DAC
   input  OSC_10MHZ,              //10MHz reference in 
   output FPGA_PLL,               //122.88MHz VCXO contol voltage
 
   //attenuator (DAT-31-SP+)
+  // Odyssey2: we are using F1912N
+  //           the DATA and CLK are shared between the two attenuator
   output ATTN_DATA,              //data for input attenuator
-  output ATTN_DATA_2,
   output ATTN_CLK,               //clock for input attenuator
-  output ATTN_CLK_2, 
   output ATTN_LE,                //Latch enable for input attenuator
   output ATTN_LE_2,
 
@@ -616,18 +634,15 @@ module Orion(
   input  LTC2208_122MHz_2,       //122.88MHz from #2 LTC2208_122MHz pin 
   input  OVERFLOW,               //high indicates LTC2208 have overflow
   input  OVERFLOW_2,             //high indicates LTC2208 have overflow
-  output RAND,            			//high turns ramdom on
-  output RAND_2,          			//high turns ramdom on
-  output PGA,            			//high turns LTC2208 internal preamp on
-  output PGA_2,          			//high turns LTC2208 internal preamp on
-  output DITH,            			//high turns LTC2208 dither on 
-  output DITH_2,          			//high turns LTC2208 dither on 
-  output SHDN,            			//x shuts LTC2208 off
-  output SHDN_2,          			//x shuts LTC2208 off
+  // ODYSSEY2: not available
+  // random is done through SPI on LTC2165
+  // PGA, DITH, SHDN is not available on LTC2165
+  // LTC6401 has fixed VoCM therefore it is not controlled by LTC2165 (4K7 Ohm)
+  //         and add 20dBm
 
   //tx adc (AD9744ARU)
   output reg  DAC_ALC,          	//sets Tx DAC output level
-  output reg signed [15:0]DACD,  //16-bit Tx data word
+  output reg signed [13:0]DACD,  //14-bit Tx data word
   
   //audio codec (TLV320AIC23B)
   output CBCLK,               
@@ -649,9 +664,9 @@ module Orion(
   input  RX_DV,                 //PHY has data flag
   input  PHY_RX_CLOCK,           //PHY Rx data clock
   input  PHY_CLK125,             //125MHz clock from PHY PLL
-  input  PHY_INT_N,              //interrupt (n.c.)
+  //input  PHY_INT_N,              //interrupt (n.c.)
   output PHY_RESET_N,
-  input  CLOCK_25MHZ,              //25MHz clock (n.c.)  
+  //input  CLOCK_25MHZ,              //25MHz clock (n.c.)  
   
 	//phy mdio (KSZ9021RL)
 	inout  PHY_MDIO,               //data line to PHY MDIO
@@ -671,83 +686,56 @@ module Orion(
   output ADCCLK,
   input  ADCMISO,
   output nADCCS, 
-  
-  //Tx Attenuator (F1912)
-  output TX_ATTN_LE,					// High for parallel mode
-  output TX_ATTN_CLK,				// not used in parallel mode  
-  output TX_ATTN_DATA,				// not used in parallel mode
-  output [5:0] TX_ATTEN,		   // [0] = bit 0, [1] = bit 1, [2] = bit 4, [3] = bit 8 etc.
-  output TX_ATTN_MODE,				// Low for parallel mode 
-  input	TX_ATTEN_SELECT,			// Low for Tx attenuator, high for DAC current
  
   //alex/apollo spi
   output SPI_SDO,                //SPI data to Alex or Apollo 
 //  input  SPI_SDI,                //SPI data from Apollo 
   output SPI_SCK,                //SPI clock to Alex or Apollo 
-  output J15_5,                  //SPI Rx data load strobe to Alex / Apollo enable
-  output J15_6,                  //SPI Tx data load strobe to Alex / Apollo ~reset 
+  output SPI_RX_LOAD,                  //SPI Rx data load strobe to Alex / Apollo enable
+  //output SPI_TX_LOAD see ANT2_RELAY,                  //SPI Tx data load strobe to Alex / Apollo ~reset 
+
+  //mic and osc configuration
+  // Odyssey2: via boot menu
   
   //mic and osc configuration 
-  output MICBIAS_ENABLE, 
+  //output MICBIAS_ENABLE, 
   output PTT_SELECT, 
   output MIC_SIG_SELECT, 
   output MICBIAS_SELECT,
 
   //misc. i/o
   input  PTT,                    //PTT active low
+  input  PTT2,                   //PTT Ext_IO active low
   input  KEY_DOT,                //dot input from J11
   input  KEY_DASH,               //dash input from J11
   output FPGA_PTT,               //high turns Q4 on for PTTOUT
-  input  MODE2,                  //jumper J14 on Orion: 1 if removed = ECPS128; 0 if jumpered = ECPQ128A
+  //input  MODE2,                  //jumper J14 on Orion: 1 if removed = ECPS128; 0 if jumpered = ECPQ128A
   input  ANT_TUNE,               //atu
-  output IO1,                    //high to mute AF amp    
-  input  IO2,                    //PTT, used by Apollo 
-  input  SW1,							//bootloader mode switch option
-  output DRIVER_PA_EN,
-  output CTRL_TRSW,		
-  output atu_ctrl,					//controls pin 10 of J16 (BUFF_OUT) via U20 and FPGA pin AH30 (BUFF_OUT_FPGA) for 7000DLE support
-
-  //user digital inputs
-  input  IO4,                    
-  input  IO5,							// TX INHIBIT digital input
-  input  IO6,
-  input  IO8,							// external CW key digital input
+  output VNA_out,                // used for VNA measurement
+  output ANT2_RELAY,             // high level provides a signal to turn on the relay of the second antenna
   
   //user outputs
   output USEROUT0,               
   output USEROUT1,
   output USEROUT2,
   output USEROUT3,
-  output USEROUT4,
-  output USEROUT5,
-  output USEROUT6,
   
-    //debug led's
-  output Status_LED,      
-  output DEBUG_LED1,             
+  //debug led's
+  output Status_LED,
+  output DEBUG_LED1,
   output DEBUG_LED2,
   output DEBUG_LED3,
-  output DEBUG_LED4,
-  output DEBUG_LED5,
-  output DEBUG_LED6,
-  output DEBUG_LED7,
-  output DEBUG_LED8,
-  output DEBUG_LED9,
-  output DEBUG_LED10,
-  output DEBUG_LED11,             
-  output DEBUG_LED12,
-  output DEBUG_LED13,
-  output DEBUG_LED14,
-  output DEBUG_LED15,
-  output DEBUG_LED16,
-  output DEBUG_LED17,
-  output DEBUG_LED18,
-  output DEBUG_LED19,
-  output DEBUG_LED20,
-  //output LED_D23,
-  //output LED_D47,
+
+  // ODYSSEY2: test point on the left of the Status_LED
+  output DEBUG_TP1,
+  output DEBUG_TP2,
+
+  // ODYSSEY2: MCU connection
+  input MCU_UART_RX,
+  output MCU_UART_TX
  
 	// RAM
+	/*
   output wire RAM_A0,
   output wire RAM_A1,
   output wire RAM_A2,
@@ -762,16 +750,20 @@ module Orion(
   output wire RAM_A11,
   output wire RAM_A12,
   output wire RAM_A13  
+  */
 );
 
-assign USEROUT0 = run ? Open_Collector[1] : 1'b0;					
-assign USEROUT1 = run ? Open_Collector[2] : 1'b0;   				
-assign USEROUT2 = run ? Open_Collector[3] : 1'b0;  					
-assign USEROUT3 = run ? Open_Collector[4] : 1'b0;  		
-assign USEROUT4 = run ? Open_Collector[5] : 1'b0; 
-assign USEROUT5 = run ? Open_Collector[6] : 1'b0; 
-assign USEROUT6 = run ? Open_Collector[7] : 1'b0; 
-
+// force open collector drives to off state when code not running.
+assign USEROUT0 = run ? Open_Collector[1] : 1'b0;
+assign USEROUT1 = run ? Open_Collector[2] : 1'b0;
+assign USEROUT2 = run ? Open_Collector[3] : 1'b0;
+assign USEROUT3 = run ? Open_Collector[4] : 1'b0;
+// ODYSSEY2: shared with Alex SPI board
+wire USEROUT4, USEROUT5, USEROUT6;
+assign USEROUT4 = run ? Open_Collector[5] : 1'b0;
+assign USEROUT5 = run ? Open_Collector[6] : 1'b0;
+assign USEROUT6 = run ? Open_Collector[7] : 1'b0;
+/*
 assign RAM_A0  = 0;
 assign RAM_A1  = 0;
 assign RAM_A2  = 0;
@@ -786,24 +778,19 @@ assign RAM_A10  = 0;
 assign RAM_A11  = 0;
 assign RAM_A12  = 0;
 assign RAM_A13  = 0;
+*/
+// Odyssey2: TODO: we should have this on EXT_IO
+//assign atu_ctrl = run ? AUTO_TUNE : 1'b0;		// high turns on auto-tune for 7/8000DLE
 
-assign PGA = 0;								// 1 = gain of 3dB, 0 = gain of 0dB
-assign PGA_2 = 0;
-assign SHDN = 1'b0;				   		// normal LTC2208 operation
-assign SHDN_2 = 1'b0;
+assign NCONFIG = IP_write_done;
 
-assign atu_ctrl = run ? AUTO_TUNE : 1'b0;		// high turns on auto-tune for 7/8000DLE
-
-assign NCONFIG = IP_write_done || reset_FPGA || SW1_reset;
-
+// TODO Odyssey2: maybe control 1W power PA
 initial DRIVER_PA_EN = 1'b0;					// ensure PA bias is OFF initially
 
 assign  DRIVER_PA_EN = FPGA_PTT; 			// PA bias switching, low turns PA bias ON during Tx
 
 assign  CTRL_TRSW = FPGA_PTT && XVTR_ENABLE;
 
-// NOTE: Orion FPGA can fit up to 14 RXs but the bootloader is limiting file size to 2MB
-// the Orion.rbf is over that when > 10 RXs
 localparam NR = 4;	// number of receivers to implement
 localparam master_clock = 122880000; 	// DSP  master clock in Hz.
 
@@ -814,6 +801,48 @@ localparam board_type = 8'h05;		  	// 00 for Metis, 01 for Hermes, 02 for Griffi
 parameter  Orion_version = 8'd21;			// FPGA code version
 parameter  beta_version = 8'd26;	// Should be 0 for official release
 parameter  protocol_version = 8'd39;	// openHPSDR protocol version implemented
+
+
+//--------------------------------------------------------------
+// Odyssey 2: custom things
+//--------------------------------------------------------------
+parameter [63:0] fw_version = "2.1.26P2";
+assign VNA_out = VNA;
+
+// Odyssey 2 : we share the Alex SPI with the USEROUT4-6
+wire DITH;
+wire RAND;
+wire Alex_SPI_SDO;
+wire Alex_SPI_SCK;
+wire Alex_TX_LOAD;
+wire Alex_RX_LOAD;
+wire MICBIAS_ENABLE;
+
+wire TX_ATTEN_SELECT;
+initial TX_ATTEN_SELECT = 1'b1;
+
+assign SPI_SDO     = Apollo ? USEROUT4 : Alex_SPI_SDO;
+assign SPI_SCK     = Apollo ? USEROUT5 : Alex_SPI_SCK;
+assign SPI_RX_LOAD = Apollo ? USEROUT6 : Alex_RX_LOAD;
+// we use ANT2 to set TX load signal
+assign ANT2_RELAY  = Apollo ? Alex_data[25] : Alex_TX_LOAD;
+
+// we use the main clock to pilot DAC
+assign _122MHz_out = LTC2208_122MHz;
+
+// mcu UART channel
+mcu #(.fw_version(fw_version)) mcu_uart (
+        .clk(CBCLK),
+        .mcu_uart_rx(MCU_UART_RX),
+        .mcu_uart_tx(MCU_UART_TX),
+        .ptt(FPGA_PTT)
+);
+
+// CHECK: PHY reset after a while
+//reg [31:0] res_cnt = master_clock;  // 1 sec delay
+//always @(posedge C122_clk) if (res_cnt != 0) res_cnt <= res_cnt - 1'd1;
+//assign PHY_RESET_N = (res_cnt == 0);
+
 
 //--------------------------------------------------------------
 // Reset Lines - C122_rst, IF_rst, SPI_Alex_reset
@@ -1507,6 +1536,8 @@ wire [47:0] IQ_Tx_data = FPGA_PTT ? C122_IQ1_data : 48'b0;
 					    +-------------------+						
 */
 
+/* Odyssey2: not available
+
 wire [7:0]EPCS_data;
 wire [10:0]EPCS_Rx_used;
 wire  EPCS_rdreq;
@@ -1529,7 +1560,7 @@ wire reset_FPGA;
 ASMI_interface  ASMI_int_inst(.clock(clock_12_5MHz), .busy(busy), .erase(erase), .erase_ACK(erase_ACK), .IF_PHY_data(EPCS_data), .EPCS_flash(MODE2),
 					 .IF_Rx_used(EPCS_Rx_used), .rdreq(EPCS_rdreq), .erase_done(erase_done), .num_blocks(num_blocks), .checksum(checksum),
 					 .send_more(send_more), .send_more_ACK(send_more_ACK), .erase_done_ACK(erase_done_ACK), .NCONFIG(reset_FPGA)); 
-							 
+*/							 
 //--------------------------------------------------------------------------------------------
 //  	Iambic CW Keyer
 //--------------------------------------------------------------------------------------------
@@ -1539,7 +1570,7 @@ wire keyout;
 // parameter is clock speed in kHz.
 iambic #(48) iambic_inst (.clock(CLRCLK), .cw_speed(keyer_speed),  .iambic(iambic), .keyer_mode(keyer_mode), .weight(keyer_weight), 
                           .letter_space(keyer_spacing), .dot_key(!KEY_DOT | Dot), .dash_key(!KEY_DASH | Dash),
-								  .CWX(CWX), .paddle_swap(key_reverse), .keyer_out(keyout), .IO8(debounce_IO8));
+								  .CWX(CWX), .paddle_swap(key_reverse), .keyer_out(keyout), .IO8());
 						  
 //--------------------------------------------------------------------------------------------
 //  	Calculate  Raised Cosine profile for sidetone and CW envelope when internal CW selected 
@@ -1574,6 +1605,9 @@ sidetone sidetone_inst( .clock(CLRCLK), .enable(sidetone), .tone_freq(tone_freq)
  
 */
 
+// ODYSEEY 2: we are using ADC and DAC in offset binary mode
+// and not in 2's complement format as Anan devices
+
 reg [15:0]temp_ADC[0:3][0:1];
 reg [15:0] temp_DACD;
 
@@ -1584,48 +1618,17 @@ always @ (posedge C122_clk)
 begin 
 
 	 //{DAC,x} <= {x, C122_cordic_i_out[21:8], 2'b0}; // make DAC 16-bits, use high bits for DAC
+	 
+	temp_ADC[0][0] <= {~INA[15], INA[14:0]};;  // not set so just copy data	 
+	temp_ADC[1][0] <= {~INA[15], INA[14:0]};;
+	temp_ADC[2][0] <= {~INA[15], INA[14:0]};;
+	temp_ADC[3][0] <= {~INA[15], INA[14:0]};;
 
-   if (RAND) begin	// RAND set so de-ramdomize
-		if (INA[0]) begin
-			temp_ADC[0][0] <= {~INA[15:1],INA[0]};
-			temp_ADC[1][0] <= {~INA[15:1],INA[0]};
-			temp_ADC[2][0] <= {~INA[15:1],INA[0]};
-			temp_ADC[3][0] <= {~INA[15:1],INA[0]};
-		end
-		else begin
-			temp_ADC[0][0] <= INA;
-			temp_ADC[1][0] <= INA;
-			temp_ADC[2][0] <= INA;
-			temp_ADC[3][0] <= INA;
-		end
-	end
-   else begin
-	temp_ADC[0][0] <= INA;  // not set so just copy data	 
-	temp_ADC[1][0] <= INA;
-	temp_ADC[2][0] <= INA;
-	temp_ADC[3][0] <= INA;
-   end
-		
-   if (RAND_2) begin
-		if (INA_2[0]) begin
-			temp_ADC[0][1] <= {~INA_2[15:1],INA_2[0]};
-			temp_ADC[1][1] <= {~INA_2[15:1],INA_2[0]};
-			temp_ADC[2][1] <= {~INA_2[15:1],INA_2[0]};
-			temp_ADC[3][1] <= {~INA_2[15:1],INA_2[0]};
-		end
-		else begin
-			temp_ADC[0][1] <= INA_2;
-			temp_ADC[1][1] <= INA_2;
-			temp_ADC[2][1] <= INA_2;
-			temp_ADC[3][1] <= INA_2;
-		end
-	end
-   else begin
-	temp_ADC[0][1] <= INA_2;  // not set so just copy data	 
-	temp_ADC[1][1] <= INA_2;
-	temp_ADC[2][1] <= INA_2;
-	temp_ADC[3][1] <= INA_2;
-   end
+	temp_ADC[0][1] <= {~INA_2[15], INA_2[14:0]};  // not set so just copy data	 
+	temp_ADC[1][1] <= {~INA_2[15], INA_2[14:0]};
+	temp_ADC[2][1] <= {~INA_2[15], INA_2[14:0]};
+	temp_ADC[3][1] <= {~INA_2[15], INA_2[14:0]};
+
 end 
 
 
@@ -1733,12 +1736,12 @@ wire [11:0] AIN1;  // FWD_power
 wire [11:0] AIN2;  // REV_power
 wire [11:0] AIN3;  // User 1, PA Voltage
 wire [11:0] AIN4;  // User 2, PA Current
-wire [11:0] AIN5;  // holds 12 bit ADC value of Forward Voltage detector.
-wire [11:0] AIN6;  // holds 12 bit ADC of 13.8v supply measurement 
+wire [11:0] AIN5 = 12'd2048;  // holds 12 bit ADC value of Forward Voltage detector.
+wire [11:0] AIN6 = 12'd1950;  // holds 12 bit ADC of 13.8v supply measurement 
 
 wire pk_detect_reset;
 wire pk_detect_ack;
-
+/* REMOVE
 `ifdef DONT
 `ifndef ORION_MKIII
 // generate a 30.72MHz clock for the Orion_ADC module, results in a 7.68MHz clock to the ADC78H90 chip
@@ -1767,7 +1770,10 @@ assign SPI_SDO = Alex_SPI_SDO;		// select which module has control of data
 assign SPI_SCK = Alex_SPI_SCK;		// and clock for serial data transfer
 assign J15_5   = SPI_RX_LOAD;			// Alex Rx_load or Apollo Reset
 assign J15_6   = SPI_TX_LOAD;      // Alex Tx_load or Apollo Enable 
+*/
 
+ext_io_adc ADC_SPI(.clock(CLRCLK), .SCLK(ADCCLK), .nCS(ADCCS_N), .MISO(ADCMISO), .MOSI(ADCMOSI),
+                                   .AIN1(AIN1), .AIN2(AIN2), .pk_detect_reset(pk_detect_reset), .pk_detect_ack(pk_detect_ack));
 
 	
 				   
@@ -1831,7 +1837,7 @@ cpl_cordic # (.IN_WIDTH(17))
 
 always @ (posedge _122_90)
 begin
- 	   DACD <= debounce_IO5 ? (16'd32768 + temp_DACD) : 16'b0; 				// convert to 16-bit offset binary format and assign to DACD
+ 	   DACD <= run ? {~C122_cordic_i_out[21], C122_cordic_i_out[20:8]} : 14'b0; 				// convert to 16-bit offset binary format and assign to DACD
 		//DACD <= {C122_cordic_i_out[22], ~C122_cordic_i_out[21:7]};  // convert top 16-bits to offset binary for TxDAC
 end
 
@@ -1876,7 +1882,7 @@ begin
 		DAC_ALC <= 1'b0;
 end 
 
-
+/* REMOVE
 //---------------------------------------------------------
 //              Decode Command & Control data
 //---------------------------------------------------------
@@ -1909,7 +1915,7 @@ begin
 			MICBIAS_SELECT <= 1'b0;						 // set Orion mic bias to tip (ref note above)
 		end			
 end	
-
+*/
 
 wire         mode;     			// normal or Class E PA operation 
 wire         Attenuator;		// selects input attenuator setting, 1 = 20dB, 0 = 0dB 
@@ -2073,7 +2079,9 @@ wire XVTR_ENABLE, AUTO_TUNE;
 assign XVTR_ENABLE = DLE_outputs[0];
 
 // enable AF Amp
-assign IO1 = DLE_outputs[1];				// low to enable, high to mute
+// Odyssey2: only from boot
+// TODO: control this with MCU
+//assign IO1 = DLE_outputs[1];				// low to enable, high to mute
 
 // enable Auto-Tune
 assign AUTO_TUNE = DLE_outputs[2];			// high to enable auto-tune
@@ -2083,7 +2091,7 @@ assign AUTO_TUNE = DLE_outputs[2];			// high to enable auto-tune
 // if break_in is selected then CW_PTT can generate RF otherwise PC_PTT must be active.	
 // (OLD, changed to below) inhibit T/R switching if IO4 TX INHIBIT is active (low)		
 // IO4 is the MUTE signal from the Andromeda Front Panel
-assign FPGA_PTT = debounce_IO5 && ((break_in && CW_PTT) || PC_PTT); // CW_PTT is used when internal CW is selected
+assign FPGA_PTT = run && ((break_in && CW_PTT) || PC_PTT); // CW_PTT is used when internal CW is selected
 
 // clear TR relay and Open Collectors if run not set 
 wire [47:0]runsafe_Alex_data = {Alex_data[47:44], run && PA_enable && FPGA_PTT && Alex_data[43], Alex_data[42:0]};
@@ -2145,10 +2153,8 @@ Rx_specific_CC #(1025, NR) Rx_specific_CC_inst // parameter is port number
 				.sequence_errors(Rx_spec_sequence_errors)
 			);			
 			
-assign  RAND   = random[0];        		//high turns random on
-assign  RAND_2 = random[1]; 
-assign  DITH   = dither[0];      		//high turns LTC2208 dither on 
-assign  DITH_2 = dither[1]; 		
+assign  RAND   = random[0] | random[1];                 //high turns random on
+assign  DITH   = dither[0] | dither[1];                 //high turns LTC2208 dither on	
 
 // transfer C&C data in rx_clock domain, on strobe, into relevant clock domains
 cdc_mcp #(32) Tx1_freq 
@@ -2237,7 +2243,7 @@ wire [4:0] atten1;
 assign atten0 = FPGA_PTT ? atten0_on_Tx : Attenuator0;
 assign atten1 = FPGA_PTT ? atten1_on_Tx : Attenuator1; 
 
-Attenuator Attenuator_ADC0 (.clk(CBCLK), .data(atten0), .ATTN_CLK(ATTN_CLK),   .ATTN_DATA(ATTN_DATA),   .ATTN_LE(ATTN_LE));
+Attenuator Attenuator_ADC0 (.clk(CBCLK), .data(atten0), .ATTN_CLK(ATTN_CLK_1),   .ATTN_DATA(ATTN_DATA_1),   .ATTN_LE(ATTN_LE));
 Attenuator Attenuator_ADC1 (.clk(CBCLK), .data(atten1), .ATTN_CLK(ATTN_CLK_2), .ATTN_DATA(ATTN_DATA_2), .ATTN_LE(ATTN_LE_2));
 
 
@@ -2246,8 +2252,8 @@ Attenuator Attenuator_ADC1 (.clk(CBCLK), .data(atten1), .ATTN_CLK(ATTN_CLK_2), .
 //----------------------------------------------
 
 SPI Alex_SPI_Tx (.reset (SPI_Alex_rst), .enable(Alex_enable[0]), .Alex_data(SPI_Alex_data), .SPI_data(Alex_SPI_SDO),
-                 .SPI_clock(Alex_SPI_SCK), .Tx_load_strobe(SPI_TX_LOAD),
-                 .Rx_load_strobe(SPI_RX_LOAD), .spi_clock(CBCLK));	
+                 .SPI_clock(Alex_SPI_SCK), .Tx_load_strobe(Alex_TX_LOAD),
+                 .Rx_load_strobe(Alex_RX_LOAD), .spi_clock(CBCLK));	
 
 //---------------------------------------------------------
 //  Debounce inputs - active low
@@ -2255,7 +2261,7 @@ SPI Alex_SPI_Tx (.reset (SPI_Alex_rst), .enable(Alex_enable[0]), .Alex_data(SPI_
 
 wire Orion_micPTT;
 
-assign Orion_micPTT = Orion_micPTT_disable ? 1'b1 : PTT;
+assign Orion_micPTT = Orion_micPTT_disable ? 1'b1 : PTT|PTT2;
 
 wire debounce_PTT;    // debounced button
 wire debounce_DOT;
@@ -2296,166 +2302,42 @@ assign FPGA_PLL = osc_10MHZ ^ OSC_10MHZ;		// Orion MkII
 //  LED Control  
 //-----------------------------------------------------------
 
-/*
-	LEDs:  
-	
-	DEBUG_LED1  	- Lights when an Ethernet broadcast is detected
-	DEBUG_LED2  	- Lights when traffic to the boards MAC address is detected
-	DEBUG_LED3  	- Lights when detect a received sequence error or ASMI is busy
-	DEBUG_LED4 		- Displays state of PHY negotiations - fast flash if no Ethernet connection, slow flash if 100T and on if 1000T
-	DEBUG_LED5		- Lights when the PHY receives Ethernet traffic
-	DEBUG_LED6  	- Lights when the PHY transmits Ethernet traffic
-	DEBUG_LED7  	- Displays state of DHCP negotiations or static IP - on if ACK, slow flash if NAK, fast flash if time out 
-					     and long then short flash if static IP
-	DEBUG_LED8  	- Lights when sync (0x7F7F7F) received from PC
-	DEBUG_LED9  	- Lights when a Metis discovery packet is received
-	DEBUG_LED10 	- Lights when a Metis discovery packet reply is sent	
-	
-	Status_LED	    - Flashes once per second
-	
-	A LED is flashed for the selected period on the positive edge of the signal.
-	If the signal period is greater than the LED period the LED will remain on.
+// LED bright 0 - 100 %
+parameter dimmer = 8'd3;
 
+reg [7:0] dim_cnt = 0;
+always @(posedge CMCLK)  if (dim_cnt != 100) dim_cnt <= dim_cnt + 1'd1; else dim_cnt <= 0;
 
-*/
+assign DEBUG_LED1 = led1 & (dim_cnt <= dimmer);  // connection's status
+assign DEBUG_LED2 = led2 & (dim_cnt <= dimmer);  // receive from PHY
+assign DEBUG_LED3 = led3 & (dim_cnt <= dimmer);  // transmitt to PHY
 
-parameter [24:0] half_second = 2_500_000; // at 12.288MHz clock rate
-parameter [24:0] fast_clock_half_second = 25_000_000; // at Gigbit PHY rate
+// flash for ~ 0.2 second whenever rgmii_rx_active
+Led_flash Flash_LED1(.clock(CMCLK), .signal(network_status[2]), .LED(led2), .period(half_second));
 
-`ifdef LEDTEST
-wire i_clk;
-assign i_clk = HB_counter[23];
+// flash for ~ 0.2 second whenever the PHY transmits
+Led_flash Flash_LED2(.clock(CMCLK), .signal(network_status[1]), .LED(led3), .period(half_second));
 
-reg	[4:0]	led_posn;
-	always @(posedge i_clk)
-		led_posn <= (led_posn == 5'h13) ? 5'h0 : led_posn + 1'b1;
+// flash LED4 for ~0.2 seconds whenever traffic to the boards MAC address is received
+// phy_connected
+Led_flash Flash_TP1(.clock(CMCLK), .signal(network_status[0]), .LED(DEBUG_TP1), .period(half_second));
 
-always @(posedge i_clk)
-	begin
-		DEBUG_LED1 <= ~(led_posn == 5'h0);
-		DEBUG_LED2 <= ~(led_posn == 5'h1);
-		DEBUG_LED3 <= ~(led_posn == 5'h2);
-		DEBUG_LED4 <= ~(led_posn == 5'h3);
-		DEBUG_LED5 <= ~(led_posn == 5'h4);
-		DEBUG_LED6 <= ~(led_posn == 5'h5);
-		DEBUG_LED7 <= ~(led_posn == 5'h6);
-		DEBUG_LED8 <= ~(led_posn == 5'h7);
-		DEBUG_LED9 <= ~(led_posn == 5'h8);
-		DEBUG_LED10 <= ~(led_posn == 5'h9);
-		DEBUG_LED11 <= ~(led_posn == 5'ha);
-		DEBUG_LED12 <= ~(led_posn == 5'hb);
-		DEBUG_LED13 <= ~(led_posn == 5'hc);
-		DEBUG_LED14 <= ~(led_posn == 5'hd);
-		DEBUG_LED15 <= ~(led_posn == 5'he);
-		DEBUG_LED16 <= ~(led_posn == 5'hf);
-		DEBUG_LED17 <= ~(led_posn == 5'h10);
-		DEBUG_LED18 <= ~(led_posn == 5'h11);
-		DEBUG_LED19 <= ~(led_posn == 5'h12);
-		DEBUG_LED20 <= ~(led_posn == 5'h13);
-	end
-
-`else
-
-// flash LED1 for ~ 0.2 second whenever rgmii_rx_active
-//Led_flash Flash_LED1(.clock(CMCLK), .signal(network_status[2]), .LED(DEBUG_LED1), .period(half_second)); 	
-//Led_flash Flash_LED1(.clock(CBCLK), .signal(mic_wr_full), .LED(DEBUG_LED1), .period(half_second));
-
-// flash LED2 for ~ 0.2 second whenever the PHY transmits
-//Led_flash Flash_LED2(.clock(CMCLK), .signal(network_status[1]), .LED(DEBUG_LED2), .period(half_second)); 
-//assign RAM_A2 = 1'b1; // turn the LED off for now. 	
-//Led_flash Flash_LED2(.clock(tx_clock), .signal(mic_rd_empty), .LED(DEBUG_LED2), .period(fast_clock_half_second));
-
-// flash LED3 for ~0.2 seconds whenever ip_rx_enable
-//Led_flash Flash_LED3(.clock(CMCLK), .signal(network_status[1]), .LED(DEBUG_LED3), .period(half_second));
-//Led_flash Flash_LED3(.clock(rx_clock), .signal(HP_CC_seq_err), .LED(DEBUG_LED3), .period(fast_clock_half_second));
-
-// flash LED4 for ~0.2 seconds whenever traffic to the boards MAC address is received 
-//Led_flash Flash_LED4(.clock(CMCLK), .signal(network_status[0]), .LED(DEBUG_LED4), .period(half_second));
-//Led_flash Flash_LED4(.clock(rx_clock), .signal(G_CC_seq_err), .LED(DEBUG_LED4), .period(fast_clock_half_second));
-
-assign DEBUG_LED20 = 1'b1;
-assign DEBUG_LED19 = 1'b1;
-assign DEBUG_LED18 = 1'b1;
-assign DEBUG_LED17 = 1'b1;
-assign DEBUG_LED16 = 1'b1;
-assign DEBUG_LED15 = 1'b1;
-assign DEBUG_LED14 = 1'b1;
-assign DEBUG_LED13 = 1'b1;
-assign DEBUG_LED12 = 1'b1;
-assign DEBUG_LED11 = 1'b1;
-assign DEBUG_LED10 = 1'b1;
-assign DEBUG_LED9 = 1'b1;
-assign DEBUG_LED8 = 1'b1;
-assign DEBUG_LED7 = 1'b1;
-assign DEBUG_LED6 = 1'b1;
-assign DEBUG_LED5 = 1'b1;
-assign DEBUG_LED4 = 1'b1;
-assign DEBUG_LED3 = 1'b1;
-assign DEBUG_LED2 = 1'b1;
-assign DEBUG_LED1 = 1'b1;
-
-// flash LED7 for ~0.2 seconds whenever udp_rx_active
-//Led_flash Flash_LED7(.clock(CMCLK), .signal(network_status[4]), .LED(DEBUG_LED7), .period(half_second));		// udp_rx_active
-//Led_flash Flash_LED6(.clock(rx_clock), .signal(RX_CC_seq_err), .LED(DEBUG_LED6), .period(fast_clock_half_second));
-
-//Led_flash Flash_LED7(.clock(rx_clock), .signal(TX_CC_seq_err), .LED(DEBUG_LED7), .period(fast_clock_half_second));
-
-//Led_flash Flash_LED8(.clock(rx_clock), .signal(Audio_seq_err), .LED(DEBUG_LED8), .period(fast_clock_half_second));
-
-// flash LED8 for ~0.2 seconds when
-//Led_flash Flash_LED9(.clock(rx_clock), .signal(Audio_empty), .LED(DEBUG_LED9), .period(fast_clock_half_second));
-
-// flash LED9 for ~0.2 seconds when
-//Led_flash Flash_LED9(.clock(rx_clock), .signal(discovery_reply), .LED(DEBUG_LED9), .period(fast_clock_half_second)); // note fast clock now
-//Led_flash Flash_LED10(.clock(rx_clock), .signal(Audio_full), .LED(DEBUG_LED10), .period(fast_clock_half_second)); // note fast clock now
-
-
-//------------------------------------------------------------
-//   Multi-state LED Control   - code in Led_control is for active LOW LEDs
-//------------------------------------------------------------
-
-parameter clock_speed = 12_288_000; // 12.288MHz clock 
+parameter clock_speed = 12_288_000; // 12.288MHz clock
 
 // display state of PHY negotiations  - fast flash if no Ethernet connection, slow flash if 100T, on if 1000T
 // and swap between fast and slow flash if not full duplex
-//Led_control #(clock_speed) Control_LED0(.clock(CMCLK), .on(network_status[6]), .fast_flash(~network_status[5] || ~network_status[6]),
-//										.slow_flash(network_status[5]), .vary(~network_status[7]), .LED(DEBUG_LED5));  
-										
-// display state of DHCP negotiations - on if success, slow flash if fail, fast flash if time out and swap between fast and slow 
+Led_control #(clock_speed) Control_LED0(.clock(CMCLK), .on(network_status[6]), .fast_flash(~network_status[5] & ~network_status[6]),
+                                                                        .slow_flash(network_status[5]), .vary(~network_status[7]), .LED(led1));
+
+// display state of DHCP negotiations - on if success, slow flash if fail, fast flash if time out and swap between fast and slow
 // if using a static IP address
-//Led_control # (clock_speed) Control_LED1(.clock(CMCLK), .on(dhcp_success), .slow_flash(dhcp_failed & !dhcp_timeout),
-//										.fast_flash(dhcp_timeout), .vary(static_ip_assigned), .LED(DEBUG_LED6));	
+Led_control #(clock_speed) Control_TP2(.clock(CMCLK), .on(dhcp_success), .slow_flash(phasedone & !dhcp_timeout),
+                                                                        .fast_flash(dhcp_timeout), .vary(static_ip_assigned), .LED(DEBUG_TP2));
 
-`endif
-
-//Flash Heart beat LED and check boot switch change for reset
-reg [23:0]HB_counter;
-reg [1:0] SW1_state;
-reg SW1_value, SW1_reset;
-always @(posedge CLOCK_25MHZ) begin
-	HB_counter <= HB_counter + 1'b1;
-	Status_LED <= HB_counter[23];
-`ifdef DONT
-	case (SW1_state)
-		2'b00: // delay, then read value an increment state
-			if (HB_counter[23]) begin
-				SW1_state <= 2'b01;
-				SW1_value <= SW1;
-			end
-		2'b01: // delay, then increment state
-			if (!HB_counter[23])
-				SW1_state <= 2'b10;
-		2'b10: // wait for SW1 to change then increment state
-			if (SW1 != SW1_value)
-				if (HB_counter[23]) SW1_state <= 2'b11;
-		2'b11: // delay, then perform FPGA reset
-			if (!HB_counter[23])
-				SW1_reset <= 1'b1;
-	endcase
-`endif
-end
-
-//assign Status_LED = HB_counter[is_9031 ? 24 : 23];  // Blink slower for 9031
+//Flash Heart beat LED
+reg [26:0]HB_counter;
+always @(posedge PHY_CLK125) HB_counter <= HB_counter + 1'b1;
+assign Status_LED = HB_counter[25] & dim_cnt <= dimmer;  // Blink
 
 endmodule 
 
