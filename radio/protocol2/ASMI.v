@@ -33,7 +33,7 @@
 //applicable agreement for further details.
 
 
-//altasmi_parallel CBX_AUTO_BLACKBOX="ALL" DATA_WIDTH="STANDARD" DEVICE_FAMILY="Cyclone IV GX" EPCS_TYPE="EPCS128" PAGE_SIZE=256 PORT_BULK_ERASE="PORT_USED" PORT_DIE_ERASE="PORT_UNUSED" PORT_EN4B_ADDR="PORT_UNUSED" PORT_FAST_READ="PORT_UNUSED" PORT_ILLEGAL_ERASE="PORT_USED" PORT_ILLEGAL_WRITE="PORT_USED" PORT_RDID_OUT="PORT_UNUSED" PORT_READ_ADDRESS="PORT_UNUSED" PORT_READ_DUMMYCLK="PORT_UNUSED" PORT_READ_RDID="PORT_UNUSED" PORT_READ_SID="PORT_UNUSED" PORT_READ_STATUS="PORT_UNUSED" PORT_SECTOR_ERASE="PORT_USED" PORT_SECTOR_PROTECT="PORT_USED" PORT_SHIFT_BYTES="PORT_USED" PORT_WREN="PORT_USED" PORT_WRITE="PORT_USED" USE_ASMIBLOCK="ON" USE_EAB="ON" WRITE_DUMMY_CLK=0 addr bulk_erase busy clkin data_valid datain dataout illegal_erase illegal_write rden read reset sector_erase sector_protect shift_bytes wren write INTENDED_DEVICE_FAMILY="Cyclone IV GX" ALTERA_INTERNAL_OPTIONS=SUPPRESS_DA_RULE_INTERNAL=C106
+//altasmi_parallel CBX_AUTO_BLACKBOX="ALL" DATA_WIDTH="STANDARD" DEVICE_FAMILY="Cyclone IV E" EPCS_TYPE="EPCS128" PAGE_SIZE=256 PORT_BULK_ERASE="PORT_USED" PORT_DIE_ERASE="PORT_UNUSED" PORT_EN4B_ADDR="PORT_UNUSED" PORT_FAST_READ="PORT_UNUSED" PORT_ILLEGAL_ERASE="PORT_USED" PORT_ILLEGAL_WRITE="PORT_USED" PORT_RDID_OUT="PORT_UNUSED" PORT_READ_ADDRESS="PORT_UNUSED" PORT_READ_DUMMYCLK="PORT_UNUSED" PORT_READ_RDID="PORT_UNUSED" PORT_READ_SID="PORT_UNUSED" PORT_READ_STATUS="PORT_UNUSED" PORT_SECTOR_ERASE="PORT_USED" PORT_SECTOR_PROTECT="PORT_USED" PORT_SHIFT_BYTES="PORT_USED" PORT_WREN="PORT_USED" PORT_WRITE="PORT_USED" USE_ASMIBLOCK="ON" USE_EAB="ON" WRITE_DUMMY_CLK=0 addr bulk_erase busy clkin data_valid datain dataout illegal_erase illegal_write rden read reset sector_erase sector_protect shift_bytes wren write INTENDED_DEVICE_FAMILY="Cyclone IV E" ALTERA_INTERNAL_OPTIONS=SUPPRESS_DA_RULE_INTERNAL=C106
 //VERSION_BEGIN 17.0 cbx_a_gray2bin 2013:06:12:18:03:43:SJ cbx_a_graycounter 2013:06:12:18:03:43:SJ cbx_altasmi_parallel 2013:06:12:18:03:43:SJ cbx_altdpram 2013:06:12:18:03:43:SJ cbx_altsyncram 2013:06:12:18:03:43:SJ cbx_arriav 2013:06:12:18:03:43:SJ cbx_cyclone 2013:06:12:18:03:43:SJ cbx_cycloneii 2013:06:12:18:03:43:SJ cbx_fifo_common 2013:06:12:18:03:43:SJ cbx_lpm_add_sub 2013:06:12:18:03:43:SJ cbx_lpm_compare 2013:06:12:18:03:43:SJ cbx_lpm_counter 2013:06:12:18:03:43:SJ cbx_lpm_decode 2013:06:12:18:03:43:SJ cbx_lpm_mux 2013:06:12:18:03:43:SJ cbx_mgl 2013:06:12:18:05:10:SJ cbx_scfifo 2013:06:12:18:03:43:SJ cbx_stratix 2013:06:12:18:03:43:SJ cbx_stratixii 2013:06:12:18:03:43:SJ cbx_stratixiii 2013:06:12:18:03:43:SJ cbx_stratixv 2013:06:12:18:03:43:SJ cbx_util_mgl 2013:06:12:18:03:43:SJ  VERSION_END
 // synthesis VERILOG_INPUT_VERSION VERILOG_2001
 // altera message_off 10463
@@ -1788,7 +1788,7 @@ module ASMI (
 				.busy (sub_wire3),
 				.illegal_write (sub_wire4))/* synthesis synthesis_clearbox=2
 	 clearbox_macroname = ALTASMI_PARALLEL
-	 clearbox_defparam = "data_width=STANDARD;epcs_type=EPCS128;intended_device_family=Cyclone IV GX;lpm_hint=UNUSED;lpm_type=altasmi_parallel;page_size=256;port_bulk_erase=PORT_USED;port_die_erase=PORT_UNUSED;port_en4b_addr=PORT_UNUSED;port_fast_read=PORT_UNUSED;port_illegal_erase=PORT_USED;port_illegal_write=PORT_USED;port_rdid_out=PORT_UNUSED;port_read_address=PORT_UNUSED;port_read_dummyclk=PORT_UNUSED;port_read_rdid=PORT_UNUSED;port_read_sid=PORT_UNUSED;port_read_status=PORT_UNUSED;port_sector_erase=PORT_USED;port_sector_protect=PORT_USED;port_shift_bytes=PORT_USED;port_wren=PORT_USED;port_write=PORT_USED;use_asmiblock=ON;use_eab=ON;write_dummy_clk=0;" */;
+	 clearbox_defparam = "data_width=STANDARD;epcs_type=EPCS128;intended_device_family=Cyclone IV E;lpm_hint=UNUSED;lpm_type=altasmi_parallel;page_size=256;port_bulk_erase=PORT_USED;port_die_erase=PORT_UNUSED;port_en4b_addr=PORT_UNUSED;port_fast_read=PORT_UNUSED;port_illegal_erase=PORT_USED;port_illegal_write=PORT_USED;port_rdid_out=PORT_UNUSED;port_read_address=PORT_UNUSED;port_read_dummyclk=PORT_UNUSED;port_read_rdid=PORT_UNUSED;port_read_sid=PORT_UNUSED;port_read_status=PORT_UNUSED;port_sector_erase=PORT_USED;port_sector_protect=PORT_USED;port_shift_bytes=PORT_USED;port_wren=PORT_USED;port_write=PORT_USED;use_asmiblock=ON;use_eab=ON;write_dummy_clk=0;" */;
 
 endmodule
 
@@ -1796,10 +1796,10 @@ endmodule
 // CNX file retrieval info
 // ============================================================
 // Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
-// Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone IV GX"
+// Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone IV E"
 // Retrieval info: CONSTANT: DATA_WIDTH STRING "STANDARD"
 // Retrieval info: CONSTANT: EPCS_TYPE STRING "EPCS128"
-// Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone IV GX"
+// Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone IV E"
 // Retrieval info: CONSTANT: LPM_HINT STRING "UNUSED"
 // Retrieval info: CONSTANT: LPM_TYPE STRING "altasmi_parallel"
 // Retrieval info: CONSTANT: PAGE_SIZE NUMERIC "256"

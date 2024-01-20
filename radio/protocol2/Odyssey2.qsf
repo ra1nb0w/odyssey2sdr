@@ -350,6 +350,14 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VNA_out
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ANT2_RELAY
 
 
+#set_global_assignment -name VERILOG_FILE Orion_ADC.v
+#set_global_assignment -name VERILOG_FILE ASMI.v
+#set_global_assignment -name VERILOG_FILE ASMI_interface.v
+#set_global_assignment -name VERILOG_FILE Apollo.v
+set_global_assignment -name SEARCH_PATH ethernet/
+set_global_assignment -name SEARCH_PATH Ethernet/
+set_global_assignment -name SEARCH_PATH Polyphase_FIR/
+set_global_assignment -name SEARCH_PATH polyphase_fir/
 set_global_assignment -name VERILOG_FILE Ethernet/Rx_fifo.v
 set_global_assignment -name MIF_FILE sine_256.mif
 set_global_assignment -name VERILOG_FILE Ethernet/send_data.v
@@ -384,16 +392,12 @@ set_global_assignment -name VERILOG_FILE sidetone.v
 set_global_assignment -name VERILOG_FILE profile.v
 set_global_assignment -name MIF_FILE profile.mif
 set_global_assignment -name SDC_FILE Odyssey2.sdc
-#set_global_assignment -name VERILOG_FILE Orion_ADC.v
 set_global_assignment -name VERILOG_FILE Orion.v
 set_global_assignment -name VERILOG_FILE sp_rcv_ctrl.v
 set_global_assignment -name VERILOG_FILE Attenuator.v
-#set_global_assignment -name VERILOG_FILE ASMI.v
 set_global_assignment -name VERILOG_FILE Led_control.v
 set_global_assignment -name VERILOG_FILE Led_flash.v
-#set_global_assignment -name VERILOG_FILE ASMI_interface.v
 set_global_assignment -name VERILOG_FILE EPCS_fifo.v
-#set_global_assignment -name VERILOG_FILE Apollo.v
 set_global_assignment -name VERILOG_FILE cdc_mcp.v
 set_global_assignment -name VERILOG_FILE cdc_sync.v
 set_global_assignment -name VERILOG_FILE cic.v
@@ -439,8 +443,4 @@ set_global_assignment -name VERILOG_FILE High_Priority_CC.v
 set_global_assignment -name VERILOG_FILE General_CC.v
 set_global_assignment -name VERILOG_FILE tx_atten.v
 set_global_assignment -name VERILOG_FILE tx_dac.v
-set_global_assignment -name SEARCH_PATH ethernet/
-set_global_assignment -name SEARCH_PATH Ethernet/
-set_global_assignment -name SEARCH_PATH Polyphase_FIR/
-set_global_assignment -name SEARCH_PATH polyphase_fir/
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

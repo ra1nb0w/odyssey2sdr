@@ -105,7 +105,7 @@ module Rx_fifo (
 				.eccstatus ());
 	defparam
 		dcfifo_component.add_usedw_msb_bit = "ON",
-		dcfifo_component.intended_device_family = "Cyclone IV GX",
+		dcfifo_component.intended_device_family = "Cyclone IV E",
 		dcfifo_component.lpm_numwords = 4096,
 		dcfifo_component.lpm_showahead = "OFF",
 		dcfifo_component.lpm_type = "dcfifo",
@@ -134,7 +134,7 @@ endmodule
 // Retrieval info: PRIVATE: Depth NUMERIC "4096"
 // Retrieval info: PRIVATE: Empty NUMERIC "1"
 // Retrieval info: PRIVATE: Full NUMERIC "1"
-// Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone IV GX"
+// Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone IV E"
 // Retrieval info: PRIVATE: LE_BasedFIFO NUMERIC "0"
 // Retrieval info: PRIVATE: LegacyRREQ NUMERIC "1"
 // Retrieval info: PRIVATE: MAX_DEPTH_BY_9 NUMERIC "0"
@@ -159,7 +159,7 @@ endmodule
 // Retrieval info: PRIVATE: wsUsedW NUMERIC "1"
 // Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
 // Retrieval info: CONSTANT: ADD_USEDW_MSB_BIT STRING "ON"
-// Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone IV GX"
+// Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone IV E"
 // Retrieval info: CONSTANT: LPM_NUMWORDS NUMERIC "4096"
 // Retrieval info: CONSTANT: LPM_SHOWAHEAD STRING "OFF"
 // Retrieval info: CONSTANT: LPM_TYPE STRING "dcfifo"
