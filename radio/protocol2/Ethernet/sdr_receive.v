@@ -42,17 +42,13 @@ module sdr_receive(
 	input [1:0] dashdot,
 
 	// outputs
-	output reg [7:0] skew_rxtxc,
-	output reg [7:0] skew_rxtxd,
-	output reg [10:0] skew_rxtxclk21,
-	output reg [10:0] skew_rxtxclk31,
 	output reg discovery_reply,
-	output reg seq_error,
 	output reg erase,					   	// set when we receive an EPCS16 erase command from PC 
 	output reg [31:0]num_blocks,			// holds number of blocks of 256 bytes that we will save in the EPCS16
 	output EPCS_FIFO_enable,				// set when we write to the EPCS fifo
 	output reg set_ip,						// set when new static IP address available 
 	output reg [31:0] assign_ip,			// static IP address to save in EEPROM.
+	output force100T,
 	output phaseupdown, // 1-UP 0-DOWN
 	output phasestep,
 	output phaserst,
@@ -73,12 +69,6 @@ reg [7:0]  phasecmd;
 reg [7:0]  phasecnt;
 reg [7:0]  tmp_phaseval;
 reg phasego, phaseset, phaseonce;
-reg [7:0] new_skew_rxtxc;
-reg [7:0] new_skew_rxtxd;
-reg [9:0] new_skew_rxtxclk;
-reg [31:0] skew_count;
-reg [1:0] skew_dashdot;
-reg skew_count_enable, n_skew_reset, skew_changed;
 reg mod_reset;
 
 localparam 
@@ -92,66 +82,18 @@ localparam
 	ST_PROGRAM_FIFO = 12'd64,
 	ST_WAIT		= 12'd128,
 	ST_PLL_PHASE	= 12'd256,
-	ST_SKEW		= 12'd512;
+	ST_SET_BITS	= 12'd512;
 
 
 always @(posedge rx_clock)
 begin
 
-  // A host pgm can send phy skew data which will re-init the phy with the new timings
-  // ex: python setskew.py 192.168.1.202 67.46.1f.0f.00
-  // 
-  // 67 is rx-ctl,tx-ctl . 46 is rx-data,tx-data . 1f is rxclk . 0f is txclk . 00 is cmd to set
-  //
-  // defaults
   if (mod_reset == 1'b0) begin
-      skew_dashdot <= ~dashdot;
+      // do something here on power up
       mod_reset <= 1'b1;
-      skew_changed <= skew_changed ^ 1'b1;
+      if (dashdot != 2'b00) force100T <= 1'b1;
   end
-  else if (n_skew_reset == 1'b0) begin
-    skew_count_enable <= 1'b0;
-    n_skew_reset <= 1'b1;
-    case (skew_dashdot)
-      0:
-        begin
-          skew_rxtxc <= 8'h66;
-          skew_rxtxd <= 8'h66;
-          skew_rxtxclk21 <= {skew_changed, 10'b01010_01110}; //9021 NOTE: RXTX
-          skew_rxtxclk31 <= {skew_changed, 10'b01111_01111}; //9031 NOTE: RXTX
-        end
-      1:
-        begin
-          skew_rxtxc <= 8'h55;
-          skew_rxtxd <= 8'h55;
-          skew_rxtxclk21 <= {skew_changed, 10'b01000_01011}; //9021 NOTE: RXTX
-          skew_rxtxclk31 <= {skew_changed, 10'b01101_01101}; //9031 NOTE: RXTX
-        end
-      2:
-        begin
-          skew_rxtxc <= 8'h23;
-          skew_rxtxd <= 8'h23;
-          skew_rxtxclk21 <= {skew_changed, 10'b01000_01011}; //9021 NOTE: RXTX
-          skew_rxtxclk31 <= {skew_changed, 10'b10000_10011}; //9031 NOTE: RXTX
-        end
-      3:
-        begin
-          skew_rxtxc <= 8'h23;
-          skew_rxtxd <= 8'h23;
-          skew_rxtxclk21 <= {skew_changed, 10'b01010_01110}; //9021 NOTE: RXTX
-          skew_rxtxclk31 <= {skew_changed, 10'b10011_11111}; //9031 NOTE: RXTX
-        end
-    endcase
-  end
-
-  if (skew_count_enable) begin
-    skew_count <= skew_count - 1'b1;
-    if (skew_count == 32'd0) begin
-      n_skew_reset <= 1'b0;
-      skew_changed <= skew_changed ^ 1'b1;
-    end
-  end
-
+  //else if
 
   // 1 step is 4.5 degrees of phase
   if (phasego) begin
@@ -254,6 +196,7 @@ begin
     end
   end
 
+
 // ****** NOTE: This state machine only runs when udp_rx_active ******	
   if (udp_rx_active && to_port == 1024) begin	// look for HPSDR udp packet to port 1024
     case (state)
@@ -279,7 +222,7 @@ begin
 							4: if (!broadcast) state <= ST_ERASE;
 							5: if (!broadcast) state <= ST_PROGRAM_FIFO;
 							6: if (!broadcast) state <= ST_PLL_PHASE;
-							7: if (!broadcast) state <= ST_SKEW;
+							7: if (!broadcast) state <= ST_SET_BITS;
 							default: state <= ST_WAIT;		// command not for us so wait for this to end
 						endcase
 					end
@@ -292,31 +235,14 @@ begin
 
 		ST_DISCOVERY:  state <= ST_TX;   
 
-		ST_SKEW: 
+		ST_SET_BITS: 
 			begin
 				case(byte_no)
-					 4: new_skew_rxtxc <= udp_rx_data;
-					 5: new_skew_rxtxd <= udp_rx_data;
-					 6: new_skew_rxtxclk[9:5] <= udp_rx_data[4:0];
-					 7: new_skew_rxtxclk[4:0] <= udp_rx_data[4:0];
-					 8: begin
-						case (udp_rx_data) // cmd byte
-					 	0: skew_count_enable <= 1'b0;
-					 	default: begin
-							skew_count <= (udp_rx_data < 8'd31) ? udp_rx_data * 32'h7735940 : 32'hDF847580; //max 30 secs
-							skew_rxtxc <= new_skew_rxtxc;
-							skew_rxtxd <= new_skew_rxtxd;
-							skew_rxtxclk31[9:0] <= new_skew_rxtxclk;
-							skew_rxtxclk21[9:0] <= new_skew_rxtxclk;
-							skew_rxtxclk21[10] <= skew_changed ^ 1'b1;
-							skew_changed <= skew_changed ^ 1'b1;
-							skew_count_enable <= 1'b1;
-							state <= ST_WAIT;
-						end
-						endcase
+					 4: begin
+						force100T <= udp_rx_data[0];
+						state <= ST_WAIT;
 					    end
 				endcase
-				byte_no <= byte_no + 8'd1;
 			end
 
 		ST_PLL_PHASE: 
@@ -389,7 +315,7 @@ end
 
 //	assign discovery_reply = (state == ST_DISCOVERY);
    assign EPCS_FIFO_enable = (byte_cnt > 8 && byte_cnt < 265);   // enable 256 bytes to EPCS fifo
-	
+
 
 // Code to erase EPCS fifo. Needs separate state machine since above code only runs when udp_rx_active	
 reg [2:0] EPCS_state;	

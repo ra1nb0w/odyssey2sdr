@@ -560,7 +560,7 @@
 2019	Apr 14 - (N1GP) Fixed an issue with Mic Boost (and others) in TLV320_SPI
 			 - Changed FW version number to v1.8
 
-2019	Dec 1 - (N1GP) Moved the LED clock to CLK_25MHZ, added 'set_clock_groups -exclusive -group' for various clocks
+2019	Dec 1 - (N1GP) Moved the LED clock to CLOCK_25MHZ, added 'set_clock_groups -exclusive -group' for various clocks
 			 - Changed FW version number to v1.9
 
 2020	Jan 4 - (N1GP) Fixed DHCP issue where a dhcp transaction not bound for the local MAC would get passed up and interfere
@@ -577,47 +577,35 @@
                        Added sequence error (from host data) reporting back to the host in high priority packet.
                          - Changed FW version number to v2.1
 
-2021	Aug 10 - (N1GP) Updated to Quartus 20.1. Removed for loops in sdr_send.v, seemed to fix a lot of SEQ errors.
+2021	Aug 10 - (N1GP) Updated to Quartus 20.1. Removed for loops in sdr_send.v, added a resyncronising mechanism
+                       to sdr_send.v such that if the fifo gets out of order (manifests as a high noise floor in panadapter)
+                       it can be reordered due to an extra bit (9 bits) in the fifo data used to show MSB.
+                       Tested 14 receiver slices, takes 94% of resources.
+
+2021	Sep 1 - (N1GP) Added autonegotiated 100T/1000T support, merged from the HL folks.
+                       Also added a dedicated DDC for providing DAC data for Pure Signal.
+
+2022	May 1 - (N1GP) Changed SPI clock in Orion_ADC.v from 25% to 50% as some users reported
+                       instability in the 12V reading and the adc78h90 is spec'd @  min %40 / max %60
+
+2022	Aug 10 - (N1GP) Added support for Orion MkIII via a new Quartus Project Revision.
+                       Files with Orion_MkIII..., note that a MkIII build defines ORION_MKIII
+                       For testing 100T one can hold down a CW key during power on, this forces
+                       the Ethernet Phy to only negotiate 100T and is not remembered after poweroff.
 
 */
 
-/*
- * == Odyssey2 Clock distribution ==
- *
- * _122MHz not connected to VCTXCO(pin T20, T21 and T22)
- * _122MHz_out send clock to TX DAC (pin T20, T21 and T22)
- *
- * In Angelia, we have _122MHz connected directly to the output of VCTCXO but
- * in Odyssey2 is not. It is floatting and MUST be assignet to LTC2208_122MHz.
- *
- * OSC_10MHZ receive 10MHz from internal TCXO or automatically switched with
- *           a trasistor from an external reference (pin T1 and T2)
- * FPGA_PLL set voltage VC of TCXO through RC pass filter (pin AA21)
- *
- * LTC2208_122MHz receive clock directly from ADC1/C1 (pin AA11 and AB11)
- * LTC2208_122MHz_2 receive clock directly from ADC2/C2 (pin AA12 and AB12)
- *
- *
- *
- * IMPORTANT:
- *  - at relase check the output signal quality:
- *    set Mode: USB, Drive 100%, click TUNE with Drive power
- *    check the VNA port with an oscilloscope. The sin must be stable!
- *    The same check can be done with a spectral analyzer
- */
-
 module Orion(
 	//clock PLL
-  input _122MHz,                 //122.88MHz from VCXO  - same pin of _122MHz_out
-  output _122MHz_out,            //122.88MHz to DAC
+  input _122MHz,                 //122.88MHz from VCXO
   input  OSC_10MHZ,              //10MHz reference in 
   output FPGA_PLL,               //122.88MHz VCXO contol voltage
 
   //attenuator (DAT-31-SP+)
-  // Odyssey2: we are using F1912N
-  //           the DATA and CLK are shared between the two attenuator
   output ATTN_DATA,              //data for input attenuator
+  output ATTN_DATA_2,
   output ATTN_CLK,               //clock for input attenuator
+  output ATTN_CLK_2, 
   output ATTN_LE,                //Latch enable for input attenuator
   output ATTN_LE_2,
 
@@ -628,15 +616,18 @@ module Orion(
   input  LTC2208_122MHz_2,       //122.88MHz from #2 LTC2208_122MHz pin 
   input  OVERFLOW,               //high indicates LTC2208 have overflow
   input  OVERFLOW_2,             //high indicates LTC2208 have overflow
-  // ODYSSEY2: not available
-  // random is done through SPI on LTC2165
-  // PGA, DITH, SHDN is not available on LTC2165
-  // LTC6401 has fixed VoCM therefore it is not controlled by LTC2165 (4K7 Ohm)
-  //         and add 20dBm
+  output RAND,            			//high turns ramdom on
+  output RAND_2,          			//high turns ramdom on
+  output PGA,            			//high turns LTC2208 internal preamp on
+  output PGA_2,          			//high turns LTC2208 internal preamp on
+  output DITH,            			//high turns LTC2208 dither on 
+  output DITH_2,          			//high turns LTC2208 dither on 
+  output SHDN,            			//x shuts LTC2208 off
+  output SHDN_2,          			//x shuts LTC2208 off
 
   //tx adc (AD9744ARU)
   output reg  DAC_ALC,          	//sets Tx DAC output level
-  output reg signed [13:0]DACD,  //14-bit Tx data word
+  output reg signed [15:0]DACD,  //16-bit Tx data word
   
   //audio codec (TLV320AIC23B)
   output CBCLK,               
@@ -655,12 +646,12 @@ module Orion(
   output PHY_TX_EN,              //PHY Tx enable
   output PHY_TX_CLOCK,           //PHY Tx data clock
   input  [3:0]PHY_RX,     
-  input  PHY_RX_DV,                 //PHY has data flag
+  input  RX_DV,                 //PHY has data flag
   input  PHY_RX_CLOCK,           //PHY Rx data clock
   input  PHY_CLK125,             //125MHz clock from PHY PLL
-  //input  PHY_INT_N,              //interrupt (n.c.)
-  output  PHY_RESET_N,
-  //input  CLK_25MHZ,              //25MHz clock (n.c.)  
+  input  PHY_INT_N,              //interrupt (n.c.)
+  output PHY_RESET_N,
+  input  CLOCK_25MHZ,              //25MHz clock (n.c.)  
   
 	//phy mdio (KSZ9021RL)
 	inout  PHY_MDIO,               //data line to PHY MDIO
@@ -679,49 +670,81 @@ module Orion(
   output ADCMOSI,                
   output ADCCLK,
   input  ADCMISO,
-  output ADCCS_N, 
+  output nADCCS, 
+  
+  //Tx Attenuator (F1912)
+  output TX_ATTN_LE,					// High for parallel mode
+  output TX_ATTN_CLK,				// not used in parallel mode  
+  output TX_ATTN_DATA,				// not used in parallel mode
+  output [5:0] TX_ATTEN,		   // [0] = bit 0, [1] = bit 1, [2] = bit 4, [3] = bit 8 etc.
+  output TX_ATTN_MODE,				// Low for parallel mode 
+  input	TX_ATTEN_SELECT,			// Low for Tx attenuator, high for DAC current
  
   //alex/apollo spi
   output SPI_SDO,                //SPI data to Alex or Apollo 
 //  input  SPI_SDI,                //SPI data from Apollo 
   output SPI_SCK,                //SPI clock to Alex or Apollo 
-  output SPI_RX_LOAD,                  // J15_5 - SPI Rx data load strobe to Alex / Apollo enable
-  //output SPI_TX_LOAD see ANT2_RELAY,                  // J15_6 - SPI Tx data load strobe to Alex / Apollo ~reset 
+  output J15_5,                  //SPI Rx data load strobe to Alex / Apollo enable
+  output J15_6,                  //SPI Tx data load strobe to Alex / Apollo ~reset 
   
-  //mic and osc configuration
-  // Odyssey2: via boot menu
+  //mic and osc configuration 
+  output MICBIAS_ENABLE, 
+  output PTT_SELECT, 
+  output MIC_SIG_SELECT, 
+  output MICBIAS_SELECT,
 
   //misc. i/o
   input  PTT,                    //PTT active low
-  input  PTT2,                   //PTT Ext_IO active low
   input  KEY_DOT,                //dot input from J11
   input  KEY_DASH,               //dash input from J11
   output FPGA_PTT,               //high turns Q4 on for PTTOUT
-  //input  MODE2,                  //jumper J14 on Orion: 1 if removed = ECPS128; 0 if jumpered = ECPQ128A
-  output  ANT_TUNE,               // atu
-  output VNA_out,                // used for VNA measurement
-  output ANT2_RELAY,             // high level provides a signal to turn on the relay of the second antenna
-                                 // or if Alex is enable used as TX strobe (SPI_TX_LOAD)
+  input  MODE2,                  //jumper J14 on Orion: 1 if removed = ECPS128; 0 if jumpered = ECPQ128A
+  input  ANT_TUNE,               //atu
+  output IO1,                    //high to mute AF amp    
+  input  IO2,                    //PTT, used by Apollo 
+  input  SW1,							//bootloader mode switch option
+  output DRIVER_PA_EN,
+  output CTRL_TRSW,		
+  output atu_ctrl,					//controls pin 10 of J16 (BUFF_OUT) via U20 and FPGA pin AH30 (BUFF_OUT_FPGA) for 7000DLE support
+
+  //user digital inputs
+  input  IO4,                    
+  input  IO5,							// TX INHIBIT digital input
+  input  IO6,
+  input  IO8,							// external CW key digital input
   
   //user outputs
   output USEROUT0,               
   output USEROUT1,
   output USEROUT2,
   output USEROUT3,
+  output USEROUT4,
+  output USEROUT5,
+  output USEROUT6,
   
-  //debug led's
-  output Status_LED,
-  output DEBUG_LED1,
+    //debug led's
+  output Status_LED,      
+  output DEBUG_LED1,             
   output DEBUG_LED2,
   output DEBUG_LED3,
-
-  // ODYSSEY2: test point on the left of the Status_LED
-  output DEBUG_TP1,
-  output DEBUG_TP2,
-
-  // ODYSSEY2: MCU connection
-  input MCU_UART_RX,
-  output MCU_UART_TX,
+  output DEBUG_LED4,
+  output DEBUG_LED5,
+  output DEBUG_LED6,
+  output DEBUG_LED7,
+  output DEBUG_LED8,
+  output DEBUG_LED9,
+  output DEBUG_LED10,
+  output DEBUG_LED11,             
+  output DEBUG_LED12,
+  output DEBUG_LED13,
+  output DEBUG_LED14,
+  output DEBUG_LED15,
+  output DEBUG_LED16,
+  output DEBUG_LED17,
+  output DEBUG_LED18,
+  output DEBUG_LED19,
+  output DEBUG_LED20,
+  //output LED_D23,
   //output LED_D47,
  
 	// RAM
@@ -741,16 +764,13 @@ module Orion(
   output wire RAM_A13  
 );
 
-// force open collector drives to off state when code not running.
-assign USEROUT0 = run ? Open_Collector[1] : 1'b0;
-assign USEROUT1 = run ? Open_Collector[2] : 1'b0;
-assign USEROUT2 = run ? Open_Collector[3] : 1'b0;
-assign USEROUT3 = run ? Open_Collector[4] : 1'b0;
-// ODYSSEY2: shared with Alex SPI board
-wire USEROUT4, USEROUT5, USEROUT6;
-assign USEROUT4 = run ? Open_Collector[5] : 1'b0;
-assign USEROUT5 = run ? Open_Collector[6] : 1'b0;
-assign USEROUT6 = run ? Open_Collector[7] : 1'b0;
+assign USEROUT0 = run ? Open_Collector[1] : 1'b0;					
+assign USEROUT1 = run ? Open_Collector[2] : 1'b0;   				
+assign USEROUT2 = run ? Open_Collector[3] : 1'b0;  					
+assign USEROUT3 = run ? Open_Collector[4] : 1'b0;  		
+assign USEROUT4 = run ? Open_Collector[5] : 1'b0; 
+assign USEROUT5 = run ? Open_Collector[6] : 1'b0; 
+assign USEROUT6 = run ? Open_Collector[7] : 1'b0; 
 
 assign RAM_A0  = 0;
 assign RAM_A1  = 0;
@@ -767,88 +787,33 @@ assign RAM_A11  = 0;
 assign RAM_A12  = 0;
 assign RAM_A13  = 0;
 
-assign ANT_TUNE = run ? AUTO_TUNE : 1'b0;		// high turns on auto-tune for 7/8000DLE
+assign PGA = 0;								// 1 = gain of 3dB, 0 = gain of 0dB
+assign PGA_2 = 0;
+assign SHDN = 1'b0;				   		// normal LTC2208 operation
+assign SHDN_2 = 1'b0;
 
-assign NCONFIG = IP_write_done;
+assign atu_ctrl = run ? AUTO_TUNE : 1'b0;		// high turns on auto-tune for 7/8000DLE
 
-wire speed = 1'b1; // high for 1000T
+assign NCONFIG = IP_write_done || reset_FPGA || SW1_reset;
 
-// Odyssey2: maybe control 1W power PA
-//initial DRIVER_PA_EN = 1'b0;					// ensure PA bias is OFF initially
-//assign  DRIVER_PA_EN = FPGA_PTT; 			// PA bias switching, low turns PA bias ON during Tx
+initial DRIVER_PA_EN = 1'b0;					// ensure PA bias is OFF initially
 
-//assign  CTRL_TRSW = FPGA_PTT && XVTR_ENABLE;
+assign  DRIVER_PA_EN = FPGA_PTT; 			// PA bias switching, low turns PA bias ON during Tx
 
+assign  CTRL_TRSW = FPGA_PTT && XVTR_ENABLE;
+
+// NOTE: Orion FPGA can fit up to 14 RXs but the bootloader is limiting file size to 2MB
+// the Orion.rbf is over that when > 10 RXs
 localparam NR = 4;	// number of receivers to implement
 localparam master_clock = 122880000; 	// DSP  master clock in Hz.
 
 parameter M_TPD   = 4;
 parameter IF_TPD  = 2;
 
-// since we can use different filter board we need to
-// change the board type; there are not other differences
-// if you use ANAN 7000/8000 PA/filter board set ORION_MKII_TYPE
-// otherwise ANGELIA_FAINITSKI_TYPE (selecting Anan 100D);
-// by default is Angelia 100D PA/filter type
-//
-// Changes in High_Priority_CC.v and SPI.v
-`ifdef ORION_MKII_TYPE
 localparam board_type = 8'h05;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
-`else
-localparam board_type = 8'h03;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
-`endif
 parameter  Orion_version = 8'd21;			// FPGA code version
-parameter  beta_version = 8'd19;	// Should be 0 for official release
+parameter  beta_version = 8'd26;	// Should be 0 for official release
 parameter  protocol_version = 8'd39;	// openHPSDR protocol version implemented
-
-//--------------------------------------------------------------
-// Odyssey 2: custom things
-//--------------------------------------------------------------
-parameter [63:0] fw_version = "2.1.19P2";
-assign VNA_out = VNA;
-
-// Odyssey 2 : we share the Alex SPI with the USEROUT4-6
-wire DITH;
-wire RAND;
-wire Alex_SPI_SDO;
-wire Alex_SPI_SCK;
-wire Alex_TX_LOAD;
-wire Alex_RX_LOAD;
-wire MICBIAS_ENABLE;
-
-wire TX_ATTEN_SELECT;
-initial TX_ATTEN_SELECT = 1'b1;
-
-assign SPI_SDO     = Apollo ? USEROUT4 : Alex_SPI_SDO;
-assign SPI_SCK     = Apollo ? USEROUT5 : Alex_SPI_SCK;
-assign SPI_RX_LOAD = Apollo ? USEROUT6 : Alex_RX_LOAD;
-// we use ANT2 to set TX load signal
-assign ANT2_RELAY  = Apollo ? Alex_data[25] : Alex_TX_LOAD;
-
-// we use the main clock to pilot DAC
-assign _122MHz_out = LTC2208_122MHz;
-
-//attenuator
-// Odyssey2: the DATA and CLK are shared between the two attenuator
-wire ATTN_DATA_1;
-wire ATTN_CLK_1;
-wire ATTN_DATA_2;
-wire ATTN_CLK_2;
-assign ATTN_DATA = ATTN_LE ? ATTN_DATA_1 : ATTN_DATA_2;
-assign ATTN_CLK = ATTN_LE ? ATTN_CLK_1 : ATTN_CLK_2;
-
-// mcu UART channel
-mcu #(.fw_version(fw_version)) mcu_uart (
-        .clk(CBCLK),
-        .mcu_uart_rx(MCU_UART_RX),
-        .mcu_uart_tx(MCU_UART_TX),
-        .ptt(FPGA_PTT)
-);
-
-// not available in HW. therefore we simulate it
-reg [31:0] res_cnt = master_clock;  // 1 sec delay
-always @(posedge C122_clk) if (res_cnt != 0) res_cnt <= res_cnt - 1'd1;
-assign PHY_RESET_N = (res_cnt == 0);
 
 //--------------------------------------------------------------
 // Reset Lines - C122_rst, IF_rst, SPI_Alex_reset
@@ -860,17 +825,14 @@ wire C122_rst;
 //wire SPI_clk;
 	
 assign IF_rst = !network_state;  // hold code in reset until Ethernet code is running.
+assign PHY_RESET_N = 1'b1;
 
 // transfer IF_rst to 122.88MHz clock domain to generate C122_rst
 cdc_sync #(1)
 	reset_C122 (.siga(IF_rst), .rstb(0), .clkb(C122_clk), .sigb(C122_rst)); // 122.88MHz clock domain reset
 
-// ***RRK I dont think PHY_RESET_N can be used as an input (blocking diode)!
-// PHY_RESET_N will go high after ~100ms due to RC, use to create Alex reset pulse
-pulsegen reset_Alex  (.sig(PHY_RESET_N), .rst(0), .clk(CBCLK), .pulse(SPI_Alex_rst));
-
-//cdc_sync #(1)
-//	reset_Alex (.siga(run), .rstb(0), .clkb(CBCLK), .sigb(SPI_Alex_rst));  // SPI_clk domain reset
+cdc_sync #(1)
+	reset_Alex (.siga(IF_rst), .rstb(0), .clkb(CBCLK), .sigb(SPI_Alex_rst));  // SPI_clk domain reset
 	
 // Deadman timer - clears run if HW_timer_enable and no C&C commands received for ~2 seconds.
 
@@ -888,7 +850,7 @@ begin
 	else sec_count <= 28'd0;
 end
 
- assign HW_timeout = (sec_count >= 28'd250_000_000) ? 1'd1 : 1'd0;
+assign HW_timeout = (sec_count >= 28'd250_000_000) ? 1'd1 : 1'd0;
 
 
 //---------------------------------------------------------
@@ -908,7 +870,7 @@ wire _122_90;
 
 // Generate _122_90 (122.88Mhz 90deg) CMCLK (12.288MHz), CBCLK(3.072MHz) and CLRCLK (48kHz) from 122.88MHz using PLL
 // NOTE: CBCLK is generated at 180 degs, as in P1: so that LRCLK occurs on negative edge of BCLK
-PLL_IF PLL_IF_inst (.inclk0(C122_clk), .c0(_122_90), .c1(CMCLK), .c2(CBCLK), .c3(CLRCLK), .locked());
+PLL_IF PLL_IF_inst (.inclk0(C122_clk), .c0(_122_90), .c1(CMCLK), .c2(CBCLK), .c3(CLRCLK), .locked(IF_locked));
 //pulsegen pulse  (.sig(CBCLK), .rst(IF_rst), .clk(!CMCLK), .pulse(C122_cbrise));  // pulse on rising edge of BCLK for Rx/Tx frequency calculations
 
 //-----------------------------------------------------------------------------
@@ -916,7 +878,7 @@ PLL_IF PLL_IF_inst (.inclk0(C122_clk), .c0(_122_90), .c1(CMCLK), .c2(CBCLK), .c3
 //-----------------------------------------------------------------------------
 
 wire network_state;
-wire speed_1Gbit;
+wire speed_1gb;
 wire clock_12_5MHz;
 wire [7:0] network_status;
 wire rx_clock;
@@ -936,22 +898,15 @@ wire static_ip_assigned;
 wire dhcp_timeout;
 wire dhcp_success;
 wire icmp_rx_enable;
-reg [1:0] phychip = 2'b00;
+reg is_9031;
+reg force100T;
 wire phaseupdown, phasestep;
 reg [7:0] phaseval;
-reg [7:0] skew_rxtxc;
-reg [7:0] skew_rxtxd;
-reg [10:0] skew_rxtxclk21;
-reg [10:0] skew_rxtxclk31;
-reg [7:0] reg_rxtxc;
-reg [7:0] reg_rxtxd;
-reg [10:0] reg_rxtxclk21;
-reg [10:0] reg_rxtxclk31;
 
 network network_inst (
 
 	// inputs
-  .speed(speed),	
+  .force100T(force100T),	
   .udp_tx_request(udp_tx_request),
   .udp_tx_data(udp_tx_data),  
   .set_ip(set_ip),
@@ -975,18 +930,10 @@ network network_inst (
   .IP_write_done(IP_write_done),
   .icmp_rx_enable(icmp_rx_enable),   // test for ping bug
   .to_port(to_port),   					// UDP port the PC is sending to
-  .phychip(phychip), // 2'b11 = 9021, 2'b10 = 9031
-  .skew_rxtxc(skew_rxtxc),
-  .skew_rxtxd(skew_rxtxd),
-  .skew_rxtxclk21(skew_rxtxclk21),
-  .skew_rxtxclk31(skew_rxtxclk31),
-  .reg_rxtxc(reg_rxtxc),
-  .reg_rxtxd(reg_rxtxd),
-  .reg_rxtxclk21(reg_rxtxclk21),
-  .reg_rxtxclk31(reg_rxtxclk31),
+  .is_9031(is_9031),
 
 	// status outputs
-  .speed_1Gbit(speed_1Gbit),	
+  .speed_1gb(speed_1gb),	
   .network_state(network_state),	
   .network_status(network_status),
   .static_ip_assigned(static_ip_assigned),
@@ -995,12 +942,11 @@ network network_inst (
   .phasedone(phasedone),
 
   //make hardware pins available inside this module
-  .MODE2(1'b1),
   .PHY_TX(PHY_TX),
   .PHY_TX_EN(PHY_TX_EN),            
   .PHY_TX_CLOCK(PHY_TX_CLOCK),         
   .PHY_RX(PHY_RX),     
-  .PHY_DV(PHY_RX_DV),    					// use PHY_DV to be consistent with Metis            
+  .PHY_DV(RX_DV),    					// use PHY_DV to be consistent with Metis            
   .PHY_RX_CLOCK(PHY_RX_CLOCK),         
   .PHY_CLK125(PHY_CLK125),           
   .PHY_MDIO(PHY_MDIO),             
@@ -1031,10 +977,6 @@ wire [31:0] PC_seq_number;				// sequence number sent by PC when programming
 wire discovery_ACK;
 wire discovery_ACK_sync;
 wire phasedone;
-wire busy;
-wire erase_done;
-wire erase_done_ACK;
-wire num_blocks;
 
 
 sdr_receive sdr_receive_inst(
@@ -1045,16 +987,15 @@ sdr_receive sdr_receive_inst(
 	.sending_sync(sending_sync),
 	.broadcast(broadcast),
 	.erase_ACK(busy),						// set when erase is in progress
-	.EPCS_wrused(),
+	.EPCS_wrused(EPCS_wrused),
 	.local_mac(local_mac),
 	.to_port(to_port),
 	.discovery_ACK(discovery_ACK_sync),	// set when discovery reply request received by sdr_send
 	.phasedone(phasedone), 
-	.dashdot({KEY_DASH, KEY_DOT}), 
+	.dashdot({!KEY_DASH, !KEY_DOT}), 
 	
 	//outputs
 	.discovery_reply(discovery_reply),
-	.seq_error(seq_error),
 	.erase(erase),
 	.num_blocks(num_blocks),
 	.EPCS_FIFO_enable(EPCS_FIFO_enable),
@@ -1064,10 +1005,7 @@ sdr_receive sdr_receive_inst(
 	.phasestep(phasestep), 
 	.phaseval(phaseval), 
 	.sequence_number(PC_seq_number),
-	.skew_rxtxc(skew_rxtxc),
-	.skew_rxtxd(skew_rxtxd),
-	.skew_rxtxclk21(skew_rxtxclk21),
-	.skew_rxtxclk31(skew_rxtxclk31)
+	.force100T(force100T)
 	);
 			        
 
@@ -1096,7 +1034,7 @@ sync sync_inst7(.clock(tx_clock), .sig_in(wideband), .sig_out(wideband_sync));
 wire [7:0] port_ID;
 wire [7:0]Mic_data;
 wire mic_fifo_rdreq;
-wire [7:0]Rx_data[0:NR-1];
+wire [8:0]Rx_data[0:NR-1];
 wire fifo_ready[0:NR-1];
 wire fifo_rdreq[0:NR-1];
 logic [15:0] checksum;
@@ -1123,15 +1061,13 @@ sdr_send #(board_type, NR, master_clock, protocol_version) sdr_send_inst(
 	.CC_data_ready(CC_data_ready),      // C&C data availble 
 	.CC_data(CC_data),
 	.sequence_number(PC_seq_number),		// sequence number to send when programming and requesting more data
-	.samples_per_frame(samples_per_frame),
-	.tx_length(tx_length),
+	//.samples_per_frame(samples_per_frame),
+	//.tx_length(tx_length),
 	.Wideband_packets_per_frame(Wideband_packets_per_frame),  
 	.checksum(checksum),  
 	.phaseval(phaseval),  
-	.reg_rxtxc(reg_rxtxc),
-	.reg_rxtxd(reg_rxtxd),
-	.reg_rxtxclk(phychip[0] ? reg_rxtxclk21 : reg_rxtxclk31),
-	.is_9031(!phychip[0]),
+	.speed_1gb(speed_1gb),  
+	.is_9031(is_9031),
 	
 	//outputs
 	.udp_tx_data(udp_tx_data),
@@ -1160,6 +1096,7 @@ TLV320_SPI TLV (.clk(CMCLK), .CMODE(CMODE), .nCS(nCS), .MOSI(MOSI), .SSCK(SSCK),
 //			Determine number of I&Q samples per frame when in Sync or Mux mode
 //-------------------------------------------------------------------------
 
+`ifdef DONT
 reg [15:0] samples_per_frame[0:NR-1] ;
 reg [15:0] tx_length[0:NR-1];				// calculate length of Tx packet here rather than do it at high speed in the Ethernet code. 
 
@@ -1177,7 +1114,7 @@ for (j = 0 ; j < NR; j++)
 	end
 
 endgenerate
-
+`endif
 
 //------------------------------------------------------------------------
 //   Rx(n)_fifo  (2k Bytes) Dual clock FIFO - Altera Megafunction (dcfifo)
@@ -1208,79 +1145,63 @@ endgenerate
 */
 
 wire 			Rx_fifo_wreq[0:NR-1];
-wire  [7:0] Rx_fifo_data[0:NR-1];
+wire  [8:0] Rx_fifo_data[0:NR-1];
 wire        Rx_fifo_full[0:NR-1];
 wire [11:0] Rx_used[0:NR-1];
 wire        Rx_fifo_clr[0:NR-1];
-wire 			Rx_fifo_empty;
-wire 			fifo_clear;
-wire 			fifo_clear1;
+wire [NR-1:0] Rx_fifo_empty;
 wire 			write_enable;
 wire 			phy_ready;
 wire 			convert_state;
 wire 			C122_run;
 
-// This is just for Rx0 since it can sync with Rx1.
-
-		Rx_fifo Rx0_fifo_inst(.wrclk (C122_clk),.rdreq (fifo_rdreq[0]),.rdclk (tx_clock),.wrreq (Rx_fifo_wreq[0] && write_enable), 
-							 .data (Rx_fifo_data[0]), .q (Rx_data[0]), .wrfull(Rx_fifo_full[0]), .rdempty(Rx_fifo_empty),
-							 .rdusedw(Rx_used[0]), .aclr (IF_rst | Rx_fifo_clr[0] | !C122_run | fifo_clear ));  											
-							  
-		Rx_fifo_ctrl0 #(NR) Rx0_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[0] ), .clock(C122_clk), .data_in_I(rx_I[1]), .data_in_Q(rx_Q[1]), // was rx_Q[1]
-							.spd_rdy(strobe[0]), .spd_rdy2(strobe[1]), .fifo_full(Rx_fifo_full[0]), .Rx_fifo_empty(C122_Rx_fifo_empty),  //.Rx_number(d),
-							.wrenable(Rx_fifo_wreq[0]), .data_out(Rx_fifo_data[0]), .fifo_clear(Rx_fifo_clr[0]),
-							.Sync_data_in_I(rx_I[0]), .Sync_data_in_Q(rx_Q[0]), .Sync(C122_SyncRx[0]), .convert_state(convert_state));	
-													
-		assign  fifo_ready[0] = (Rx_used[0] > 12'd1427) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
-		
-// When Mux first set, inhibit fifo write then wait for PHY to be looking for more Rx0 data to ensure there is no data in transit.
-// Then reset fifo then wait for 48 to 8 converter to be looking for Rx0 DDC data at first byte. Then enable write to fifo again.
-
 
 // move flags into correct clock domains
 wire C122_phy_ready;
-wire C122_Rx_fifo_empty;
+
 cdc_sync #(1) cdc_phyready  (.siga(phy_ready), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_phy_ready));
-cdc_sync #(1) cdc_Rx_fifo_empty  (.siga(Rx_fifo_empty), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_Rx_fifo_empty));
 
 cdc_sync #(1) C122_run_sync  (.siga(run), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_run));
-cdc_sync #(8) C122_EnableRx0_7_sync  (.siga(EnableRx0_7), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_EnableRx0_7));
+cdc_sync #(16) C122_EnableRx0_15_sync  (.siga({EnableRx8_15,EnableRx0_7}), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_EnableRx0_15));
 
-Mux_clear Mux_clear_inst( .clock(C122_clk), .Mux(C122_SyncRx[0][1]), .phy_ready(C122_phy_ready), .convert_state(convert_state), .SampleRate(C122_SampleRate[0]),
-								  .fifo_clear(fifo_clear), .fifo_clear1(fifo_clear1), .fifo_write_enable(write_enable), .fifo_empty(C122_Rx_fifo_empty), .reset(!C122_run));	
+// This is just for Rx0 since it can sync with Rx1.
+		Rx_fifo Rx0_fifo_inst(.wrclk (C122_clk),.rdreq (fifo_rdreq[0]),.rdclk (tx_clock),.wrreq (Rx_fifo_wreq[0]), .rdempty (Rx_fifo_empty[0]),
+							 .data (Rx_fifo_data[0]), .q (Rx_data[0]), .wrfull(Rx_fifo_full[0]),
+							 .rdusedw(Rx_used[0]), .aclr (IF_rst | Rx_fifo_clr[0] | !C122_run));  											
+							  
+		Rx_fifo_ctrl #(NR) Rx0_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_15[0] ), .clock(C122_clk), .data_in_I(rx_I[1]), .data_in_Q(rx_Q[1]),
+							.spd_rdy(strobe[0]), .spd_rdy2(strobe[1]), .spd_rdy3(strobe[NR]), .fifo_full(Rx_fifo_full[0]), .data_in_IDAC(rx_I[NR]), .data_in_QDAC(rx_Q[NR]),
+							.wrenable(Rx_fifo_wreq[0]), .data_out(Rx_fifo_data[0]), .fifo_clear(Rx_fifo_clr[0]),
+							.Sync_data_in_I(rx_I[0]), .Sync_data_in_Q(rx_Q[0]), .Sync(C122_SyncRx[0][1]), .ps(C122_RxADC[1] == 8'd2));	
 
-		Rx_fifo Rx1_fifo_inst(.wrclk (C122_clk),.rdreq (fifo_rdreq[1]),.rdclk (tx_clock),.wrreq (Rx_fifo_wreq[1]), 
-							 .data (Rx_fifo_data[1]), .q (Rx_data[1]), .wrfull(Rx_fifo_full[1]),
-							 .rdusedw(Rx_used[1]), .aclr (IF_rst | Rx_fifo_clr[1] | !C122_run | fifo_clear1));   // ***** added fifo_clear1
+		always @ (posedge tx_clock)    
+			fifo_ready[0] = (Rx_used[0] > 12'd2047) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
+			//fifo_ready[0] = (Rx_used[0] > 12'd1427) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
 
-		Rx_fifo_ctrl #(NR) Rx1_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[1]), .clock(C122_clk),   
-							.spd_rdy(strobe[1]), .fifo_full(Rx_fifo_full[1]), //.Rx_number(d),
-							.wrenable(Rx_fifo_wreq[1]), .data_out(Rx_fifo_data[1]), .fifo_clear(Rx_fifo_clr[1]),
-							.Sync_data_in_I(rx_I[1]), .Sync_data_in_Q(rx_Q[1]), .Sync(0));
-													
-		assign  fifo_ready[1] = (Rx_used[1] > 12'd1427) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
+// When Mux first set, inhibit fifo write then wait for PHY to be looking for more Rx0 data to ensure there is no data in transit.
+// Then reset fifo then wait for 48 to 8 converter to be looking for Rx0 DDC data at first byte. Then enable write to fifo again.
 
 generate
 genvar d;
 
-for (d = 2 ; d < NR; d++)
+for (d = 1 ; d < NR; d++)
 	begin:p
-
-		Rx_fifo Rx_fifo_inst(.wrclk (C122_clk),.rdreq (fifo_rdreq[d]),.rdclk (tx_clock),.wrreq (Rx_fifo_wreq[d]), 
+		Rx_fifo RxX_fifo_inst(.wrclk (C122_clk),.rdreq (fifo_rdreq[d]),.rdclk (tx_clock),.wrreq (Rx_fifo_wreq[d]), .rdempty(Rx_fifo_empty[d]),
 							 .data (Rx_fifo_data[d]), .q (Rx_data[d]), .wrfull(Rx_fifo_full[d]),
 							 .rdusedw(Rx_used[d]), .aclr (IF_rst | Rx_fifo_clr[d] | !C122_run));
 
-		// Convert 48 bit Rx I&Q data (24bit I, 24 bit Q) into 8 bits to feed Tx FIFO. Only run if EnableRx0_7[x] is set.
+		// Convert 48 bit Rx I&Q data (24bit I, 24 bit Q) into 8 bits to feed Tx FIFO. Only run if EnableRx0_15[x] is set.
 		// If Sync[n] enabled then select the data from the receiver to be synchronised.
 		// Do this by using C122_SyncRx(n) to select the required receiver I & Q data.
 
-		Rx_fifo_ctrl #(NR) Rx0_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[d]), .clock(C122_clk),   
-							.spd_rdy(strobe[d]), .fifo_full(Rx_fifo_full[d]), .SampleRate(C122_SampleRate[d]),
+		Rx_fifo_ctrl #(NR) RxX_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_15[d]), .clock(C122_clk), .data_in_I(), .data_in_Q(),
+							.spd_rdy(strobe[d]), .spd_rdy2(), .fifo_full(Rx_fifo_full[d]), .SampleRate(C122_SampleRate[d]),
 							.wrenable(Rx_fifo_wreq[d]), .data_out(Rx_fifo_data[d]), .fifo_clear(Rx_fifo_clr[d]),
-							.Sync_data_in_I(rx_I[d]), .Sync_data_in_Q(rx_Q[d]), .Sync(0));
-													
-		assign  fifo_ready[d] = (Rx_used[d] > 12'd1427) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
+							.Sync_data_in_I(rx_I[d]), .Sync_data_in_Q(rx_Q[d]), .Sync(1'b0));
 
+		always @ (posedge tx_clock)    
+			fifo_ready[d] = (Rx_used[d] > 12'd2047) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
+			//fifo_ready[d] = (Rx_used[d] > 12'd1427) ? 1'b1 : 1'b0;  // used to signal that fifo has enough data to send to PC
 	end
 endgenerate
 
@@ -1382,7 +1303,7 @@ wire sp_fifo_wrreq;
 wire have_sp_data;
 
 wire wideband = (Wideband_enable[0] | Wideband_enable[1]);  							// enable Wideband data if either selected
-wire [15:0] Wideband_source = Wideband_enable[0] ? temp_ADC[0] : temp_ADC[1];	// select Wideband data source ADC0 or ADC1
+wire [15:0] Wideband_source = Wideband_enable[0] ? temp_ADC[0][0] : temp_ADC[0][1];	// select Wideband data source ADC0 or ADC1
 
 SP_fifo  SPF (.aclr(!wideband), .wrclk (C122_clk), .rdclk(tx_clock), 
              .wrreq (sp_fifo_wrreq), .data ({Wideband_source[7:0], Wideband_source[15:8]}), .rdreq (sp_fifo_rdreq),
@@ -1392,10 +1313,7 @@ sp_rcv_ctrl SPC (.clk(C122_clk), .reset(0), .sp_fifo_wrempty(sp_fifo_wrempty),
                  .sp_fifo_wrfull(sp_fifo_wrfull), .write(sp_fifo_wrreq), .have_sp_data(have_sp_data));	
 				 
 // **** TODO: change number of samples in FIFO (presently 16k) based on user selection **** 
-
-
-// wire [:0] update_rate = 100T ?  12500 : 125000; // **** TODO: need to change counter target when run at 100T.
-wire [17:0] update_rate = 125000;
+wire [17:0] update_rate = speed_1gb ?  125000 : 12500;
 
 reg  sp_data_ready;
 reg [24:0]wb_counter;
@@ -1562,6 +1480,7 @@ wire [47:0] IQ_Tx_data = FPGA_PTT ? C122_IQ1_data : 48'b0;
 
 
 
+
 													
 //--------------------------------------------------------------------------
 //			EPCS16 Erase and Program code 
@@ -1588,8 +1507,6 @@ wire [47:0] IQ_Tx_data = FPGA_PTT ? C122_IQ1_data : 48'b0;
 					    +-------------------+						
 */
 
-/* Odyssey2: not available
-
 wire [7:0]EPCS_data;
 wire [10:0]EPCS_Rx_used;
 wire  EPCS_rdreq;
@@ -1612,8 +1529,7 @@ wire reset_FPGA;
 ASMI_interface  ASMI_int_inst(.clock(clock_12_5MHz), .busy(busy), .erase(erase), .erase_ACK(erase_ACK), .IF_PHY_data(EPCS_data), .EPCS_flash(MODE2),
 					 .IF_Rx_used(EPCS_Rx_used), .rdreq(EPCS_rdreq), .erase_done(erase_done), .num_blocks(num_blocks), .checksum(checksum),
 					 .send_more(send_more), .send_more_ACK(send_more_ACK), .erase_done_ACK(erase_done_ACK), .NCONFIG(reset_FPGA)); 
-*/		
-					 
+							 
 //--------------------------------------------------------------------------------------------
 //  	Iambic CW Keyer
 //--------------------------------------------------------------------------------------------
@@ -1623,7 +1539,7 @@ wire keyout;
 // parameter is clock speed in kHz.
 iambic #(48) iambic_inst (.clock(CLRCLK), .cw_speed(keyer_speed),  .iambic(iambic), .keyer_mode(keyer_mode), .weight(keyer_weight), 
                           .letter_space(keyer_spacing), .dot_key(!KEY_DOT | Dot), .dash_key(!KEY_DASH | Dash),
-								  .CWX(CWX), .paddle_swap(key_reverse), .keyer_out(keyout), .IO8());
+								  .CWX(CWX), .paddle_swap(key_reverse), .keyer_out(keyout), .IO8(debounce_IO8));
 						  
 //--------------------------------------------------------------------------------------------
 //  	Calculate  Raised Cosine profile for sidetone and CW envelope when internal CW selected 
@@ -1658,27 +1574,58 @@ sidetone sidetone_inst( .clock(CLRCLK), .enable(sidetone), .tone_freq(tone_freq)
  
 */
 
-// ODYSEEY 2: we are using ADC and DAC in offset binary mode
-// and not in 2's complement format as Anan devices
-
-reg [15:0]temp_ADC[0:1];
-//reg [15:0] DAC; // move DAC data into Rx clock domain for PureSignal use.
+reg [15:0]temp_ADC[0:3][0:1];
 reg [15:0] temp_DACD;
-//reg [15:0] x;
 
 always @ (posedge _122_90)
 	temp_DACD <={C122_cordic_i_out[21:8], 2'b00};
-	//temp_DACD <= C122_cordic_i_out[22:7]; 	//for predistortion use (PureSignal)
-
 
 always @ (posedge C122_clk) 
 begin 
 
 	 //{DAC,x} <= {x, C122_cordic_i_out[21:8], 2'b0}; // make DAC 16-bits, use high bits for DAC
-	 
-	 temp_ADC[0] <= {~INA[15], INA[14:0]};
-	 temp_ADC[1] <= {~INA_2[15], INA_2[14:0]};
-	
+
+   if (RAND) begin	// RAND set so de-ramdomize
+		if (INA[0]) begin
+			temp_ADC[0][0] <= {~INA[15:1],INA[0]};
+			temp_ADC[1][0] <= {~INA[15:1],INA[0]};
+			temp_ADC[2][0] <= {~INA[15:1],INA[0]};
+			temp_ADC[3][0] <= {~INA[15:1],INA[0]};
+		end
+		else begin
+			temp_ADC[0][0] <= INA;
+			temp_ADC[1][0] <= INA;
+			temp_ADC[2][0] <= INA;
+			temp_ADC[3][0] <= INA;
+		end
+	end
+   else begin
+	temp_ADC[0][0] <= INA;  // not set so just copy data	 
+	temp_ADC[1][0] <= INA;
+	temp_ADC[2][0] <= INA;
+	temp_ADC[3][0] <= INA;
+   end
+		
+   if (RAND_2) begin
+		if (INA_2[0]) begin
+			temp_ADC[0][1] <= {~INA_2[15:1],INA_2[0]};
+			temp_ADC[1][1] <= {~INA_2[15:1],INA_2[0]};
+			temp_ADC[2][1] <= {~INA_2[15:1],INA_2[0]};
+			temp_ADC[3][1] <= {~INA_2[15:1],INA_2[0]};
+		end
+		else begin
+			temp_ADC[0][1] <= INA_2;
+			temp_ADC[1][1] <= INA_2;
+			temp_ADC[2][1] <= INA_2;
+			temp_ADC[3][1] <= INA_2;
+		end
+	end
+   else begin
+	temp_ADC[0][1] <= INA_2;  // not set so just copy data	 
+	temp_ADC[1][1] <= INA_2;
+	temp_ADC[2][1] <= INA_2;
+	temp_ADC[3][1] <= INA_2;
+   end
 end 
 
 
@@ -1691,19 +1638,19 @@ wire      [31:0] C122_frequency_HZ [0:NR-1];   // frequency control bits for COR
 reg       [31:0] C122_frequency_HZ_Tx;
 reg       [31:0] C122_last_freq [0:NR-1];
 reg       [31:0] C122_last_freq_Tx;
-reg       [31:0] C122_sync_phase_word [0:NR-1];
-reg       [31:0] C122_sync_phase_word_Tx;
+//reg       [31:0] C122_sync_phase_word [0:NR-1];
+//reg       [31:0] C122_sync_phase_word_Tx;
 wire      [63:0] C122_ratio [0:NR-1];
 wire      [63:0] C122_ratio_Tx;
-wire      [23:0] rx_I [0:NR-1];
-wire      [23:0] rx_Q [0:NR-1];
-wire             strobe [0:NR-1];
+wire      [23:0] rx_I [0:NR];
+wire      [23:0] rx_Q [0:NR];
+wire             strobe [0:NR];
 wire      [15:0] C122_SampleRate[0:NR-1]; 
 wire       [7:0] C122_RxADC[0:NR-1];
 wire       [7:0] C122_SyncRx[0:NR-1];
 wire      [31:0] C122_phase_word[0:NR-1]; 
-wire [15:0] select_input_RX[0:NR-1];		// set receiver module input sources
-reg	frequency_change[0:NR-1];  // bit set when frequency of Rx[n] changes
+wire      [15:0] select_input_RX[0:NR-1];		// set receiver module input sources
+//reg              frequency_change[0:NR-1];  // bit set when frequency of Rx[n] changes
 
 generate
 genvar c;
@@ -1723,7 +1670,7 @@ genvar c;
 	cdc_sync #(32) Rx_freqX
 	(.siga(Rx_frequency[c]), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_frequency_HZ[c]));
 
-	if (c > 1) begin
+	if (c > 0) begin
 	receiver2 receiver_instX(   
 	//control
 	//.reset(fifo_clear || !C122_run),
@@ -1733,7 +1680,8 @@ genvar c;
 	.frequency(C122_frequency_HZ[c]),     // PC send phase word now
 	.out_strobe(strobe[c]),
 	//input
-	.in_data(select_input_RX[c]),
+	//.in_data((c==1)?(C122_RxADC[c] == 8'd2)?temp_DACD:(C122_RxADC[c]==8'd1)?temp_ADC[c/4][1]:temp_ADC[c/4][0]:(C122_RxADC[c]==8'd1)?temp_ADC[c/4][1]:temp_ADC[c/4][0]),
+	.in_data((C122_RxADC[c]==8'd1)?temp_ADC[c/4][1]:temp_ADC[c/4][0]),
 	//output
 	.out_data_I(rx_I[c]),
 	.out_data_Q(rx_Q[c])
@@ -1742,46 +1690,36 @@ genvar c;
   end
 endgenerate
 
-genvar e;
-generate
-for (e = 0; e < NR; e = e + 1) begin : rxloop
-	always @(posedge C122_clk)
-	begin
-		if (e == 1) select_input_RX[e] = C122_RxADC[e] == 8'd2 ? temp_DACD : (C122_RxADC[e] == 8'd1 ? temp_ADC[1] : temp_ADC[0]);
-		else select_input_RX[e] = C122_RxADC[e] == 8'd1 ? temp_ADC[1] : temp_ADC[0];
-	end
-end
-endgenerate
+	receiver2 receiver_instDAC(   
+	//control
+	.reset(!C122_run),
+	.clock(C122_clk),
+	.sample_rate(C122_SampleRate[0]),
+	.frequency(C122_frequency_HZ[0]),
+	.out_strobe(strobe[NR]),
+	//input
+	.in_data(temp_DACD),
+	//output
+	.out_data_I(rx_I[NR]),
+	.out_data_Q(rx_Q[NR])
+	);
 
 	receiver2 receiver_inst0(   
 	//control
-	.reset(fifo_clear || !C122_run),
+	//.reset(fifo_clear || !C122_run),
+	.reset(!C122_run),
 	.clock(C122_clk),
 	.sample_rate(C122_SampleRate[0]),
 	.frequency(C122_frequency_HZ[0]),     // PC send phase word now
 	.out_strobe(strobe[0]),
 	//input
-	.in_data(select_input_RX[0]),
+	.in_data((C122_RxADC[0]==8'd1)?temp_ADC[0][1]:temp_ADC[0][0]),
 	//output
 	.out_data_I(rx_I[0]),
 	.out_data_Q(rx_Q[0])
 	);
 
-	receiver2 receiver_inst1(   
-	//control
-	.reset(fifo_clear || !C122_run),
-	.clock(C122_clk),
-	.sample_rate(C122_SampleRate[1]),
-	.frequency(C122_frequency_HZ[1]),     // PC send phase word now
-	.out_strobe(strobe[1]),
-	//input
-	.in_data(select_input_RX[1]),			  // to allow for both Diversity and PureSignal operations
-	//output
-	.out_data_I(rx_I[1]),
-	.out_data_Q(rx_Q[1])
-	);
-
-// only using Rx0 and Rx1 Sync for now so can use simpler code
+	// only using Rx0 and Rx1 Sync for now so can use simpler code
 	// Move SyncRx[n] into C122 clock domain
 	cdc_mcp #(8) SyncRx_inst
 	(.a_rst(C122_rst), .a_clk(rx_clock), .a_data(SyncRx[0]), .a_data_rdy(Rx_data_ready), .b_rst(C122_rst), .b_clk(C122_clk), .b_data(C122_SyncRx[0]));
@@ -1790,21 +1728,45 @@ endgenerate
 //---------------------------------------------------------
 //    ADC SPI interface 
 //---------------------------------------------------------
-// generate a 30.72MHz clock for the Orion_ADC module, results in a 7.68MHz clock to the ADC78H90 chip
-//PLL_30MHz PLL_30MHz_inst(.inclk0(C122_clk), .c0(userADC_clock));
 
 wire [11:0] AIN1;  // FWD_power
 wire [11:0] AIN2;  // REV_power
-wire [11:0] AIN3;  // User 1
-wire [11:0] AIN4;  // User 2
-wire [11:0] AIN5 = 12'd2048;  // holds 12 bit ADC value of Forward Voltage detector.
-wire [11:0] AIN6 = 12'd1950;  // holds 12 bit ADC of 13.8v measurement 
+wire [11:0] AIN3;  // User 1, PA Voltage
+wire [11:0] AIN4;  // User 2, PA Current
+wire [11:0] AIN5;  // holds 12 bit ADC value of Forward Voltage detector.
+wire [11:0] AIN6;  // holds 12 bit ADC of 13.8v supply measurement 
 
 wire pk_detect_reset;
 wire pk_detect_ack;
 
-ext_io_adc ADC_SPI(.clock(CLRCLK), .SCLK(ADCCLK), .nCS(ADCCS_N), .MISO(ADCMISO), .MOSI(ADCMOSI),
-                                   .AIN1(AIN1), .AIN2(AIN2), .pk_detect_reset(pk_detect_reset), .pk_detect_ack(pk_detect_ack));
+`ifdef DONT
+`ifndef ORION_MKIII
+// generate a 30.72MHz clock for the Orion_ADC module, results in a 7.68MHz clock to the ADC78H90 chip
+PLL_30MHz PLL_30MHz_inst(.inclk0(C122_clk), .c0(userADC_clock));
+wire userADC_clock;
+Orion_ADC ADC_SPI(.clock(userADC_clock
+`else
+Orion_ADC ADC_SPI(.clock(CBCLK
+`endif
+), .SCLK(ADCCLK), .nCS(nADCCS), .MISO(ADCMISO), .MOSI(ADCMOSI),
+				   .AIN1(AIN1), .AIN2(AIN2), .AIN3(AIN3), .AIN4(AIN4), .AIN5(AIN5), .AIN6(AIN6),
+					.pk_detect_reset(pk_detect_reset), .pk_detect_ack(pk_detect_ack));	
+`endif
+PLL_30MHz PLL_30MHz_inst(.inclk0(C122_clk), .c0(userADC_clock));
+wire userADC_clock;
+Orion_ADC ADC_SPI(.clock(userADC_clock), .SCLK(ADCCLK), .nCS(nADCCS), .MISO(ADCMISO), .MOSI(ADCMOSI),
+				   .AIN1(AIN1), .AIN2(AIN2), .AIN3(AIN3), .AIN4(AIN4), .AIN5(AIN5), .AIN6(AIN6),
+					.pk_detect_reset(pk_detect_reset), .pk_detect_ack(pk_detect_ack));	
+
+wire Alex_SPI_SDO;
+wire Alex_SPI_SCK;
+wire SPI_TX_LOAD;
+wire SPI_RX_LOAD;
+
+assign SPI_SDO = Alex_SPI_SDO;		// select which module has control of data
+assign SPI_SCK = Alex_SPI_SCK;		// and clock for serial data transfer
+assign J15_5   = SPI_RX_LOAD;			// Alex Rx_load or Apollo Reset
+assign J15_6   = SPI_TX_LOAD;      // Alex Tx_load or Apollo Enable 
 
 
 	
@@ -1841,7 +1803,7 @@ wire signed [16:0] I;
 wire signed [16:0] Q;
 
 // if in VNA mode use the Rx[0] phase word for the Tx
-assign C122_phase_word_Tx = VNA ? C122_sync_phase_word[0] : C122_sync_phase_word_Tx;
+//assign C122_phase_word_Tx = VNA ? C122_sync_phase_word[0] : C122_sync_phase_word_Tx;
 
 // if break_in is selected then CW_PTT can generate RF otherwise PC_PTT must be active.
 	
@@ -1869,7 +1831,7 @@ cpl_cordic # (.IN_WIDTH(17))
 
 always @ (posedge _122_90)
 begin
- 	   DACD <= run ? {~C122_cordic_i_out[21], C122_cordic_i_out[20:8]} : 14'b0; 				// convert to 16-bit offset binary format and assign to DACD
+ 	   DACD <= debounce_IO5 ? (16'd32768 + temp_DACD) : 16'b0; 				// convert to 16-bit offset binary format and assign to DACD
 		//DACD <= {C122_cordic_i_out[22], ~C122_cordic_i_out[21:7]};  // convert top 16-bits to offset binary for TxDAC
 end
 
@@ -1877,6 +1839,28 @@ end
 //------------------------------------------------------------
 //  Set Power Output 
 //------------------------------------------------------------
+
+/*
+	Code used to set power output depends on hardware. If TX_ATTEN_SELECT is high then PWM DAC drive current is used.
+	If low then a digital attenuator (0-31dB in 0.5dB steps) is used to control power output.
+	Since 0.5dB steps are too course, the PWM DAC is used for fine control. The selection of attenuator step and DAC PWM 
+	settings, based on Drive_Level,is done via ROMs (Tx_Atten and Tx_DAC).
+
+*/
+
+// select Tx attenuator parallel load mode
+
+assign TX_ATTN_LE = 1'b1;
+assign TX_ATTN_MODE = 0;
+
+wire [7:0] Drive_PWM;
+
+Tx_Atten Tx_Attn_inst (.clock(CMCLK), .address(Drive_Level), .q( TX_ATTEN));  // ROM for Tx attenuator settings
+Tx_DAC   Tx_DAC_inst  (.clock(CMCLK), .address(Drive_Level), .q(Drive_PWM)); // ROM for Tx DAC settings
+
+// select DAC PWM source based on Tx_ATTEN_SELECT 
+wire [7:0] PWM_source =  TX_ATTEN_SELECT ? Drive_Level : Drive_PWM;
+
 
 // PWM DAC to set drive current to DAC. PWM_count increments 
 // using rx_clock. If the count is less than the drive 
@@ -1886,15 +1870,46 @@ reg [7:0] PWM_count;
 always @ (posedge rx_clock)
 begin 
 	PWM_count <= PWM_count + 1'b1;
-	if (Drive_Level >= PWM_count)
+	if (PWM_source >= PWM_count)
 		DAC_ALC <= 1'b1;
 	else 
 		DAC_ALC <= 1'b0;
 end 
 
+
 //---------------------------------------------------------
 //              Decode Command & Control data
 //---------------------------------------------------------
+// Orion mic tip/ring configuration; mic bias enabled/disabled via C&C command above
+//
+// NOTE:  The Orion Rev3.0.pdf schematic is labeled incorrectly relative to how the Orion (Mk I) board is actually wired:
+//		U29 pin 1 should be labeled PTTRING
+//		U29 pin 3 should be labeled PTTTIP
+//
+//		U32 pin 1 should be labeled MIC_TIP
+//    U32 pin 3 should be labeled MIC_RING
+//
+//		U33 pin 1 should be labeled BIASRING
+//		U33 pin 3 should be labeled BIASTIP
+//
+//  Thus the logic in this always block is reversed from what you find in the Orion Mk I firmware, as the Mk II Orion schematic
+//  is accurate with how the Mk II Orion board is wired for these connections
+
+always @ (posedge CMCLK)
+begin
+	  if (Orion_tip_ring_select == 1'b0)
+		begin	
+			PTT_SELECT 		<= 1'b0;						 // set Orion mic ptt to tip (ref note above)
+			MIC_SIG_SELECT <= 1'b0;						 // set Orion mic signal to ring (ref note above)
+			MICBIAS_SELECT <= 1'b1; 					 // set Orion mic bias to ring (ref note above)
+		end
+		else begin
+			PTT_SELECT 		<= 1'b1;						 // set Orion mic ptt to ring (ref note above)
+			MIC_SIG_SELECT <= 1'b1;						 // set Orion mic signal to tip (ref note above)
+			MICBIAS_SELECT <= 1'b0;						 // set Orion mic bias to tip (ref note above)
+		end			
+end	
+
 
 wire         mode;     			// normal or Class E PA operation 
 wire         Attenuator;		// selects input attenuator setting, 1 = 20dB, 0 = 0dB 
@@ -1939,7 +1954,8 @@ wire 			 Tx_data_ready;		// indicated Tx_specific data available
 wire   [7:0] Mux;						// Rx in mux mode when bit set, [0] = Rx0, [1] = Rx1 etc 
 wire   [7:0] SyncRx[0:NR-1];			// bit set selects Rx to sync or mux with
 wire 	 [7:0] EnableRx0_7;			// Rx enabled when bit set, [0] = Rx0, [1] = Rx1 etc
-wire 	 [7:0] C122_EnableRx0_7;
+wire 	 [7:0] EnableRx8_15;
+wire 	 [15:0] C122_EnableRx0_15;
 wire  [15:0] Rx_Specific_port;	// 
 wire  [15:0] Tx_Specific_port;
 wire  [15:0] High_Prioirty_from_PC_port;
@@ -2053,30 +2069,24 @@ High_Priority_CC #(1027, NR) High_Priority_CC_inst  // parameter is port number 
 			);
 
 
-wire XVTR_ENABLE;
+wire XVTR_ENABLE, AUTO_TUNE;
 assign XVTR_ENABLE = DLE_outputs[0];
 
 // enable AF Amp
-// Odyssey2: only from boot
-// TODO: control this with MCU
-//assign IO1 = DLE_outputs[1];				// low to enable, high to mute
+assign IO1 = DLE_outputs[1];				// low to enable, high to mute
 
 // enable Auto-Tune
 assign AUTO_TUNE = DLE_outputs[2];			// high to enable auto-tune
 
 			
 // if break_in is selected then CW_PTT can activate the FPGA_PTT. 
-// if break_in is slected then CW_PTT can generate RF otherwise PC_PTT must be active.	
-// inhibit T/R switching if IO4 TX INHIBIT is active (low)		
-// TODO: check || debounce_PTT
-assign FPGA_PTT = run && ((break_in && CW_PTT) || PC_PTT); // CW_PTT is used when internal CW is selected
+// if break_in is selected then CW_PTT can generate RF otherwise PC_PTT must be active.	
+// (OLD, changed to below) inhibit T/R switching if IO4 TX INHIBIT is active (low)		
+// IO4 is the MUTE signal from the Andromeda Front Panel
+assign FPGA_PTT = debounce_IO5 && ((break_in && CW_PTT) || PC_PTT); // CW_PTT is used when internal CW is selected
 
 // clear TR relay and Open Collectors if run not set 
-`ifdef ORION_MKII_TYPE
-wire [47:0]runsafe_Alex_data = {Alex_data[47:44], run ? ((PA_enable ? FPGA_PTT : 1'b0) | Alex_data[43]) : 1'b0, Alex_data[42:0]};
-`else
-wire [47:0]runsafe_Alex_data = {16'b0, Alex_data[31:28], run ? ((PA_enable ? FPGA_PTT : 1'b0) | Alex_data[27]) : 1'b0, Alex_data[26:0]};
-`endif
+wire [47:0]runsafe_Alex_data = {Alex_data[47:44], run && PA_enable && FPGA_PTT && Alex_data[43], Alex_data[42:0]};
 
 Tx_specific_CC #(1026)Tx_specific_CC_inst //   // parameter is port number  ***** this data is in rx_clock domain *****
 			( 	
@@ -2128,14 +2138,17 @@ Rx_specific_CC #(1025, NR) Rx_specific_CC_inst // parameter is port number
 				.RxADC(RxADC),	
 				.SyncRx(SyncRx),
 				.EnableRx0_7(EnableRx0_7),
+				.EnableRx8_15(EnableRx8_15),
 				.Rx_data_ready(Rx_data_ready),
 				.Mux(Mux),
 				.HW_reset(HW_reset4),
 				.sequence_errors(Rx_spec_sequence_errors)
 			);			
 			
-assign  RAND   = random[0] | random[1];                 //high turns random on
-assign  DITH   = dither[0] | dither[1];                 //high turns LTC2208 dither on		
+assign  RAND   = random[0];        		//high turns random on
+assign  RAND_2 = random[1]; 
+assign  DITH   = dither[0];      		//high turns LTC2208 dither on 
+assign  DITH_2 = dither[1]; 		
 
 // transfer C&C data in rx_clock domain, on strobe, into relevant clock domains
 cdc_mcp #(32) Tx1_freq 
@@ -2148,8 +2161,8 @@ cdc_mcp #(8) Mux_inst
 
 // move Alex data into CBCLK domain
 wire  [47:0] SPI_Alex_data;
-//cdc_sync #(48) SPI_Alex (.siga(runsafe_Alex_data), .rstb(IF_rst), .clkb(CBCLK), .sigb(SPI_Alex_data));
-cdc_sync #(48) SPI_Alex (.siga(runsafe_Alex_data), .rstb(SPI_Alex_rst), .clkb(CBCLK), .sigb(SPI_Alex_data));
+cdc_sync #(48) SPI_Alex (.siga(runsafe_Alex_data), .rstb(IF_rst), .clkb(CBCLK), .sigb(SPI_Alex_data));
+//cdc_sync #(48) SPI_Alex (.siga(runsafe_Alex_data), .rstb(SPI_Alex_rst), .clkb(CBCLK), .sigb(SPI_Alex_data));
  
 
  
@@ -2187,7 +2200,7 @@ CC_encoder #(50, NR) CC_encoder_inst (				// 50mS update rate
 					.PTT ((break_in & CW_PTT) | debounce_PTT),
 					.Dot (debounce_DOT),
 					.Dash(debounce_DASH),
-					.frequency_change(frequency_change),
+					//.frequency_change(frequency_change),
 					.locked_10MHz(locked_10MHz),		// set if the 10MHz divider PLL is locked.
 					.ADC0_overload (OVERFLOW),
 					.ADC1_overload (OVERFLOW_2),
@@ -2197,7 +2210,7 @@ CC_encoder #(50, NR) CC_encoder_inst (				// 50mS update rate
 					.Supply_volts ({4'b0,AIN6}),  
 					.User_ADC1 (user_analog1),
 					.User_ADC2 (user_analog2),
-					.User_IO (8'b0),
+					.User_IO ({3'b0, IO2, debounce_IO8, IO6, debounce_IO5, IO4}),
 					.pk_detect_ack(pk_detect_ack),		// from Orion_ADC
 					.FPGA_PTT(FPGA_PTT),						// when set change update rate to 1mS
 					.Debug_data(16'd0),
@@ -2224,28 +2237,37 @@ wire [4:0] atten1;
 assign atten0 = FPGA_PTT ? atten0_on_Tx : Attenuator0;
 assign atten1 = FPGA_PTT ? atten1_on_Tx : Attenuator1; 
 
-Attenuator Attenuator_ADC0 (.clk(CBCLK), .data(atten0), .ATTN_CLK(ATTN_CLK_1),   .ATTN_DATA(ATTN_DATA_1),   .ATTN_LE(ATTN_LE));
+Attenuator Attenuator_ADC0 (.clk(CBCLK), .data(atten0), .ATTN_CLK(ATTN_CLK),   .ATTN_DATA(ATTN_DATA),   .ATTN_LE(ATTN_LE));
 Attenuator Attenuator_ADC1 (.clk(CBCLK), .data(atten1), .ATTN_CLK(ATTN_CLK_2), .ATTN_DATA(ATTN_DATA_2), .ATTN_LE(ATTN_LE_2));
+
 
 //----------------------------------------------
 //		Alex SPI interface
 //----------------------------------------------
 
 SPI Alex_SPI_Tx (.reset (SPI_Alex_rst), .enable(Alex_enable[0]), .Alex_data(SPI_Alex_data), .SPI_data(Alex_SPI_SDO),
-                 .SPI_clock(Alex_SPI_SCK), .Tx_load_strobe(Alex_TX_LOAD),
-                 .Rx_load_strobe(Alex_RX_LOAD), .spi_clock(CBCLK));	
+                 .SPI_clock(Alex_SPI_SCK), .Tx_load_strobe(SPI_TX_LOAD),
+                 .Rx_load_strobe(SPI_RX_LOAD), .spi_clock(CBCLK));	
 
 //---------------------------------------------------------
 //  Debounce inputs - active low
 //---------------------------------------------------------
 
+wire Orion_micPTT;
+
+assign Orion_micPTT = Orion_micPTT_disable ? 1'b1 : PTT;
+
 wire debounce_PTT;    // debounced button
 wire debounce_DOT;
 wire debounce_DASH;
+wire debounce_IO5;
+wire debounce_IO8;
 
-debounce de_PTT	(.clean_pb(debounce_PTT),  .pb(!PTT | !PTT2), .clk(CMCLK));
+debounce de_PTT	(.clean_pb(debounce_PTT),  .pb(~Orion_micPTT/*!PTT*/), .clk(CMCLK));
 debounce de_DOT	(.clean_pb(debounce_DOT),  .pb(!KEY_DOT), .clk(CMCLK));
 debounce de_DASH	(.clean_pb(debounce_DASH), .pb(!KEY_DASH), .clk(CMCLK));
+debounce de_IO5	(.clean_pb(debounce_IO5),	.pb(IO5), 		 .clk(CMCLK));	 // TX INHIBIT in, pin 16 J16
+debounce de_IO8	(.clean_pb(debounce_IO8),  .pb(!IO8), 		 .clk(CMCLK));  // ext CW key in, pin 13 J16
 
 //-------------------------------------------------------
 //    PLLs 
@@ -2258,12 +2280,13 @@ debounce de_DASH	(.clean_pb(debounce_DASH), .pb(!KEY_DASH), .clk(CMCLK));
 	via circuitry on the MkII board.  
 */
 
+
 wire osc_10MHZ; 
 wire locked_10MHz; 
 
 // Use a PLL to divide 122.88MHz clock to 10MHz for XOR operation to generate feedback voltage for 
 // the 122.88 MHz osc module							
-C122_PLL PLL_inst ( .areset(0), .inclk0(LTC2208_122MHz), .c0(osc_10MHZ), .locked(locked_10MHz));
+C122_PLL PLL_inst ( .areset(0), .inclk0(_122MHz), .c0(osc_10MHZ), .locked(locked_10MHz));
 	
 //Apply to EXOR phase detector 
 
@@ -2273,48 +2296,166 @@ assign FPGA_PLL = osc_10MHZ ^ OSC_10MHZ;		// Orion MkII
 //  LED Control  
 //-----------------------------------------------------------
 
-parameter half_second = 2_500_000; // at 12.288MHz clock rate
+/*
+	LEDs:  
+	
+	DEBUG_LED1  	- Lights when an Ethernet broadcast is detected
+	DEBUG_LED2  	- Lights when traffic to the boards MAC address is detected
+	DEBUG_LED3  	- Lights when detect a received sequence error or ASMI is busy
+	DEBUG_LED4 		- Displays state of PHY negotiations - fast flash if no Ethernet connection, slow flash if 100T and on if 1000T
+	DEBUG_LED5		- Lights when the PHY receives Ethernet traffic
+	DEBUG_LED6  	- Lights when the PHY transmits Ethernet traffic
+	DEBUG_LED7  	- Displays state of DHCP negotiations or static IP - on if ACK, slow flash if NAK, fast flash if time out 
+					     and long then short flash if static IP
+	DEBUG_LED8  	- Lights when sync (0x7F7F7F) received from PC
+	DEBUG_LED9  	- Lights when a Metis discovery packet is received
+	DEBUG_LED10 	- Lights when a Metis discovery packet reply is sent	
+	
+	Status_LED	    - Flashes once per second
+	
+	A LED is flashed for the selected period on the positive edge of the signal.
+	If the signal period is greater than the LED period the LED will remain on.
 
-// Odyssey 2 : LED dimmer
-wire led1;
-wire led2;
-wire led3;
 
-// LED bright 0 - 100 %
-parameter dimmer = 8'd3;
+*/
 
-reg [7:0] dim_cnt = 0;
-always @(posedge CMCLK)  if (dim_cnt != 100) dim_cnt <= dim_cnt + 1'd1; else dim_cnt <= 0;
+parameter [24:0] half_second = 2_500_000; // at 12.288MHz clock rate
+parameter [24:0] fast_clock_half_second = 25_000_000; // at Gigbit PHY rate
 
-assign DEBUG_LED1 = led1 & (dim_cnt <= dimmer);  // connection's status
-assign DEBUG_LED2 = led2 & (dim_cnt <= dimmer);  // receive from PHY
-assign DEBUG_LED3 = led3 & (dim_cnt <= dimmer);  // transmitt to PHY
+`ifdef LEDTEST
+wire i_clk;
+assign i_clk = HB_counter[23];
 
-// flash for ~ 0.2 second whenever rgmii_rx_active
-Led_flash Flash_LED1(.clock(CMCLK), .signal(network_status[2]), .LED(led2), .period(half_second));
+reg	[4:0]	led_posn;
+	always @(posedge i_clk)
+		led_posn <= (led_posn == 5'h13) ? 5'h0 : led_posn + 1'b1;
 
-// flash for ~ 0.2 second whenever the PHY transmits
-Led_flash Flash_LED2(.clock(CMCLK), .signal(network_status[1]), .LED(led3), .period(half_second));
+always @(posedge i_clk)
+	begin
+		DEBUG_LED1 <= ~(led_posn == 5'h0);
+		DEBUG_LED2 <= ~(led_posn == 5'h1);
+		DEBUG_LED3 <= ~(led_posn == 5'h2);
+		DEBUG_LED4 <= ~(led_posn == 5'h3);
+		DEBUG_LED5 <= ~(led_posn == 5'h4);
+		DEBUG_LED6 <= ~(led_posn == 5'h5);
+		DEBUG_LED7 <= ~(led_posn == 5'h6);
+		DEBUG_LED8 <= ~(led_posn == 5'h7);
+		DEBUG_LED9 <= ~(led_posn == 5'h8);
+		DEBUG_LED10 <= ~(led_posn == 5'h9);
+		DEBUG_LED11 <= ~(led_posn == 5'ha);
+		DEBUG_LED12 <= ~(led_posn == 5'hb);
+		DEBUG_LED13 <= ~(led_posn == 5'hc);
+		DEBUG_LED14 <= ~(led_posn == 5'hd);
+		DEBUG_LED15 <= ~(led_posn == 5'he);
+		DEBUG_LED16 <= ~(led_posn == 5'hf);
+		DEBUG_LED17 <= ~(led_posn == 5'h10);
+		DEBUG_LED18 <= ~(led_posn == 5'h11);
+		DEBUG_LED19 <= ~(led_posn == 5'h12);
+		DEBUG_LED20 <= ~(led_posn == 5'h13);
+	end
 
-// flash LED4 for ~0.2 seconds whenever traffic to the boards MAC address is received
-// phy_connected
-Led_flash Flash_TP1(.clock(CMCLK), .signal(network_status[0]), .LED(DEBUG_TP1), .period(half_second));
+`else
 
-parameter clock_speed = 12_288_000; // 12.288MHz clock
+// flash LED1 for ~ 0.2 second whenever rgmii_rx_active
+//Led_flash Flash_LED1(.clock(CMCLK), .signal(network_status[2]), .LED(DEBUG_LED1), .period(half_second)); 	
+//Led_flash Flash_LED1(.clock(CBCLK), .signal(mic_wr_full), .LED(DEBUG_LED1), .period(half_second));
+
+// flash LED2 for ~ 0.2 second whenever the PHY transmits
+//Led_flash Flash_LED2(.clock(CMCLK), .signal(network_status[1]), .LED(DEBUG_LED2), .period(half_second)); 
+//assign RAM_A2 = 1'b1; // turn the LED off for now. 	
+//Led_flash Flash_LED2(.clock(tx_clock), .signal(mic_rd_empty), .LED(DEBUG_LED2), .period(fast_clock_half_second));
+
+// flash LED3 for ~0.2 seconds whenever ip_rx_enable
+//Led_flash Flash_LED3(.clock(CMCLK), .signal(network_status[1]), .LED(DEBUG_LED3), .period(half_second));
+//Led_flash Flash_LED3(.clock(rx_clock), .signal(HP_CC_seq_err), .LED(DEBUG_LED3), .period(fast_clock_half_second));
+
+// flash LED4 for ~0.2 seconds whenever traffic to the boards MAC address is received 
+//Led_flash Flash_LED4(.clock(CMCLK), .signal(network_status[0]), .LED(DEBUG_LED4), .period(half_second));
+//Led_flash Flash_LED4(.clock(rx_clock), .signal(G_CC_seq_err), .LED(DEBUG_LED4), .period(fast_clock_half_second));
+
+assign DEBUG_LED20 = 1'b1;
+assign DEBUG_LED19 = 1'b1;
+assign DEBUG_LED18 = 1'b1;
+assign DEBUG_LED17 = 1'b1;
+assign DEBUG_LED16 = 1'b1;
+assign DEBUG_LED15 = 1'b1;
+assign DEBUG_LED14 = 1'b1;
+assign DEBUG_LED13 = 1'b1;
+assign DEBUG_LED12 = 1'b1;
+assign DEBUG_LED11 = 1'b1;
+assign DEBUG_LED10 = 1'b1;
+assign DEBUG_LED9 = 1'b1;
+assign DEBUG_LED8 = 1'b1;
+assign DEBUG_LED7 = 1'b1;
+assign DEBUG_LED6 = 1'b1;
+assign DEBUG_LED5 = 1'b1;
+assign DEBUG_LED4 = 1'b1;
+assign DEBUG_LED3 = 1'b1;
+assign DEBUG_LED2 = 1'b1;
+assign DEBUG_LED1 = 1'b1;
+
+// flash LED7 for ~0.2 seconds whenever udp_rx_active
+//Led_flash Flash_LED7(.clock(CMCLK), .signal(network_status[4]), .LED(DEBUG_LED7), .period(half_second));		// udp_rx_active
+//Led_flash Flash_LED6(.clock(rx_clock), .signal(RX_CC_seq_err), .LED(DEBUG_LED6), .period(fast_clock_half_second));
+
+//Led_flash Flash_LED7(.clock(rx_clock), .signal(TX_CC_seq_err), .LED(DEBUG_LED7), .period(fast_clock_half_second));
+
+//Led_flash Flash_LED8(.clock(rx_clock), .signal(Audio_seq_err), .LED(DEBUG_LED8), .period(fast_clock_half_second));
+
+// flash LED8 for ~0.2 seconds when
+//Led_flash Flash_LED9(.clock(rx_clock), .signal(Audio_empty), .LED(DEBUG_LED9), .period(fast_clock_half_second));
+
+// flash LED9 for ~0.2 seconds when
+//Led_flash Flash_LED9(.clock(rx_clock), .signal(discovery_reply), .LED(DEBUG_LED9), .period(fast_clock_half_second)); // note fast clock now
+//Led_flash Flash_LED10(.clock(rx_clock), .signal(Audio_full), .LED(DEBUG_LED10), .period(fast_clock_half_second)); // note fast clock now
+
+
+//------------------------------------------------------------
+//   Multi-state LED Control   - code in Led_control is for active LOW LEDs
+//------------------------------------------------------------
+
+parameter clock_speed = 12_288_000; // 12.288MHz clock 
 
 // display state of PHY negotiations  - fast flash if no Ethernet connection, slow flash if 100T, on if 1000T
 // and swap between fast and slow flash if not full duplex
-Led_control #(clock_speed) Control_LED0(.clock(CMCLK), .on(network_status[6]), .fast_flash(~network_status[5] & ~network_status[6]),
-                                                                        .slow_flash(network_status[5]), .vary(~network_status[7]), .LED(led1));
-
-// display state of DHCP negotiations - on if success, slow flash if fail, fast flash if time out and swap between fast and slow
+//Led_control #(clock_speed) Control_LED0(.clock(CMCLK), .on(network_status[6]), .fast_flash(~network_status[5] || ~network_status[6]),
+//										.slow_flash(network_status[5]), .vary(~network_status[7]), .LED(DEBUG_LED5));  
+										
+// display state of DHCP negotiations - on if success, slow flash if fail, fast flash if time out and swap between fast and slow 
 // if using a static IP address
-Led_control #(clock_speed) Control_TP2(.clock(CMCLK), .on(dhcp_success), .slow_flash(phasedone & !dhcp_timeout),
-                                                                        .fast_flash(dhcp_timeout), .vary(static_ip_assigned), .LED(DEBUG_TP2));
+//Led_control # (clock_speed) Control_LED1(.clock(CMCLK), .on(dhcp_success), .slow_flash(dhcp_failed & !dhcp_timeout),
+//										.fast_flash(dhcp_timeout), .vary(static_ip_assigned), .LED(DEBUG_LED6));	
 
-//Flash Heart beat LED
-reg [26:0]HB_counter;
-always @(posedge PHY_CLK125) HB_counter <= HB_counter + 1'b1;
-assign Status_LED = HB_counter[25] & dim_cnt <= dimmer;  // Blink
+`endif
 
-endmodule
+//Flash Heart beat LED and check boot switch change for reset
+reg [23:0]HB_counter;
+reg [1:0] SW1_state;
+reg SW1_value, SW1_reset;
+always @(posedge CLOCK_25MHZ) begin
+	HB_counter <= HB_counter + 1'b1;
+	Status_LED <= HB_counter[23];
+`ifdef DONT
+	case (SW1_state)
+		2'b00: // delay, then read value an increment state
+			if (HB_counter[23]) begin
+				SW1_state <= 2'b01;
+				SW1_value <= SW1;
+			end
+		2'b01: // delay, then increment state
+			if (!HB_counter[23])
+				SW1_state <= 2'b10;
+		2'b10: // wait for SW1 to change then increment state
+			if (SW1 != SW1_value)
+				if (HB_counter[23]) SW1_state <= 2'b11;
+		2'b11: // delay, then perform FPGA reset
+			if (!HB_counter[23])
+				SW1_reset <= 1'b1;
+	endcase
+`endif
+end
+
+//assign Status_LED = HB_counter[is_9031 ? 24 : 23];  // Blink slower for 9031
+
+endmodule 
+

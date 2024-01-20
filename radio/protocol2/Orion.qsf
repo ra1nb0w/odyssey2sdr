@@ -1,4 +1,4 @@
-set_global_assignment -name FITTER_EFFORT "AUTO FIT"
+set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
 # Copyright (C) 1991-2008 Altera Corporation
 # Your use of Altera Corporation's design tools, logic functions
 # and other software and tools, and its AMPP partner logic
@@ -15,7 +15,7 @@ set_global_assignment -name FITTER_EFFORT "AUTO FIT"
 
 
 # The default values for assignments are stored in the file
-#		Angelia_assignment_defaults.qdf
+#		Orion_assignment_defaults.qdf
 # If this file doesn't exist, and for assignments not listed, see file
 #		assignment_defaults.qdf
 
@@ -51,6 +51,7 @@ set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
 set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
 set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
 set_global_assignment -name DEVICE_FILTER_SPEED_GRADE 8
+set_global_assignment -name SEED 1
 set_location_assignment PIN_N24 -to ADCCLK
 set_location_assignment PIN_N27 -to ADCMISO
 set_location_assignment PIN_N29 -to ADCMOSI
@@ -64,7 +65,7 @@ set_location_assignment PIN_M28 -to ATTN_LE_2
 set_location_assignment PIN_B6 -to CBCLK
 set_location_assignment PIN_B10 -to CDIN
 set_location_assignment PIN_B12 -to CDOUT
-set_location_assignment PIN_A15 -to CLK_25MHZ
+set_location_assignment PIN_A15 -to CLOCK_25MHZ
 set_location_assignment PIN_B7 -to CLRCIN
 set_location_assignment PIN_B9 -to CLRCOUT
 set_location_assignment PIN_G6 -to CMCLK
@@ -204,11 +205,16 @@ set_location_assignment PIN_AH28 -to USEROUT6
 set_location_assignment PIN_AK16 -to _122MHz
 set_location_assignment PIN_N28 -to nADCCS
 set_location_assignment PIN_A12 -to nCS
+# refer to cyclone-iv/cyiv-51005.pdf, Table 5–2. GCLK Network Connections for EP4CGX30, EP4CGX50, EP4CGX75, EP4CGX110, and EP4CGX150 Devices
+set_location_assignment CLKCTRL_G1 -to "network:network_inst|ethtxext_clkmux_i|auto_generated|clkctrl1"
+set_location_assignment CLKCTRL_G2 -to "network:network_inst|ethtxint_clkmux_i|auto_generated|clkctrl1"
+#set_location_assignment CLKCTRL_G11 -to "network:network_inst|rx_clock~clkctrl"
+#set_location_assignment LCCOMB_X28_Y1_N28 -to "network:network_inst|rx_clock"
 set_global_assignment -name CYCLONEIII_CONFIGURATION_DEVICE EPCS128
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
-set_global_assignment -name LL_ROOT_REGION ON -section_id "Root Region"
-set_global_assignment -name LL_MEMBER_STATE LOCKED -section_id "Root Region"
+#set_global_assignment -name LL_ROOT_REGION ON -section_id "Root Region"
+#set_global_assignment -name LL_MEMBER_STATE LOCKED -section_id "Root Region"
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_instance_assignment -name CLOCK_SETTINGS IFCLK -to IFCLK
 set_instance_assignment -name CLOCK_SETTINGS CMCLK -to CMCLK
@@ -217,9 +223,9 @@ set_instance_assignment -name CLOCK_SETTINGS CLRCIN -to CLRCIN
 set_instance_assignment -name CLOCK_SETTINGS CLRCOUT -to CLRCOUT
 set_instance_assignment -name CLOCK_SETTINGS TLV2208_125Mhz -to LTC2208_125Mhz
 set_instance_assignment -name CLOCK_SETTINGS OSC_10MHz -to OSC_10MHZ
-#set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to *
-#set_instance_assignment -name FAST_INPUT_REGISTER ON -to *
-#set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to *
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to *
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to *
+set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to *
 set_global_assignment -name EDA_SIMULATION_TOOL "<None>"
 set_global_assignment -name SYNTH_TIMING_DRIVEN_SYNTHESIS ON
 set_global_assignment -name CYCLONEII_OPTIMIZATION_TECHNIQUE BALANCED
@@ -241,10 +247,7 @@ set_location_assignment PIN_C18 -to DACD[15]
 set_location_assignment PIN_A16 -to DACD[14]
 set_location_assignment PIN_E24 -to CTRL_TRSW
 set_location_assignment PIN_AK20 -to DRIVER_PA_EN
-set_location_assignment PIN_AF16 -to LED_D23
-set_location_assignment PIN_AG16 -to LED_D47
 set_location_assignment PIN_AK8 -to SW1
-set_location_assignment PIN_AG17 -to D48
 set_location_assignment PIN_D18 -to TX_ATTEN[0]
 set_location_assignment PIN_D17 -to TX_ATTEN[1]
 set_location_assignment PIN_D23 -to TX_ATTEN[2]
@@ -258,7 +261,7 @@ set_location_assignment PIN_AK22 -to TX_ATTN_LE
 set_location_assignment PIN_D20 -to TX_ATTN_MODE
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to TX_ATTEN_SELECT
 set_location_assignment PIN_AH30 -to atu_ctrl
-set_location_assignment PLL_1 -to "network:network_inst|rgmii_send:rgmii_send_inst|tx_pll:tx_pll_inst|altpll:altpll_component|tx_pll_altpll:auto_generated|pll1"
+#set_location_assignment PLL_1 -to "network:network_inst|tx_pll:tx_pll_inst|altpll:altpll_component|tx_pll_altpll:auto_generated|pll1"
 set_global_assignment -name ENABLE_OCT_DONE OFF
 set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
 set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
@@ -270,9 +273,41 @@ set_global_assignment -name POWER_USE_DEVICE_CHARACTERISTICS MAXIMUM
 set_global_assignment -name POWER_BOARD_TEMPERATURE 20
 set_global_assignment -name ACTIVE_SERIAL_CLOCK FREQ_40MHZ
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
-set_global_assignment -name VERILOG_FILE Mux_clear.v
-set_global_assignment -name VERILOG_FILE Rx_fifo_ctrl0.v
 set_global_assignment -name VERILOG_FILE Ethernet/Rx_fifo.v
 set_global_assignment -name MIF_FILE sine_256.mif
 set_global_assignment -name VERILOG_FILE Ethernet/send_data.v
@@ -307,7 +342,6 @@ set_global_assignment -name VERILOG_FILE sidetone.v
 set_global_assignment -name VERILOG_FILE profile.v
 set_global_assignment -name MIF_FILE profile.mif
 set_global_assignment -name SDC_FILE Orion.sdc
-set_global_assignment -name VERILOG_FILE PHY_fifo.v
 set_global_assignment -name VERILOG_FILE Orion_ADC.v
 set_global_assignment -name VERILOG_FILE Orion.v
 set_global_assignment -name VERILOG_FILE sp_rcv_ctrl.v
@@ -321,6 +355,8 @@ set_global_assignment -name VERILOG_FILE Apollo.v
 set_global_assignment -name VERILOG_FILE cdc_mcp.v
 set_global_assignment -name VERILOG_FILE cdc_sync.v
 set_global_assignment -name VERILOG_FILE cic.v
+set_global_assignment -name VERILOG_FILE cic_integrator.v
+set_global_assignment -name VERILOG_FILE cic_comb.v
 set_global_assignment -name VERILOG_FILE cordic.v
 set_global_assignment -name VERILOG_FILE cpl_cordic.v
 set_global_assignment -name VERILOG_FILE debounce.v
@@ -362,3 +398,4 @@ set_global_assignment -name VERILOG_FILE tx_dac.v
 set_global_assignment -name SEARCH_PATH ethernet/
 set_global_assignment -name SEARCH_PATH Ethernet/
 set_global_assignment -name SEARCH_PATH Polyphase_FIR/
+set_global_assignment -name SEARCH_PATH polyphase_fir/

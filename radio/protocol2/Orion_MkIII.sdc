@@ -79,7 +79,6 @@ create_generated_clock -name data_clk -source {PLL_IF_inst|altpll_component|auto
 # data_clk2 = CBCLK/4 used by Attenuator
 create_generated_clock -name data_clk2 -source {PLL_IF_inst|altpll_component|auto_generated|pll1|clk[2]} -divide 4
 
-
 derive_clock_uncertainty
 
 #**************************************************************
@@ -101,9 +100,9 @@ set_clock_groups -asynchronous  -group { \
 					LTC2208_122MHz \
 					_122MHz \
 					_122_90 CMCLK CBCLK CLRCLK \
-					userADC_clock \
 					osc_10MHZ \
 					data_clk data_clk2 \
+					userADC_clock \
 				       } \
 				-group {OSC_10MHZ}
 		
@@ -202,7 +201,7 @@ set_false_path -from [get_keepers {network:network_inst|phy_cfg:phy_cfg_inst|spe
 # If setup and hold delays are equal then only need to specify once without max or min 
 
 #12.5MHz clock for Config EEPROM  +/- 10nS
-set_output_delay  10 -clock clock_12p5MHz {ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_smm2:ASMI_altasmi_parallel_smm2_component|cycloneii_asmiblock2~ALTERA_DCLK ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_smm2:ASMI_altasmi_parallel_smm2_component|cycloneii_asmiblock2~ALTERA_SCE ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_smm2:ASMI_altasmi_parallel_smm2_component|cycloneii_asmiblock2~ALTERA_SDO }
+set_output_delay  10 -clock clock_12p5MHz {ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_smm2:ASMI_altasmi_parallel_smm2_component|sd2~ALTERA_DCLK ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_smm2:ASMI_altasmi_parallel_smm2_component|sd2~ALTERA_SCE ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_smm2:ASMI_altasmi_parallel_smm2_component|sd2~ALTERA_SDO }
 
 #122.88MHz clock for Tx DAC 
 set_output_delay 0.8 -clock _122MHz {DACD[*]} -add_delay
@@ -233,7 +232,7 @@ set_output_delay  10 -clock data_clk2 {ADCMOSI nADCCS} -add_delay
 # If setup and hold delays are equal then only need to specify once without max or min 
 
 #12.5MHz clock for Config EEPROM  +/- 10nS setup and hold
-set_input_delay 10  -clock  clock_12p5MHz { ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_smm2:ASMI_altasmi_parallel_smm2_component|cycloneii_asmiblock2~ALTERA_DATA0 }
+set_input_delay 10  -clock  clock_12p5MHz { ASMI_interface:ASMI_int_inst|ASMI:ASMI_inst|ASMI_altasmi_parallel_smm2:ASMI_altasmi_parallel_smm2_component|sd2~ALTERA_DATA0 }
 
 # data from LTC2208 +/- 2nS setup and hold 
 set_input_delay -add_delay  -clock [get_clocks {virt_122MHz}]  2.000 [get_ports {INA[*]}]
@@ -256,21 +255,17 @@ set_input_delay  10  -clock data_clk2 {ADCMISO} -add_delay
 # Set Maximum Delay (for setup or recovery; low-level, over-riding timing adjustments)
 #************************************************************** 
 
-#set_max_delay -from LTC2208_122MHz -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 6
 set_max_delay -from LTC2208_122MHz -to LTC2208_122MHz 18
+set_max_delay -from _122_90 -to LTC2208_122MHz 9
 set_max_delay -from CLRCLK -to LTC2208_122MHz 9
 set_max_delay -from CMCLK -to _122_90 5
 set_max_delay -from LTC2208_122MHz -to _122_90 8
-#set_max_delay -from _122_90 -to _122MHz 7
-#set_max_delay -from _122MHz -to _122MHz 12
-#set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] -to _122MHz 8
-#set_max_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[1] -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[0] 4
 
-set_max_delay -from clock_12p5MHz -to clock_ethrxintfast 4
-set_max_delay -from clock_12p5MHz -to clock_ethrxintslow 4
-set_max_delay -from clock_ethrxintfast -to clock_12p5MHz 9
+#set_max_delay -from clock_12p5MHz -to clock_ethrxintfast 4
+#set_max_delay -from clock_12p5MHz -to clock_ethrxintslow 4
+set_max_delay -from clock_ethrxintfast -to clock_12p5MHz 15
 set_max_delay -from clock_ethtxintfast -to clock_ethtxintfast 24
-set_max_delay -from clock_ethrxintfast -to clock_ethrxintfast 11
+set_max_delay -from clock_ethrxintfast -to clock_ethrxintfast 10
 set_max_delay -from clock_ethtxintfast -to clock_txoutputfast 2
 
 #**************************************************************
@@ -279,7 +274,7 @@ set_max_delay -from clock_ethtxintfast -to clock_txoutputfast 2
 
 #set_min_delay -from LTC2208_122MHz -to LTC2208_122MHz -1
 #set_min_delay -from PLL_IF_inst|altpll_component|auto_generated|pll1|clk[3] -to PLL_IF_inst|altpll_component|auto_generated|pll1|clk[2] -1
-set_min_delay -from virt_phy_rx_clk_fast -to clock_ethrxintfast -6
+set_min_delay -from virt_phy_rx_clk_fast -to clock_ethrxintfast -8
 set_min_delay -from CLRCLK -to CBCLK -1
 
 

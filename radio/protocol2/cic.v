@@ -79,42 +79,39 @@ endgenerate
 //------------------------------------------------------------------------------
 //                                stages
 //------------------------------------------------------------------------------
-reg signed [ACC_WIDTH-1:0] integrator_data [1:STAGES] = '{default: '0};
-reg signed [ACC_WIDTH-1:0] comb_data [1:STAGES] = '{default: '0};
-reg signed [ACC_WIDTH-1:0] comb_last [0:STAGES] = '{default: '0};
 
-always @(posedge clock) begin
-	integer index;
+wire signed [ACC_WIDTH-1:0] integrator_data [0:STAGES];
+wire signed [ACC_WIDTH-1:0] comb_data [0:STAGES];
 
-	//  Integrators
-	if (reset) begin 
-			for(index = 1; index < STAGES + 1; index = index + 1) begin
-			integrator_data[index] <= 0;
-		end
-	end 
-	else	
-	if(in_strobe) begin
-		integrator_data[1] <= integrator_data[1] + in_data;
-		for(index = 1; index < STAGES; index = index + 1) begin
-			integrator_data[index + 1] <= integrator_data[index] + integrator_data[index+1];
-		end
-	end
 
-	// Combs
-	if(reset) begin
-			for(index = 1; index < STAGES + 1; index = index + 1) begin
-			comb_data[index]  <= 0;	
-			end
-	end
-	if(out_strobe) begin
-		comb_data[1] <= integrator_data[STAGES] - comb_last[0];
-		comb_last[0] <= integrator_data[STAGES];
-		for(index = 1; index < STAGES; index = index + 1) begin
-			comb_data[index + 1] <= comb_data[index] - comb_last[index];
-			comb_last[index] <= comb_data[index]; 
-		end
-	end
-end
+assign integrator_data[0] = in_data;
+assign comb_data[0] = integrator_data[STAGES];
+
+
+genvar j;
+generate
+  for (j=0; j<STAGES; j=j+1)
+    begin : cic_stages
+
+    cic_integrator #(ACC_WIDTH) cic_integrator_inst(
+      .clock(clock),
+      .strobe(in_strobe),
+      .in_data(integrator_data[j]),
+      .out_data(integrator_data[j+1])
+      );
+
+
+    cic_comb #(ACC_WIDTH) cic_comb_inst(
+      .clock(clock),
+      .strobe(out_strobe),
+      .in_data(comb_data[j]),
+      .out_data(comb_data[j+1])
+      );
+    end
+endgenerate
+
+
+
 
 //------------------------------------------------------------------------------
 //                            output rounding

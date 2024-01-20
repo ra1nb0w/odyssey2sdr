@@ -70,7 +70,7 @@ module CC_encoder (
 							input PTT,
 							input Dot,
 							input Dash,
-							input frequency_change[0:NR-1], 
+							//input frequency_change[0:NR-1], 
 							input locked_10MHz,
 							input ADC0_overload,
 							input ADC1_overload,
@@ -92,7 +92,7 @@ module CC_encoder (
 							
 							);
 							
-parameter update_rate = 200; 					// number of mS between updates if no change in data	
+parameter [7:0] update_rate = 200; 					// number of mS between updates if no change in data	
 parameter NR;
 
 // move all C&C data to tx_clock domain
@@ -100,7 +100,7 @@ parameter NR;
 reg [7:0] memory[0:56];    // 57 by 8 bit ram
 reg [7:0] temp[0:56];
 reg [7:0] previous[0:2];
-reg new_frequency;
+//reg new_frequency;
 reg [$clog2(NR)-1:0] x;
 
 // initial clear of all RAM
@@ -112,18 +112,14 @@ begin
 	temp[t]   = 8'd0;
 end
 	
-reg [1:0] seq_err_type;
-
 always @ (posedge clock)
 begin 
 
-	begin 
-		if (frequency_change[0] || frequency_change[1] ) 		// this is from Rx clock domain!!
-			new_frequency <= 1'b1;
-		else new_frequency <= 0;	
-	end
+// frequency_change isn't currently being used
+//	if (NR > 1) new_frequency <= frequency_change[0] || frequency_change[1]; 
+//	else new_frequency <= frequency_change[0]; // this is from Rx clock domain!!
 
-	{memory[0],    temp[0]}  <=  {temp[0],  3'b0, locked_10MHz, new_frequency, Dash, Dot, PTT};  // sent in real time
+	{memory[0],    temp[0]}  <=  {temp[0],  3'b0, locked_10MHz, 1'b0 /*new_frequency*/, Dash, Dot, PTT};  // sent in real time
 	{memory[1],    temp[1]}  <=  {temp[1],  6'b0, ADC1_overload, ADC0_overload};
 	{memory[2],    temp[2]}  <=  {temp[2],  Exciter_power[15:8]};
 	{memory[3],    temp[3]}	 <=  {temp[3],  Exciter_power[7:0]};		

@@ -65,6 +65,7 @@ reg [11:0] prev_AIN1;
 reg [11:0] prev_AIN2; 
 
 // NOTE: this code generates the SCLK clock for the ADC
+// The ADC78H90 specs say Duty Cycle is min 40% and max 60%
 always @ (posedge clock)
 begin
   case (ADC_state)
@@ -93,12 +94,12 @@ begin
 	
   3:
 	begin
-    SCLK      <= 1'b0;          // SCLK low
     ADC_state <= 4;
 	end
 
   4:
 	begin
+		SCLK      <= 1'b0;          // SCLK low
 		if (bit_cnt == 0)           // restart
 		  ADC_state <= 0;
 		else

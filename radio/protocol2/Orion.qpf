@@ -19,14 +19,14 @@
 #
 # Quartus Prime
 # Version 22.1std.0 Build 915 10/25/2022 SC Standard Edition
-# Date created = 18:42:38  March 16, 2023
+# Date created = 08:27:04  January 20, 2024
 #
 # -------------------------------------------------------------------------- #
 
 QUARTUS_VERSION = "22.1"
-DATE = "18:42:38  March 16, 2023"
+DATE = "08:27:04  January 20, 2024"
 
 # Revisions
 
-PROJECT_REVISION = "Odyssey2"
+PROJECT_REVISION = "Orion_MkIII"
 PROJECT_REVISION = "Orion"

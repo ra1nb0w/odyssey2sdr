@@ -45,7 +45,7 @@ module receiver2(
 
 wire signed [21:0] cordic_outdata_I;
 wire signed [21:0] cordic_outdata_Q;
-reg [6:0] rate0, rate1;
+reg [5:0] rate0, rate1;
 
 //------------------------------------------------------------------------------
 //                               cordic

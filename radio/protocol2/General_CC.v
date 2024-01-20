@@ -44,7 +44,7 @@ module General_CC
 				input [15:0] to_port,
 				input udp_rx_active,
 				input [7:0] udp_rx_data,
-			   output reg [15:0] Rx_Specific_port,
+				output reg [15:0] Rx_Specific_port,
 				output reg [15:0] Tx_Specific_port,
 				output reg [15:0] High_Prioirty_from_PC_port,
 				output reg [15:0] High_Prioirty_to_PC_port,			
@@ -80,7 +80,7 @@ localparam
 				PROCESS = 2'd1,
 				END = 2'd2;
 			
-reg [31:0] CC_sequence_number;
+//reg [31:0] CC_sequence_number;
 reg [7:0] byte_number;
 reg [1:0] state;
 
@@ -93,42 +93,40 @@ begin
 				begin
 				byte_number <= 8'd1;
 				data_ready <= 1'b0;
-				CC_sequence_number[31:24] <= udp_rx_data;  //save MSB of sequence number
+				//CC_sequence_number[31:24] <= udp_rx_data;  //save MSB of sequence number
 				state <= PROCESS;
 				end 
 			
 		PROCESS:
 			begin
 				case (byte_number) 	//save balance of sequence number
-						1: CC_sequence_number[23:16] <= udp_rx_data;
-						2: CC_sequence_number[15:8] <= udp_rx_data; 				
-						3: CC_sequence_number[7:0] <= udp_rx_data; 				
-						4: if (udp_rx_data != 8'd0)  state <= END;	// not for this module	
-						5: begin 
-								Rx_Specific_port[15:8]  <= udp_rx_data;
-							end 
-						6: Rx_Specific_port [7:0]  <= udp_rx_data;
-						7: Tx_Specific_port[15:8]  <= udp_rx_data;
-					   8: Tx_Specific_port [7:0]  <= udp_rx_data;
-					   9: High_Prioirty_from_PC_port[15:8]  <= udp_rx_data;
-					  10: High_Prioirty_from_PC_port [7:0]  <= udp_rx_data;
-					  11: High_Prioirty_to_PC_port[15:8]  	 <= udp_rx_data;
-					  12: High_Prioirty_to_PC_port [7:0]    <= udp_rx_data;
-					  13: Rx_Audio_port[15:8]  	<= udp_rx_data;
-					  14: Rx_Audio_port [7:0]   	<= udp_rx_data;
-					  15: Tx_IQ_port[15:8]  	 	<= udp_rx_data;
-					  16: Tx_IQ_port [7:0]   	 	<= udp_rx_data;		
-					  17: Rx0_port[15:8]  	 		<= udp_rx_data;
-					  18: Rx0_port [7:0]   	 		<= udp_rx_data;
-					  19: Mic_port[15:8]  	 		<= udp_rx_data;
-					  20: Mic_port [7:0]   	 		<= udp_rx_data;
+					   //1: CC_sequence_number[23:16] <= udp_rx_data;
+					   //2: CC_sequence_number[15:8] <= udp_rx_data; 				
+					   //3: CC_sequence_number[7:0] <= udp_rx_data; 				
+					   4: if (udp_rx_data != 8'd0) state <= END;	// not for this module	
+					   5: Rx_Specific_port[15:8] <= udp_rx_data;
+					   6: Rx_Specific_port [7:0] <= udp_rx_data;
+					   7: Tx_Specific_port[15:8] <= udp_rx_data;
+					   8: Tx_Specific_port [7:0] <= udp_rx_data;
+					   9: High_Prioirty_from_PC_port[15:8] <= udp_rx_data;
+					  10: High_Prioirty_from_PC_port [7:0] <= udp_rx_data;
+					  11: High_Prioirty_to_PC_port[15:8] <= udp_rx_data;
+					  12: High_Prioirty_to_PC_port [7:0] <= udp_rx_data;
+					  13: Rx_Audio_port[15:8] <= udp_rx_data;
+					  14: Rx_Audio_port [7:0] <= udp_rx_data;
+					  15: Tx_IQ_port[15:8] <= udp_rx_data;
+					  16: Tx_IQ_port [7:0] <= udp_rx_data;		
+					  17: Rx0_port[15:8] <= udp_rx_data;
+					  18: Rx0_port [7:0] <= udp_rx_data;
+					  19: Mic_port[15:8] <= udp_rx_data;
+					  20: Mic_port [7:0] <= udp_rx_data;
 					  21: Wideband_ADC0_port[15:8] <= udp_rx_data;
 					  22: Wideband_ADC0_port [7:0] <= udp_rx_data;
-					  23: Wideband_enable         <= udp_rx_data;
+					  23: Wideband_enable <= udp_rx_data;
 					  24: Wideband_samples_per_packet[15:8] <= udp_rx_data;
 					  25: Wideband_samples_per_packet [7:0] <= udp_rx_data;
-					  26: Wideband_sample_size [7:0]   	 	 <= udp_rx_data;					  
-					  27: Wideband_update_rate [7:0]   	 	 <= udp_rx_data;
+					  26: Wideband_sample_size [7:0] <= udp_rx_data;					  
+					  27: Wideband_update_rate [7:0] <= udp_rx_data;
 					  28: Wideband_packets_per_frame <= udp_rx_data; 
 
 					  33: Envelope_PWM_max[15:8] <= udp_rx_data;
@@ -136,28 +134,28 @@ begin
 					  35: Envelope_PWM_min[15:8] <= udp_rx_data;
 					  36: Envelope_PWM_min [7:0] <= udp_rx_data;	
 					  37: begin 
-								Time_stamp	 <= udp_rx_data[0]; 
-								VITA_49		 <= udp_rx_data[0];
-								VNA			 <= udp_rx_data[0];
-							end 
+						Time_stamp	<= udp_rx_data[0]; 
+						VITA_49		<= udp_rx_data[0];
+						VNA		<= udp_rx_data[0];
+					      end 
 					  38: HW_timer_enable  <= udp_rx_data[0];
 						
 					  56: Atlas_bus <= udp_rx_data;
 					  57: _10MHz_reference <=  udp_rx_data;
 					  58: begin
-								PA_enable 		<= udp_rx_data[0];
-								Apollo_enable 	<= udp_rx_data[1]; 
-								data_ready 		<= 1'b1;
-							end 
+						PA_enable <= udp_rx_data[0];
+						Apollo_enable <= udp_rx_data[1]; 
+						data_ready <= 1'b1;
+					      end 
 					  59: begin	
-								Alex_enable 	<= udp_rx_data;
-								data_ready 		<= 1'b0;
-							end 
+						Alex_enable 	<= udp_rx_data;
+						data_ready 		<= 1'b0;
+					      end 
 									  
 			   default: if (byte_number > 8'd59) state <= IDLE; 
 			   endcase  
 		  
-				byte_number <= byte_number + 8'd1;
+			   byte_number <= byte_number + 8'd1;
 			end
 		END: state <= IDLE;
 		default: state <= IDLE;

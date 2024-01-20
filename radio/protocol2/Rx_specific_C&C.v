@@ -115,6 +115,7 @@ module Rx_specific_CC
 				output  reg  [7:0] dither,
 				output  reg  [7:0] random,
 				output  reg  [7:0] EnableRx0_7,
+				output  reg  [7:0] EnableRx8_15,
 				output  reg [15:0] RxSampleRate[0:NR-1],
 				output  reg  [7:0] RxADC[0:NR-1],
 				output  reg  [7:0] SyncRx[0:NR-1],
@@ -169,9 +170,10 @@ begin
 							sequence_errors <= sequence_errors + 1'b1;
 						last_sequence_number <= sequence_number;
 					end
-					5: dither 						<= udp_rx_data;
-					6: random			 			<= udp_rx_data;
-					7: EnableRx0_7					<= udp_rx_data; 
+					5: dither 	<= udp_rx_data;
+					6: random	<= udp_rx_data;
+					7: EnableRx0_7	<= udp_rx_data; 
+					8: EnableRx8_15	<= udp_rx_data; 
 				 endcase
 						
 					for ( j = 0; j < NR ; j = j + 1)
@@ -188,7 +190,7 @@ begin
 				case (byte_number)
 					 1441: Rx_data_ready <= 1'b1;
 					 1443: begin 
-								Mux							<= udp_rx_data;
+								Mux <= udp_rx_data;
 								Rx_data_ready <= 1'b0;
 							//	HW_reset <= 1'b0;
 							 end

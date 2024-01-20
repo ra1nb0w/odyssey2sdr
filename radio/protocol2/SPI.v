@@ -30,8 +30,6 @@
 
 
 /*
-   ==== Orion MkII PA/filter board (default) ====
-
 	data to send to PA/filter board is in the folowing format:
 
 		Bit 	Function 			I.C. Output
@@ -99,91 +97,6 @@
 
 */
 
-
-/*
-   ==== Anan 100D PA/Filter board (DITHER=0 RAND=1) ====
-	
-	NOTE: only use RX0
-	
-
-	data to send to Alex Rx filters is in the folowing format:
-	
-		Bit 	Function 		I.C. Output
-	------ 	------------ 	-----------
-	Bit 00 - YELLOW LED 		U2 - D0 		All are active "High"
-	Bit 01 - 13 MHz HPF 		U2 - D1
-	Bit 02 - 20 MHz HPF 		U2 - D2
-	Bit 03 - 6M Preamp 		U2	- D3
-	Bit 04 - 9.5 MHz HPF 	U2 - D4
-	Bit 05 - 6.5 MHz HPF 	U2 - D5
-	Bit 06 - 1.5 MHz HPF 	U2 - D6	
-	Bit 07 - N.C. 				U2 - D7
-	Bit 08 - XVTR RX In 		U3 - D0
-	Bit 09 - RX 2 In 			U3 - D1
-	Bit 10 - RX 1 In 			U3 - D2
-	Bit 11 - RX 1 Out 		U3 - D3 		Low = Default Receive Path
-	Bit 12 - Bypass 			U3 - D4
-	Bit 13 - 20 dB Atten. 	U3 - D5
-	Bit 14 - 10 dB Atten. 	U3 - D6
-	Bit 15 - RED LED 			U3 - D7		
-	
-	
-	data to send to Alex Tx filters is in the following format:
-		Bit 	Function 		I.C. Output
-	------ 	------------ 	-----------
-	Bit 16 - N.C. 				U2 - D0 		
-	Bit 17 - N.C. 				U2 - D1
-	Bit 18 - T/R Relay		U2 - D2 		Transmit is high, Rec Low (required by F6ITU Alexandrie/Mentor)
-	Bit 19 - YELLOW LED 		U2 - D3
-	Bit 20 - 30/20 Meters 	U2 - D4
-	Bit 21 - 60/40 Meters 	U2 - D5
-	Bit 22 - 80 Meters 		U2 - D6
-	Bit 23 - 160 Meters 		U2 - D7
-	Bit 24 - ANT #1 			U4 - D0
-	Bit 25 - ANT #2 			U4 - D1
-	Bit 26 - ANT #3 			U4 - D2
-	Bit 27 - T/R Relay 		U4 - D3 		Transmit is high, Rec Low
-	Bit 28 - RED LED 			U4 - D4
-	Bit 29 - 6 Mtrs(Bypass) U4 - D5
-	Bit 30 - 12/10 Meters 	U4 - D6
-	Bit 31 - 17/15 Meters 	U4 - D7	
-	
-	Bit number refers to Alex_data[x]
-	
-	SPI data is sent to Alex whenever data changes.
-	On reset all outputs are set off. 
-*/
-
-/*
-   === David Fainitski PA/filter board (DITHER=1 RAND=0) ====
-	
-	NOTE: only use RX0
-
-	Modified by David Fainitski
-	for Odyssey-2 TRX project
-	2017
-	
-		Bit 	Function 		I.C. Output
-	------ 	------------ 	-----------
-	Bit 00 - 160 Meters LPF 		U1 - D0 		
-	Bit 01 - 80 Meters  LPF 		U1 - D1
-	Bit 02 - 60/40 Meters LPF 		U1 - D2
-	Bit 03 - 30/20 Meters LPF 		U1	- D3
-	Bit 04 - 17/15 Meters LPF  	U1 - D4
-	Bit 05 - 12/10 Meters 	      U1 - D5
-	Bit 06 - 1.5 MHz HPF       	U1 - D6	
-	Bit 07 - 6.5 MHz HPF 			U1 - D7
-	Bit 08 - 9.5 MHz HPF    		U2 - D0
-	Bit 09 - 13 MHz HPF 			   U2 - D1
-	Bit 10 - 20 MHz HPF 			   U2 - D2
-	Bit 11 - Bypass      	   	U2 - D3 	
-	Bit 12 - 6M Preamp   			U2 - D4
-	Bit 13 - ANT #2            	U2 - D5
-	Bit 14 - ANT #3            	U2 - D6
-	Bit 15 - T/R Relay      		U2 - D7	
-*/
-
-
 module SPI(
 				input reset,
 				input  spi_clock,
@@ -199,48 +112,14 @@ reg [2:0] spi_state;
 reg [5:0] data_count;
 reg [47:0] previous_Alex_data;
 //reg loop_count; 		// used to send data word twice each time the data word changes
-
-
-// REMOVE: tentative to convert Orion BPF to Angelia HPF/LPF
-/*
-assign send_data = {16'b0,
-	// TX; if we are in TX we use HPF to select LPF
-	Alex_data[43] ? Alex_data[47] : Alex_data[1],
-	Alex_data[43] ? Alex_data[46] : Alex_data[2],
-	Alex_data[45:40],
-	Alex_data[43] ? Alex_data[39] : Alex_data[6],
-	Alex_data[43] ? Alex_data[38] : Alex_data[6],
-	Alex_data[43] ? Alex_data[37] : Alex_data[5],
-	Alex_data[43] ? Alex_data[36] : Alex_data[4],
-	Alex_data[35],
-	Alex_data[43], // required by F6ITU Alexandrie/Mentor - Puresignal   | Alex_data[34]
-	Alex_data[33:32],
-	// RX0
-	Alex_data[15],
-	// 10/20 no way to get attenuators with Orion board type?
-	// not used too much anyway; we have step attenuator on radio
-	2'b0,
-	Alex_data[12:7],
-	Alex_data[6] | Alex_data[5], // bit 6 | 5
-	Alex_data[4],
-	1'b0, // Orion doesn't use 9.5MHz HPF
-	Alex_data[3:0]};
-*/
-
-
+ 
 always @ (posedge spi_clock)
 begin
 case (spi_state)
 3'd0:	begin
 		if (reset | ( enable & (Alex_data != previous_Alex_data))) begin
-			previous_Alex_data <= reset ? 48'd0 : Alex_data;
-`ifdef ORION_MKII_TYPE
-			data_count <= 6'd47;
-`elsif ANGELIA_FAINITSKI_TYPE
-			data_count <= 6'd15;
-`else // default use Angelia 100D type
-			data_count <= 6'd31;
-`endif
+			previous_Alex_data <= reset ? 48'd0 : Alex_data; // save current data right away, it could change
+			data_count <= 6'd47;				// set starting bit count to 47
 			spi_state <= 3'd1;
 		end
 		else spi_state <= 3'd0;					// wait for Alex data to change
@@ -258,20 +137,11 @@ case (spi_state)
 		spi_state <= 3'd4;
 	end
 3'd4:	begin
-`ifdef ORION_MKII_TYPE
 		if (data_count == 6'd32) begin
 			Tx_load_strobe <= 1'b1;			// strobe the 16 bits Tx data out in parallel
 			spi_state <= 3'd5;
 		end
-		else
-`else
-		if (data_count == 6'd16) begin
-			Tx_load_strobe <= 1'b1;			// strobe the 16 bits Tx data out in parallel
-			spi_state <= 3'd5;
-		end
-		else
-`endif
-		if (data_count == 6'd0) begin
+		else if (data_count == 6'd0) begin
 			Rx_load_strobe <= 1'b1;			// strobe the 32 bits of Rx1 and Rx0 data out in parallel
 			spi_state <= 3'd6;
 		end

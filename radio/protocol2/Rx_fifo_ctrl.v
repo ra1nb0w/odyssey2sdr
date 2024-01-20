@@ -52,100 +52,195 @@ module Rx_fifo_ctrl(
 	input clock,
 	input reset,
 	input [15:0] SampleRate,
+	input [23:0] data_in_I,
+	input [23:0] data_in_Q,
+	input [23:0] data_in_IDAC,
+	input [23:0] data_in_QDAC,
+	input [23:0] Sync_data_in_I,			
 	input [23:0] Sync_data_in_Q,
-	input [23:0] Sync_data_in_I,			// Synchronus Rx data from selected receiver 
 	input spd_rdy,
+	input spd_rdy2,
+	input spd_rdy3,
 	input fifo_full,
-	input [7:0]Sync,							// set if Sync active
+	input Sync,			// set if Sync active
+	input ps,			// set if puresignal active
 	
 	output reg wrenable,
-	output reg [7:0] data_out,
+	output reg [8:0] data_out,
 	output reg fifo_clear
 	);
 	
 parameter NR;
 	
-reg [3:0]state;
-reg [15:0]prevSampleRate;
-	
+reg [4:0]state;
+reg prevSync;
+reg [23:0] tmp_Sync_data_in_I;
+reg [23:0] tmp_Sync_data_in_Q;
+reg [23:0] tmp_data_in_I;
+reg [23:0] tmp_data_in_Q;
+reg [23:0] tmp_data_in_IDAC;
+reg [23:0] tmp_data_in_QDAC;
+reg data_avail1, data_avail2, data_avail3;
+
 always @ (posedge clock)
 begin 
-
-
 
 if (reset) begin
 	fifo_clear <= 1'b1;
 	wrenable <= 1'b0;
-	state <= 10;
+	state <= 0;
 end
 
 else begin 
+	if(spd_rdy && !data_avail1) begin
+		tmp_Sync_data_in_I <= Sync_data_in_I;
+		tmp_Sync_data_in_Q <= Sync_data_in_Q;
+		data_avail1 <= 1'b1;
+	end
+
+	if(spd_rdy2 && !data_avail2) begin
+		tmp_data_in_I <= data_in_I;
+		tmp_data_in_Q <= data_in_Q;
+		data_avail2 <= 1'b1;
+	end
+
+	if(spd_rdy3 && !data_avail3) begin 													
+		tmp_data_in_IDAC <= data_in_IDAC;
+		tmp_data_in_QDAC <= data_in_QDAC;
+		data_avail3 <= 1'b1;
+	end
+
 	case(state)
 	
-	0: begin
-		fifo_clear <= 1'b0;
-		state <= 1;
+	0:	begin
+			fifo_clear <= 1'b0;
+			state <= 1;
 		end 
 	
 	1:	begin
-			if (prevSampleRate != SampleRate) begin
-				prevSampleRate <= SampleRate;
+			if (prevSync != Sync) begin
+				prevSync <= Sync;
 				fifo_clear <= 1'b1;
 				wrenable <= 1'b0;
-				state <= 10;
+				state <= 0;
 			end
-			else if (fifo_full) state <= 10; 		// clear fifo, will need to do this if code has been idle
 			else if(spd_rdy) begin 													
 				wrenable <= 1'b1;
-				data_out <= Sync_data_in_I[23:16];
+				data_out <= {1'b1, Sync_data_in_I[23:16]};
 				state <= 2;
 			end
 		end 
 		
 	2:	begin
-		data_out <= Sync_data_in_I[15:8];
-		state <= 3;
+			data_out <= {1'b0, tmp_Sync_data_in_I[15:8]};
+			state <= 3;
 		end		
 		
 	3:	begin
-		data_out <= Sync_data_in_I[7:0];
-		state <= 4;
+			data_out <= {1'b0, tmp_Sync_data_in_I[7:0]};
+			state <= 4;
 		end
 	
 	4:	begin
-		data_out <= Sync_data_in_Q[23:16];
-		state <= 5;
+			data_out <= {1'b0, tmp_Sync_data_in_Q[23:16]};
+			state <= 5;
 		end
 
 	5:	begin
-		data_out <= Sync_data_in_Q[15:8];
-		state <= 6;
+			data_out <= {1'b0, tmp_Sync_data_in_Q[15:8]};
+			data_avail1 <= 1'b0;
+			state <= 6;
 		end	
 		
 	6:	begin
-		data_out <= Sync_data_in_Q[7:0];
-		state <= 7;
+			data_out <= {1'b0, tmp_Sync_data_in_Q[7:0]};
+			state <= 7;
+		end	
+
+	// base receiver 	data sent so stop sending to FIFO until we see if sync or mux data required.
+	7:	begin 
+			if (!Sync) begin
+				wrenable <= 1'b0; 
+				if (!spd_rdy) state <= 1;	// wait for spd_rdy to drop then continue
+			end 
+			else if (ps) begin
+				data_out <= {1'b1, tmp_data_in_IDAC[23:16]};
+				state <= 14;
+			end 
+			else begin
+				data_out <= {1'b1, tmp_data_in_I[23:16]};
+				state <= 8;
+			end 
+		end	
+
+	8:	begin
+			data_out <= {1'b0, tmp_data_in_I[15:8]};
+			state <= 9;
+		end		
+		
+	9:	begin
+			data_out <= {1'b0, tmp_data_in_I[7:0]};
+			state <= 10;
+		end
+		
+	10:	begin
+			data_out <= {1'b0, tmp_data_in_Q[23:16]};
+			state <= 11;
+		end
+
+	11:	begin
+			data_out <= {1'b0, tmp_data_in_Q[15:8]};
+			data_avail2 <= 1'b0;
+			state <= 12;
 		end	
 		
-	// base receiver 	data sent so stop sending to FIFO until we see if sync or mux data required.
-	7: begin 
-		wrenable <= 1'b0;
-		state <= 9;  						// no other Receiver data to send so return
-		end 
-
-		
-	9:	if (!spd_rdy) state <= 0;	// wait for spd_rdy to drop then continue
- 
-		
-  10: begin
-		fifo_clear <= 1'b1;
-		state <= 0;
+	12:	begin
+			data_out <= {1'b0, tmp_data_in_Q[7:0]};
+			state <= 13;
 		end
+		
+	13: 	begin 		
+			wrenable <= 1'b0; 
+			state <= 1;	// wait for spd_rdy to drop then continue
+		end  
+
+	14:	begin
+			data_out <= {1'b0, tmp_data_in_IDAC[15:8]};
+			state <= 16;
+		end		
+		
+	16:	begin
+			data_out <= {1'b0, tmp_data_in_IDAC[7:0]};
+			state <= 17;
+		end
+		
+	17:	begin
+			data_out <= {1'b0, tmp_data_in_QDAC[23:16]};
+			state <= 18;
+		end
+
+	18:	begin
+			data_out <= {1'b0, tmp_data_in_QDAC[15:8]};
+			data_avail3 <= 1'b0;
+			state <= 19;
+		end	
+		
+	19:	begin
+			data_out <= {1'b0, tmp_data_in_QDAC[7:0]};
+			state <= 20;
+		end
+		
+	20: 	begin 		
+			wrenable <= 1'b0; 
+			state <= 1;	// wait for spd_rdy to drop then continue
+		end  
 
 	default: state <= 0;
 	endcase
 	end	
 end
+
+//assign convert_state = (!spd_rdy && state == 5'd1);   // code is waiting for new data
 
 	
 endmodule
