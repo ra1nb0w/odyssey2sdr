@@ -111,11 +111,8 @@ module Tx_specific_CC
 				output reg Line_In,
 				output reg [4:0]Line_In_Gain,
 				output reg Mic_boost,
-				output reg Orion_micPTT_disable,
-				output reg Orion_tip_ring_select,
-				output reg MICBIAS_ENABLE,
-				output reg [4:0]Orion_atten_Tx1,
-				output reg [4:0]Orion_atten_Tx0,
+				output reg [4:0]Angelia_atten_Tx1,
+				output reg [4:0]Angelia_atten_Tx0,
 				output reg data_ready,
 				output  HW_reset
 
@@ -180,17 +177,14 @@ begin
 					  50: begin 
 								Line_In 					<= udp_rx_data[0];
 								Mic_boost				<= udp_rx_data[1];
-								Orion_micPTT_disable <= udp_rx_data[2];
-								Orion_tip_ring_select <= udp_rx_data[3];
-								MICBIAS_ENABLE			<= udp_rx_data[4];
 							end
 					  51: Line_In_Gain[4:0]			<= udp_rx_data[4:0];	
 					  58: begin
-								Orion_atten_Tx1[4:0]	<= udp_rx_data[4:0];
+								Angelia_atten_Tx1[4:0]	<= udp_rx_data[4:0];
 								data_ready <= 1'b1;
 							end 
 					  59: begin 
-								Orion_atten_Tx0[4:0]	<= udp_rx_data[4:0];
+								Angelia_atten_Tx0[4:0]	<= udp_rx_data[4:0];
 								data_ready <= 1'b0;
 							//	HW_reset <= 1'b0;
 							end 

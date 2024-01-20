@@ -147,7 +147,7 @@ begin
 
   //advance NCO
   if 
-	(reset || frequency == 1'b0) phase <= 0; //For zero frequency, synchronize phase to other cordics.
+	(reset) phase <= 0;
   else
 	phase <= phase + frequency;
 end
@@ -182,13 +182,13 @@ generate
 	 
 	 begin
       //add/subtract shifted and rounded data
-      X[n+1] <= reset ? {WR{1'b0}} : (Z_sign ? X[n] + Y_shr + Y[n][n] : X[n] - Y_shr - Y[n][n]);
-      Y[n+1] <= reset ? {WR{1'b0}} : (Z_sign ? Y[n] - X_shr - X[n][n] : Y[n] + X_shr + X[n][n]);
+      X[n+1] <= reset ? 0 : (Z_sign ? X[n] + Y_shr + Y[n][n] : X[n] - Y_shr - Y[n][n]);
+      Y[n+1] <= reset ? 0 : (Z_sign ? Y[n] - X_shr - X[n][n] : Y[n] + X_shr + X[n][n]);
 
       //update angle
       if (n < STG-2)
         begin : angles
-        Z[n+1][WZ-2-n:0] <= reset ? {WZ-1-n{1'b0}} : (Z_sign ? Z[n][WZ-2-n:0] + atan : Z[n][WZ-2-n:0] - atan);
+        Z[n+1][WZ-2-n:0] <= reset ? 0 : (Z_sign ? Z[n][WZ-2-n:0] + atan : Z[n][WZ-2-n:0] - atan);
         end
       end
     end
@@ -211,31 +211,23 @@ generate
     
   else
     begin
-    reg signed [WR-1:0] rounded_I = 0;
-    reg signed [WR-1:0] rounded_Q = 0;
+    reg signed [WO-1:0] rounded_I;
+    reg signed [WO-1:0] rounded_Q;
 
     always @(posedge clock)
-	if (reset) begin 
-		rounded_I <= 0;
-		rounded_Q <= 0;
-	end 
-	else begin
-   //   rounded_I <= X[STG-1][WR-1 : WR-WO] +{{(WO-1){1'b0}},  X[STG-1][WR-1-WO]};
-   //   rounded_Q <= Y[STG-1][WR-1 : WR-WO] +{{(WO-1){1'b0}},   Y[STG-1][WR-1-WO]};
-   // rounding from http://zipcpu.com/dsp/2017/07/22/rounding.html
-	rounded_I <= X[STG-1][WR-1 :0]
-						+ {{(WO){1'b0}},
-						X[STG-1][WR-WO],
-						{(WR-WO-1){!X[STG-1][WR-WO]}}};
- 		
-	rounded_Q <= Y[STG-1][WR-1 :0]
-						+ {{(WO){1'b0}},
-						Y[STG-1][WR-WO],
-						{(WR-WO-1){!Y[STG-1][WR-WO]}}};
-	end
+	 if (reset)
+		 begin 
+			rounded_I <= 0;
+			rounded_Q <= 0;
+		 end 
+	 else 
+      begin
+      rounded_I <= X[STG-1][WR-1 : WR-WO] + X[STG-1][WR-1-WO];
+      rounded_Q <= Y[STG-1][WR-1 : WR-WO] + Y[STG-1][WR-1-WO];
+      end
       
-	assign out_data_I = rounded_I[WR-1:WR-WO];
-	assign out_data_Q = rounded_Q[WR-1:WR-WO];
+    assign out_data_I = rounded_I;
+    assign out_data_Q = rounded_Q;
     end
 endgenerate
 

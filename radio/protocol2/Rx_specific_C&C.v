@@ -111,17 +111,14 @@ module Rx_specific_CC
 				input       [15:0] to_port,
 				input              udp_rx_active,
 				input        [7:0] udp_rx_data,
-				input        run,
 				output  reg  [7:0] dither,
 				output  reg  [7:0] random,
 				output  reg  [7:0] EnableRx0_7,
-				output  reg  [7:0] EnableRx8_15,
 				output  reg [15:0] RxSampleRate[0:NR-1],
 				output  reg  [7:0] RxADC[0:NR-1],
 				output  reg  [7:0] SyncRx[0:NR-1],
 				output  reg  [7:0] Mux,
 				output  reg  Rx_data_ready,
-				output  reg  [31:0] sequence_errors,
 				output    HW_reset
 			);
 			
@@ -132,57 +129,45 @@ localparam
 				IDLE = 1'd0,
 				PROCESS = 1'd1;
 			
-reg [31:0] sequence_number;
-reg [31:0] last_sequence_number;
+reg [31:0] CC_sequence_number;
 reg [10:0] byte_number;
-reg [15:0] tmpRxSampleRate[0:NR-1];
 integer j;
 
 reg state;
 
 			
 always @(posedge clock)
-
 begin
-  if (!run)
-	sequence_errors <= 32'd0;
-
-  if (udp_rx_active && to_port == port)	// look for to_port = 1025
+  if (udp_rx_active && to_port == port)				// look for to_port = 1025
     case (state)
       IDLE:	
 				begin
-					Rx_data_ready <= 1'b0;
-				//	HW_reset <= 1'b1;
-					byte_number <= 11'd1;    // since byte 0 is received here 
-					sequence_number[31:24] <= udp_rx_data;  //save MSB of sequence number
-					state <= PROCESS;
+				Rx_data_ready <= 1'b0;
+			//	HW_reset <= 1'b1;
+				byte_number <= 11'd1;    // since byte 0 is received here 
+				CC_sequence_number <= {CC_sequence_number[31-8:0], udp_rx_data};  //save MSB of sequence number
+				state <= PROCESS;
 				end 
 			
 		PROCESS:
 			begin
 				case (byte_number) 	//save balance of sequence number
-					1: sequence_number[23:16] <= udp_rx_data;
-					2: sequence_number[15:8] <= udp_rx_data;
-					3: sequence_number[7:0] <= udp_rx_data;
-					// 4:	number of ADCs
-					4: begin
-						if (sequence_number != last_sequence_number + 1'b1)
-							sequence_errors <= sequence_errors + 1'b1;
-						last_sequence_number <= sequence_number;
+					1,2,3: begin
+						CC_sequence_number 		<= {CC_sequence_number[31-8:0], udp_rx_data};
+					//	HW_reset <= 1'b1;
 					end
-					5: dither 	<= udp_rx_data;
-					6: random	<= udp_rx_data;
-					7: EnableRx0_7	<= udp_rx_data; 
-					8: EnableRx8_15	<= udp_rx_data; 
+					// 4:	number of ADCs
+					5: dither 						<= udp_rx_data;
+					6: random			 			<= udp_rx_data;
+					7: EnableRx0_7					<= udp_rx_data; 
 				 endcase
 						
 					for ( j = 0; j < NR ; j = j + 1)
 					begin 						
 						case (byte_number)
 						 (j*6) + 17 : RxADC[j] <= udp_rx_data; 
-						 (j*6) + 18 : tmpRxSampleRate[j][15:8] <= udp_rx_data;
-						 (j*6) + 19 : tmpRxSampleRate[j][7:0]  <= udp_rx_data;
-						 (j*6) + 20 : if (tmpRxSampleRate[j] != 16'd0) RxSampleRate[j] <= tmpRxSampleRate[j];
+						 (j*6) + 18 : RxSampleRate[j][15:8] <= udp_rx_data;
+						 (j*6) + 19 : RxSampleRate[j][7:0]  <= udp_rx_data;
 						 j + 1363: SyncRx[j] <= udp_rx_data; 
 						endcase
 					end
@@ -190,7 +175,7 @@ begin
 				case (byte_number)
 					 1441: Rx_data_ready <= 1'b1;
 					 1443: begin 
-								Mux <= udp_rx_data;
+								Mux							<= udp_rx_data;
 								Rx_data_ready <= 1'b0;
 							//	HW_reset <= 1'b0;
 							 end

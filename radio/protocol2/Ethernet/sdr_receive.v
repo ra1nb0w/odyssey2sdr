@@ -38,21 +38,15 @@ module sdr_receive(
 	input [9:0] EPCS_wrused,
 	input [47:0] local_mac,
 	input [15:0] to_port,
-	input phasedone,
-	input [1:0] dashdot,
 
 	// outputs
 	output reg discovery_reply,
+	output reg seq_error,
 	output reg erase,					   	// set when we receive an EPCS16 erase command from PC 
 	output reg [31:0]num_blocks,			// holds number of blocks of 256 bytes that we will save in the EPCS16
 	output EPCS_FIFO_enable,				// set when we write to the EPCS fifo
 	output reg set_ip,						// set when new static IP address available 
 	output reg [31:0] assign_ip,			// static IP address to save in EEPROM.
-	output force100T,
-	output phaseupdown, // 1-UP 0-DOWN
-	output phasestep,
-	output phaserst,
-	output reg [7:0] phaseval,
 	output reg [31:0] sequence_number	// sequence number from PC when programming.
 );
 
@@ -65,139 +59,23 @@ reg [8:0]  EPCS_data_count;     		// counts how many bytes we send to the EPCS_R
 reg [8:0]  byte_cnt;						// counts bytes sent to EPCS fifo 
 reg [7:0]  byte_no;
 reg [47:0] mac;
-reg [7:0]  phasecmd;
-reg [7:0]  phasecnt;
-reg [7:0]  tmp_phaseval;
-reg phasego, phaseset, phaseonce;
-reg mod_reset;
 
 localparam 
-	ST_IDLE		= 12'd0,			// use 'one-hot' for state machine
-	ST_COMMAND	= 12'd1,
-	ST_DISCOVERY	= 12'd2,
-	ST_SETIP	= 12'd4,
-	ST_PROGRAM	= 12'd8,
-	ST_TX		= 12'd16,
-	ST_ERASE	= 12'd32,
+	ST_IDLE			 = 12'd0,			// use 'one-hot' for state machine
+	ST_COMMAND		 = 12'd1,
+	ST_DISCOVERY	 = 12'd2,
+	ST_SETIP			 = 12'd4,
+	ST_PROGRAM		 = 12'd8,
+	ST_TX				 = 12'd16,
+	ST_ERASE        = 12'd32,
 	ST_PROGRAM_FIFO = 12'd64,
-	ST_WAIT		= 12'd128,
-	ST_PLL_PHASE	= 12'd256,
-	ST_SET_BITS	= 12'd512;
-
-
-always @(posedge rx_clock)
-begin
-
-  if (mod_reset == 1'b0) begin
-      // do something here on power up
-      mod_reset <= 1'b1;
-      if (dashdot != 2'b00) force100T <= 1'b1;
-  end
-  //else if
-
-  // 1 step is 4.5 degrees of phase
-  if (phasego) begin
-    if (phaserst)
-      if (phasestep)
-        if (phasecnt > 8'd0)
-          phasecnt <= phasecnt - 1'b1;
-        else begin
-          phasestep <= 1'b0;
-        end
-      else if (phaseval > 0) begin
-        if (phasedone) begin
-          phaseval <= phaseval - 1'b1;
-          phasestep <= 1'b1;
-          phasecnt <= 8'd5;
-        end
-      end
-      else begin
-        phaserst <= 1'b0;
-        if (!phaseset)
-          phasego <= 1'b0;
-      end
-    else if (phaseset) begin
-      if (phaseonce) begin
-        phaseonce <= 1'b0;
-        phaseval <= tmp_phaseval;
-        if (tmp_phaseval[7]) begin
-          phaseupdown <= 1'b0;
-          tmp_phaseval <= -tmp_phaseval;
-        end
-        else
-          phaseupdown <= 1'b1;
-      end
-      else if (phasestep)
-        if (phasecnt > 8'd0)
-          phasecnt <= phasecnt - 1'b1;
-        else begin
-          phasestep <= 1'b0;
-        end
-      else if (tmp_phaseval > 0) begin
-        if (phasedone) begin
-          tmp_phaseval <= tmp_phaseval - 1'b1;
-          phasestep <= 1'b1;
-          phasecnt <= 8'd5;
-        end
-      end
-      else begin
-        phaseset <= 1'b0;
-        phasego <= 1'b0;
-      end
-    end
-    else if (phasestep)
-      if (phasecnt > 8'd0)
-        phasecnt <= phasecnt - 1'b1;
-      else begin
-        phasestep <= 1'b0;
-        phasego <= 1'b0;
-      end
-    else begin
-      case (phasecmd)
-        0: //step-down
-          begin
-            phaseupdown <= 1'b0;
-            phasestep <= 1'b1;
-            phasecnt <= 8'd5;
-            phaseval <= phaseval - 1'b1;
-          end
-        1: //step-up
-          begin
-            phaseupdown <= 1'b1;
-            phasestep <= 1'b1;
-            phasecnt <= 8'd5;
-            phaseval <= phaseval + 1'b1;
-          end
-        2: //set
-          begin
-            phaserst <= 1'b1;
-            phasecnt <= 8'd5;
-            phaseonce <= 1'b1;
-            phaseset <= 1'b1;
-            if (phaseval[7]) begin
-              phaseval <= -phaseval;
-              phaseupdown <= 1'b1;
-            end
-            else
-              phaseupdown <= 1'b0;
-          end
-        3: //reset
-          begin
-            phaserst <= 1'b1;
-            phasecnt <= 8'd5;
-            if (phaseval[7]) begin
-              phaseval <= -phaseval;
-              phaseupdown <= 1'b1;
-            end
-            else
-              phaseupdown <= 1'b0;
-          end
-      endcase
-    end
-  end
+	ST_WAIT			 = 12'd128;
 
 
 // ****** NOTE: This state machine only runs when udp_rx_active ******	
+	
+always @(posedge rx_clock)
+begin
   if (udp_rx_active && to_port == 1024) begin	// look for HPSDR udp packet to port 1024
     case (state)
 	 
@@ -212,20 +90,18 @@ begin
 			begin
 			byte_cnt <= 9'd5;
 				case (byte_no) 	//save balance of sequence number
-					0: sequence_number[23:16]  <= udp_rx_data;
-					1: sequence_number[15:8]   <= udp_rx_data; 
-					2: sequence_number[7:0]    <= udp_rx_data;
-					3: begin 
-						case (udp_rx_data)				// get command 
-							2: state <= ST_DISCOVERY;		// allow Discovery to this address or broadcast 
-							3: if (broadcast)  state <= ST_SETIP; 
-							4: if (!broadcast) state <= ST_ERASE;
-							5: if (!broadcast) state <= ST_PROGRAM_FIFO;
-							6: if (!broadcast) state <= ST_PLL_PHASE;
-							7: if (!broadcast) state <= ST_SET_BITS;
-							default: state <= ST_WAIT;		// command not for us so wait for this to end
-						endcase
-					end
+						0: sequence_number[23:16]  <= udp_rx_data;
+						1: sequence_number[15:8]   <= udp_rx_data; 
+						2: sequence_number[7:0]    <= udp_rx_data;
+						3: begin 
+								case (udp_rx_data)				// get command 
+									2: state <= ST_DISCOVERY;								// allow Discovery to this address or broadcast 
+									3: if (broadcast)  state <= ST_SETIP; 
+									4: if (!broadcast) state <= ST_ERASE;
+									5: if (!broadcast) state <= ST_PROGRAM_FIFO;
+									default: state <= ST_WAIT;								// command not for us so wait for this to end
+								endcase
+							end
 
 					default: state <= ST_WAIT;  // command not for us so wait for this to end
 				endcase
@@ -234,53 +110,30 @@ begin
 				
 
 		ST_DISCOVERY:  state <= ST_TX;   
-
-		ST_SET_BITS: 
-			begin
-				case(byte_no)
-					 4: begin
-						force100T <= udp_rx_data[0];
-						state <= ST_WAIT;
-					    end
-				endcase
-			end
-
-		ST_PLL_PHASE: 
-			begin
-				case(byte_no)
-					 4: tmp_phaseval <= udp_rx_data;
-					 5: begin
-						phasecmd <= udp_rx_data;
-						phasego <= 1'b1;
-						state <= ST_WAIT;
-					    end
-				endcase
-				byte_no <= byte_no + 8'd1;
-			end
-
+																			 
 		ST_SETIP: 
 			begin
 				case(byte_no)
-					 4: mac[47:40] <= udp_rx_data;
-					 5: mac[39:32] <= udp_rx_data;							 
-					 6: mac[31:24] <= udp_rx_data;
-					 7: mac[23:16] <= udp_rx_data;
-					 8: mac[15:8]  <= udp_rx_data;
-					 9: mac[7:0]   <= udp_rx_data;
+							 4: mac[47:40] <= udp_rx_data;
+							 5: mac[39:32] <= udp_rx_data;							 
+							 6: mac[31:24] <= udp_rx_data;
+							 7: mac[23:16] <= udp_rx_data;
+							 8: mac[15:8]  <= udp_rx_data;
+							 9: mac[7:0]   <= udp_rx_data;
 
-					10: begin 
-						if (mac != local_mac) state <= ST_IDLE;   // not for this MAC so return
-						else assign_ip[31:24] <= udp_rx_data;
-					 end
-					11: assign_ip[23:16] <= udp_rx_data;
-					12: assign_ip[15:8]  <= udp_rx_data; 
-					13: assign_ip[7:0]   <= udp_rx_data; 
+							10: begin 
+									if (mac != local_mac) state <= ST_IDLE;   // not for this MAC so return
+									else 	assign_ip[31:24] <= udp_rx_data;
+								 end
+							11: assign_ip[23:16] <= udp_rx_data;
+							12: assign_ip[15:8]  <= udp_rx_data; 
+					      13: assign_ip[7:0]   <= udp_rx_data; 
 
-					14: set_ip <= 1'b1;				// indicate new ip address available
-					40: state <= ST_IDLE;				// leave set_ip active since read on very slow clock 
-											// and FPGA is reset once new IP address is set
-					default: state <= ST_IDLE;
-				endcase
+							14: set_ip <= 1'b1;										// indicate new ip address available
+						   40: state <= ST_IDLE;									// leave set_ip active since read on very slow clock 
+																							// and FPGA is reset once new IP address is set
+					  default: state <= ST_IDLE;
+					endcase
 				byte_no <= byte_no + 8'd1;
 			end 
 		
@@ -288,21 +141,21 @@ begin
 			
 		ST_PROGRAM_FIFO:
 			begin 
-				case (byte_cnt)						// can't use byte_no since byte_cnt enables the FIFO
-					5: num_blocks[31:24] <= udp_rx_data;
-					6: num_blocks[23:16] <= udp_rx_data;
-					7: num_blocks[15:8]  <= udp_rx_data;						
-					8: num_blocks[7:0]   <= udp_rx_data;	
+				case (byte_cnt)														// can't use byte_no since byte_cnt enables the FIFO
+							5: num_blocks[31:24] <= udp_rx_data;
+							6: num_blocks[23:16] <= udp_rx_data;
+							7: num_blocks[15:8]  <= udp_rx_data;						
+							8: num_blocks[7:0]   <= udp_rx_data;	
 
 					default: if(byte_cnt > 264) state <= ST_IDLE;
-				endcase
+			   endcase 		  
 				byte_cnt <= byte_cnt + 9'd1;
 			end
 	
 		// wait for the end of sending
 		ST_TX:  if (!sending_sync) state <= ST_IDLE;
 		
-		ST_WAIT: if (!udp_rx_active) state <= ST_IDLE;				// command not for us so loop until it ends.
+		ST_WAIT: if (!udp_rx_active) state <= ST_IDLE;						// command not for us so loop until it ends.
 
 		default: if (!udp_rx_active) state <= ST_IDLE;
 		
@@ -315,7 +168,7 @@ end
 
 //	assign discovery_reply = (state == ST_DISCOVERY);
    assign EPCS_FIFO_enable = (byte_cnt > 8 && byte_cnt < 265);   // enable 256 bytes to EPCS fifo
-
+	
 
 // Code to erase EPCS fifo. Needs separate state machine since above code only runs when udp_rx_active	
 reg [2:0] EPCS_state;	
@@ -324,20 +177,20 @@ always @ (posedge  rx_clock)
 begin
 	case (EPCS_state)
 	0: begin
-		if (state == ST_ERASE) begin
-			erase <= 1'b1;
-			delay <= 27'd1;
-			EPCS_state <= 	1;
+			if (state == ST_ERASE) begin
+				erase <= 1'b1;
+				delay <= 27'd1;
+				EPCS_state <= 	1;
+			end 
 		end 
-	end 
 
 	1: begin 								
-		if (erase_ACK | delay == 27'd0) begin  // time out ACK so we don't get stuck here. 
-			erase <= 1'b0;
-			EPCS_state <= 0;
-		end
-		else delay <= delay + 27'd1;
-	end 
+			if (erase_ACK | delay == 27'd0) begin  // time out ACK so we don't get stuck here. 
+				erase <= 1'b0;
+				EPCS_state <= 0;
+			end
+			else delay <= delay + 27'd1;
+		end 
 	endcase
 end
 	
@@ -350,20 +203,20 @@ always @ (posedge rx_clock)
 begin
 	case (DISC_state)
 	0: begin
-		if (state == ST_DISCOVERY) begin
-			discovery_reply <= 1'b1;
-			delay1 <= 27'd1;
-			DISC_state <= 	1;
+			if (state == ST_DISCOVERY) begin
+				discovery_reply <= 1'b1;
+				delay1 <= 27'd1;
+				DISC_state <= 	1;
+			end 
 		end 
-	end 
 
 	1: begin 								
-		if (discovery_ACK | delay1 == 27'd0) begin  // time out ACK so we don't get stuck here. 
-			discovery_reply <= 1'b0;
-			DISC_state <= 0;
-		end
-		else delay1 <= delay1 + 27'd1;
-	end 
+			if (discovery_ACK | delay1 == 27'd0) begin  // time out ACK so we don't get stuck here. 
+				discovery_reply <= 1'b0;
+				DISC_state <= 0;
+			end
+			else delay1 <= delay1 + 27'd1;
+		end 
 	endcase
 end	
 

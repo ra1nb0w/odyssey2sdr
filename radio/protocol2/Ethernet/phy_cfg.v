@@ -20,11 +20,13 @@
 
 //  Metis code copyright 2010, 2011, 2012, 2013 Alex Shovkoplyas, VE3NEA.
 
+//  25 Sept 2014 - Modified initial register values to correct for 0.12nS rather than 0.2nS steps.
+//                 Also added write to register 106h to turn off Tx Data Pad Skews.  Both these
+//						 changes are due to errors in the original data sheet which was corrected Feb 2014.
 
-// 2021 Updated to support KSZ9021RN and KSZ9031RN on Hermes-Lite 2.0, KF7O.
 
 //-----------------------------------------------------------------------------
-// initialize the PHY device on startup
+// initialize the PHY device on startup and when allow_1Gbit changes
 // by writing config data to its MDIO registers; 
 // continuously read PHY status from the MDIO registers
 //-----------------------------------------------------------------------------
@@ -33,12 +35,11 @@ module phy_cfg(
   //input
   input clock,        //2.5 MHZ
   input init_request,
-  input force100T,
-  
+  input allow_1Gbit,  //speed selection jumper: open 
+
   //output
   output reg [1:0] speed,
   output reg duplex,
-  output reg is_9031,
   
   //hardware pins
   inout mdio_pin,
@@ -46,47 +47,27 @@ module phy_cfg(
 );
 
 
+//-----------------------------------------------------------------------------
+//                           initialization data
+//-----------------------------------------------------------------------------
 
 //mdio register values
-wire [15:0] values [7:0];
-
-
-
-assign values[7] = 16'h8104; // RX clk to other skew of 1.2ns to match ksz9031rn, RGMII 2.0
-assign values[6] = 16'h55d6;
-assign values[5] = 16'h8105;
-assign values[4] = 16'h6666; 
-
-assign values[3] = {6'b0, !force100T, 9'b0};
-assign values[2] = 16'h1300; // Restart autonegotiation
-
-assign values[1] = 16'hxxxx;
-assign values[0] = 16'hxxxx;
+logic [15:0] values [18:0];
 
 //mdio register addresses 
-wire [4:0] addresses [7:0];
+logic [4:0] addresses [18:0];
 
-
-assign addresses[7] = 5'h0b;
-assign addresses[6] = 5'h0c;
-assign addresses[5] = 5'h0b;
-assign addresses[4] = 5'h0c;
-
-assign addresses[3] = 5'h09;
-assign addresses[2] = 5'h00;
-
-assign addresses[1] = 5'h03; // PHY identifier 2
-assign addresses[0] = 5'h1f; // PHY Control 
-
-reg [2:0] word_no = 3'h0;
-reg last_force100T;
+reg [3:0] word_no; 
 
 
 //-----------------------------------------------------------------------------
 //                            state machine
 //-----------------------------------------------------------------------------
 
-reg init_required;
+//phy initialization required 
+//if allow_1Gbit input has changed or init_request input was raised
+reg last_allow_1Gbit, init_required;
+
 wire ready;
 wire [15:0] rd_data;
 reg rd_request, wr_request;
@@ -96,48 +77,96 @@ reg rd_request, wr_request;
 localparam READING = 1'b0, WRITING = 1'b1;  
 reg state = READING;  
 
+always @(posedge clock)  
+  begin
+  if (init_request || (allow_1Gbit != last_allow_1Gbit))  begin
+    init_required <= 1;
+    values[18] = {6'b0, allow_1Gbit, 9'b0};
 
-always @(posedge clock) begin
-  if (init_request || last_force100T != force100T) begin
-    last_force100T <= force100T;
-    init_required <= 1'b1;
+    values[17] = 16'h0002;
+    values[16] = 16'h0004;
+    values[15] = 16'h4002;
+    //values[14] = 16'b0000_0000_0110_0111;  // RX_CTL: -0.06   - TX_CTL: 0.0
+    values[14] = 16'b0000_0000_0111_0111;  // RX_CTL: +0.0   - TX_CTL: 0.0
+
+    // program address 2 register 5
+    values[13] = 16'h0002;
+    values[12] = 16'h0005;
+    values[11] = 16'h4002;
+    //values[10] = 16'b1010_1010_0111_0111;   // RD3: +0.18 - RD2: +0.18 - RD1: 0.0 - RD0: 0.0
+    values[10] = 16'b0111_0111_0111_0111;   // RD3: +0.0 - RD2: +0.0 - RD1: 0.0 - RD0: 0.0
+
+    // program address 2 register 6
+    values[9] = 16'h0002;
+    values[8] = 16'h0006;
+    values[7] = 16'h4002;
+    //values[6] = 16'b1000_0111_1001_0111;   // TD3: +0.06  - TD2: 0.0  - TD1: +0.12 - TD0: 0.0
+    values[6] = 16'b0111_0111_0111_0111;   // TD3: +0.0  - TD2: 0.0  - TD1: +0.0 - TD0: 0.0
+
+    // program address 2 register 8
+    values[5] = 16'h0002;
+    values[4] = 16'h0008;
+    values[3] = 16'h4002;
+    //values[2] = 16'b0000_00_00110_11010;  // TX_CLK: -0.54   - RX_CLK: +0.66
+    values[2] = 16'b0000_00_01111_10000;  // TX_CLK: -0.0   - RX_CLK: +0.06
+
+    values[1] = 16'h1300;
+    values[0] = 16'hxxxx;
+
+    addresses[18] = 9;
+    addresses[17] = 5'h0d;
+    addresses[16] = 5'h0e;
+    addresses[15] = 5'h0d;
+    addresses[14] = 5'h0e;
+    addresses[13] = 5'h0d;
+    addresses[12] = 5'h0e;
+    addresses[11] = 5'h0d;
+    addresses[10] = 5'h0e;
+    addresses[9] = 5'h0d;
+    addresses[8] = 5'h0e;
+    addresses[7] = 5'h0d;
+    addresses[6] = 5'h0e;
+    addresses[5] = 5'h0d;
+    addresses[4] = 5'h0e;
+    addresses[3] = 5'h0d;
+    addresses[2] = 5'h0e;
+    addresses[1] = 0;
+    addresses[0] = 31; 
   end
   
   if (ready)
     case (state)
-      READING: begin
-        if (word_no[0]) begin
-          is_9031 <= (rd_data[5:4] != 2'b01);
-        end else begin
-          speed <= rd_data[6:5];
-          duplex <= rd_data[3];
-        end
+      READING:
+        begin
+        speed <= rd_data[6:5];
+        duplex <= rd_data[3];
         
-        if (init_required & word_no[0]) begin
-          wr_request <= 1'b1;
-          if (rd_data[5:4] == 2'b01) word_no <= 3'h7;
-          else word_no <= 3'h3;
-          state <= WRITING;
-          init_required <= 1'b0;
-        end else begin
+        if (init_required)
+          begin
+          wr_request <= 1;
+          word_no <= 18;
+          last_allow_1Gbit <= allow_1Gbit;
+          state  <= WRITING;
+          init_required <= 0;
+          end
+        else
           rd_request <= 1'b1;
-          word_no <= {2'b00,~word_no[0]};
-          state <= READING;
         end
-      end
 
-      WRITING: begin
-        if (word_no == 3'h2) state <= READING;
-        else wr_request <= 1'b1;
-        word_no <= word_no - 3'h1;		  
-      end
-    endcase
+      WRITING:
+        begin
+        if (word_no == 4'b1) state <= READING;   // *** should this be == 0?
+        else wr_request <= 1;
+        word_no <= word_no - 4'b1;		  
+        end
+      endcase
 		
-  else begin //!ready
+  else //!ready
+    begin
     rd_request <= 0;
     wr_request <= 0;
+    end
   end
-end
 
         
         

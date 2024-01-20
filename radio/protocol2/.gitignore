@@ -69,7 +69,5 @@
 
 !Ethernet/
 !Polyphase_FIR/
-!polyphase_fir/
-!Makefile
 
-datetime.vhd
+!Makefile

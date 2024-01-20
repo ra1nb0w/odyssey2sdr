@@ -31,14 +31,11 @@ module network (
 	input udp_tx_request,
 	input [15:0] udp_tx_length, 
 	input [7:0] udp_tx_data,
+	input speed,
 	input set_ip,
 	input [31:0] assign_ip,
 	input [7:0] port_ID,
-	input run,
-	input phaseupdown,
-	input phasestep,
-	input [7:0] phaseval,
-	input force100T,
+  input run,
 	
 	//output
 	output rx_clock,
@@ -52,16 +49,16 @@ module network (
 	output IP_write_done,
 	output [15:0]to_port,
 	output dst_unreachable,
-	output phasedone,
-	output is_9031,
+
 
   //status output
-  output speed_1gb,
+  output speed_1Gbit,
   output network_state,  
   output [7:0] network_status,
   output static_ip_assigned,
   output dhcp_timeout,
   output dhcp_success,
+  output dhcp_failed,
   output icmp_rx_enable,  // *** test for ping bug
 
   //hardware pins
@@ -82,10 +79,11 @@ module network (
   output SCK,                  
   output SI,                   
   input  SO,                   
-  output CS
-);
+  output CS,
 
-reg speed_1gb_i = 1'b0;
+  input MODE2
+  );
+
 wire [31:0] static_ip;
 wire eeprom_ready;
 wire clock_2_5MHz;
@@ -123,13 +121,14 @@ localparam
   
 
 // Set Tx_reset (no sdr send) if network_state is True
-assign network_state = reg_network_state;   // network_state is high when we have an IP address 
-reg reg_network_state = 1'b0;	  // this is used in network.v to hold code in reset when low
+assign network_state = reg_network_state;   // network_state is low when we have an IP address 
+reg reg_network_state = 1'b1;					  // this is used in network.v to hold code in reset when high
 reg [3:0] state = ST_START;
 reg [21:0] dhcp_timer;
 reg dhcp_tx_enable;
 reg [17:0] dhcp_renew_timer;  // holds number of seconds before DHCP IP address must be renewed
 reg [3:0] dhcp_seconds_timer;   // number of seconds since the DHCP request started
+
 
 //reset all child modules
 wire rx_reset, tx_reset;
@@ -140,7 +139,7 @@ always @(negedge clock_2_5MHz)
   //if connection lost, wait until reconnects
   if ((state > ST_PHY_CONNECT) && !phy_connected) 
   begin
-    reg_network_state <= 1'b0;	
+    reg_network_state <= 1'b1;	
     state <= ST_PHY_CONNECT;
   end
     
@@ -148,7 +147,6 @@ always @(negedge clock_2_5MHz)
   case (state)
     //set eeprom read request
     ST_START: begin
-      speed_1gb_i <= 0;
       state <= ST_EEPROM_START;
     end
     //clear eeprom read request
@@ -175,7 +173,6 @@ always @(negedge clock_2_5MHz)
       if (phy_connected) begin
         dhcp_timer <= 22'd2500000; //1 second
         state <= ST_PHY_SETTLE;
-        speed_1gb_i <= phy_speed[1];
       end
 
     //wait for connection to settle
@@ -209,7 +206,7 @@ always @(negedge clock_2_5MHz)
         local_ip <= ip_accept;
         dhcp_timer <= 22'd2_500_000;    // reset dhcp timers for next Renewal
         dhcp_seconds_timer <= 4'd0;
-        reg_network_state <= 1'b1;    // Let network code know we have a valid IP address so can run when needed.
+        reg_network_state <= 1'b0;    // Let network code know we have a valid IP address so can run when needed.
         if (lease == 32'd0)
           dhcp_renew_timer <= 43_200;  // use 43,200 seconds (12 hours) if no lease time set
         else
@@ -245,10 +242,10 @@ always @(negedge clock_2_5MHz)
     // static ,DHCP or APIPA ip address obtained
     ST_RUNNING: begin
       dhcp_enable <= 1'b0;          // disable dhcp receive
-      reg_network_state <= 1'b1;    // let network.v know we have a valid IP address
+      reg_network_state <= 1'b0;    // let network.v know we have a valid IP address
     end
 
-    // NOTE: reg_network_state is not unset here so we can send DHCP packets whilst waiting for DHCP renewal.
+    // NOTE: reg_network_state is not set here so we can send DHCP packets whilst waiting for DHCP renewal.
 
     ST_DHCP_RENEW_WAIT: begin // Wait until the DHCP lease expires
       dhcp_enable <= 1'b0;        // disable dhcp receive
@@ -326,9 +323,8 @@ eeprom eeprom_inst(
 phy_cfg phy_cfg_inst(
   .clock(clock_2_5MHz),  
   .init_request(state == ST_PHY_INIT),  
+  .allow_1Gbit(MODE2),  
   .speed(phy_speed),
-  .is_9031(is_9031),
-  .force100T(force100T),
   .duplex(phy_duplex),
   .mdio_pin(PHY_MDIO),
   .mdc_pin(PHY_MDC)  
@@ -360,14 +356,11 @@ wire [7:0]  udp_data;
 wire [15:0] udp_length;
 wire [15:0] destination_port;
 wire [31:0] to_ip;
-wire to_ip_is_me;
 
 
 //rgmii_recv out
-wire          rgmii_rx_active_pipe;
-wire [7:0]    rx_data_pipe;
-reg           rgmii_rx_active;
-reg [7:0]     rx_data;
+wire rgmii_rx_active;  
+wire [7:0] rx_data;
 
 //mac_recv in
 wire mac_rx_enable = rgmii_rx_active;
@@ -396,7 +389,7 @@ wire [7:0] arp_tx_data;
 wire [47:0] arp_destination_mac;
 
 // icmp in
-assign  icmp_rx_enable = ip_rx_active && rx_is_icmp && to_ip_is_me;
+assign  icmp_rx_enable = ip_rx_active && rx_is_icmp;
 wire icmp_tx_enable = tx_start && tx_is_icmp;
 //icmp out
 wire icmp_tx_request;
@@ -434,16 +427,14 @@ wire mac_tx_active;
 wire [7:0] rgmii_tx_data_in = mac_tx_data;
 wire rgmii_tx_enable = mac_tx_active;
 
-
-
-
 //rgmii_send out
 wire        rgmii_tx_active;
 
 //dhcp
 wire [15:0]dhcp_udp_tx_length        = tx_is_dhcp ? dhcp_tx_length        : udp_tx_length;
 wire [7:0] dhcp_udp_tx_data          = tx_is_dhcp ? dhcp_tx_data          : udp_tx_data;
-wire [15:0]local_port                = tx_is_dhcp ? 16'd68                : 16'd1024;
+wire [15:0]local_port                   = tx_is_dhcp ? 16'd68                  : 16'd1024;
+
 
 
 // Hold destination port once run is set
@@ -486,24 +477,21 @@ always @(posedge tx_clock)
   end
 
 
+
 //-----------------------------------------------------------------------------
 //                               receive
 //-----------------------------------------------------------------------------
-
-always @(posedge rx_clock) begin
-  rx_data <= rx_data_pipe;
-  rgmii_rx_active <= rgmii_rx_active_pipe;
-end
-
 rgmii_recv rgmii_recv_inst (
   //out
-  .active(rgmii_rx_active_pipe),
+  .active(rgmii_rx_active),
+
   .reset(rx_reset),
+  .speed_1Gbit(speed),  
   .clock(rx_clock),  
-  .speed_1gb(speed_1gb_i),  
-  .data(rx_data_pipe),
+  .data(rx_data),
   .PHY_RX(PHY_RX),     
-  .PHY_DV(PHY_DV)
+  .PHY_DV(PHY_DV),
+  .PHY_RX_CLOCK(PHY_RX_CLOCK)
   );  
 
 mac_recv mac_recv_inst(
@@ -513,7 +501,6 @@ mac_recv mac_recv_inst(
   .active(mac_rx_active),
   .is_arp(rx_is_arp),
   .remote_mac(remote_mac), 
-  .remote_mac_valid(remote_mac_valid),
   .clock(rx_clock), 
   .data(rx_data),  
   .local_mac(local_mac),    
@@ -528,13 +515,12 @@ ip_recv ip_recv_inst(
   .active(ip_rx_active),
   .is_icmp(rx_is_icmp), 
   .remote_ip(remote_ip),
-  .remote_ip_valid(remote_ip_valid),
   .clock(rx_clock), 
   .rx_enable(ip_rx_enable),
   .broadcast(broadcast),
   .data(rx_data),
-  .to_ip(to_ip),
-  .to_ip_is_me(to_ip_is_me)
+
+  .to_ip(to_ip)
   );    
   
 udp_recv udp_recv_inst(
@@ -543,18 +529,17 @@ udp_recv udp_recv_inst(
 	.rx_enable(udp_rx_enable),
 	.data(rx_data),
 	.to_ip(to_ip),
-	.dhcp_enable(dhcp_enable),
-	.local_ip(local_ip),
-	.broadcast(broadcast),
+   .local_ip(local_ip),
+   .broadcast(broadcast),
 	.remote_mac(remote_mac),
-	.remote_ip(remote_ip),
+   .remote_ip(remote_ip),
 
 	//out
 	.active(udp_rx_active),
 	.dhcp_active(dhcp_rx_active),
 	.to_port(to_port),
 	.udp_destination_ip(udp_destination_ip),   
-	.udp_destination_mac(udp_destination_mac),
+   .udp_destination_mac(udp_destination_mac),
 	.udp_destination_port(udp_destination_port)
 	);
   
@@ -601,9 +586,7 @@ icmp icmp_inst (
 );  
 
 wire dhcp_tx_request;
-
 reg dhcp_enable;
-
 wire [7:0]  dhcp_tx_data;
 wire [15:0] dhcp_tx_length;
 wire [47:0] dhcp_destination_mac;
@@ -615,9 +598,9 @@ wire [31:0] server_ip;					// IP address of the DHCP that provided the IP addres
 wire erase;
 wire EPCS_FIFO_enable;
 wire [47:0]remote_mac;
-wire remote_mac_valid;
 wire [31:0]remote_ip;
-wire remote_ip_valid;
+wire [15:0]remote_port;
+
 
 dhcp dhcp_inst(
   //rx in
@@ -638,7 +621,6 @@ dhcp dhcp_inst(
   .remote_mac(remote_mac_sync),				// MAC address of DHCP server
   .remote_ip(remote_ip_sync),				// IP address of DHCP server 
   .dhcp_seconds_timer(dhcp_seconds_timer),
-  .local_ip(local_ip),
 
   // tx_out
   .dhcp_tx_request(dhcp_tx_request), 
@@ -654,7 +636,7 @@ dhcp dhcp_inst(
 
   // result
   .dhcp_success(dhcp_success),
-  .dhcp_failed()
+  .dhcp_failed(dhcp_failed)
   
   );
 
@@ -676,7 +658,7 @@ cdc_sync #(32) cdc_sync_inst7 (.siga(udp_destination_ip), .rstb(1'b0), .clkb(tx_
 cdc_sync #(48) cdc_sync_inst8 (.siga(udp_destination_mac), .rstb(1'b0), .clkb(tx_clock), .sigb(udp_destination_mac_sync));
 cdc_sync #(16) cdc_sync_inst9 (.siga(udp_destination_port), .rstb(1'b0), .clkb(tx_clock), .sigb(udp_destination_port_sync));
 
-
+  
 //-----------------------------------------------------------------------------
 //                               send
 //-----------------------------------------------------------------------------
@@ -726,99 +708,27 @@ mac_send mac_send_inst (
   .local_mac(local_mac),
   .reset(tx_reset)
   );  
-
-
+  
 rgmii_send rgmii_send_inst (
   //in
   .data(rgmii_tx_data_in),  
   .tx_enable(rgmii_tx_enable),   
   .active(rgmii_tx_active),      
+  .speed_1Gbit(speed), 
   .clock(tx_clock), 
   .PHY_TX(PHY_TX),
-  .PHY_TX_EN(PHY_TX_EN)
+  .PHY_TX_EN(PHY_TX_EN),              
+  .PHY_TX_CLOCK(PHY_TX_CLOCK),    
+  .PHY_CLK125(PHY_CLK125),   
+  .clock_2_5MHz(clock_2_5MHz),
+  .clock_12_5MHz(clock_12_5MHz)
   );  
   
-logic clock_125_mhz_0_deg;
-logic clock_125_mhz_90_deg;
-logic clock_25_mhz;
-logic phy_rx_clk_div2;
-logic speed_1gb_clksel = 1'b0;
-
-always @(posedge clock_2_5MHz) begin
-  speed_1gb_clksel <= speed_1gb;
-end
-
-tx_pll	tx_pll_inst (
-	.inclk0 (PHY_CLK125),
-	.c0 (clock_125_mhz_0_deg),
-	.c1 (clock_125_mhz_90_deg),
-	.c2 (clock_2_5MHz),
-	.c3 (clock_25_mhz),
-	.c4 (clock_12_5MHz),
-	.phasecounterselect(3'b011),
-	.phaseupdown(phaseupdown),
-	.scanclk(PHY_CLK125),
-	.phasestep(phasestep),
-	.phasedone(phasedone)
-	);   
-
-altclkctrl #(
-    .clock_type("AUTO"),
-    //.intended_device_family("Cyclone IV E"),
-    //.ena_register_mode("none"),
-    //.implement_in_les("OFF"),
-    .number_of_clocks(4),
-    //.use_glitch_free_switch_over_implementation("OFF"),
-    .width_clkselect(2)
-    //.lpm_type("altclkctrl"),
-    //.lpm_hint("unused")
-    ) ethtxint_clkmux_i
-(
-    .clkselect({1'b1, speed_1gb_clksel}),
-    .ena(1'b1),
-    .inclk({clock_125_mhz_0_deg, clock_12_5MHz, 2'b00}),
-    .outclk(tx_clock)
-);
-
-altclkctrl #(
-    .clock_type("AUTO"),
-    .number_of_clocks(4),
-    .width_clkselect(2)
-    ) ethtxext_clkmux_i
-
-(
-    .clkselect({1'b1, speed_1gb_clksel}),
-    .ena(1'b1),
-    .inclk({clock_125_mhz_90_deg, clock_25_mhz, 2'b00}),
-    .outclk(PHY_TX_CLOCK)
-);
-
-
-always @(posedge PHY_RX_CLOCK) begin
-    phy_rx_clk_div2 <= ~phy_rx_clk_div2;
-end
-
-`ifdef DONT
-// Error (15660): inclk[2] port of Clock Control Block "network:network_inst|altclkctrl:ethrxint_clkmux_i|altclkctrl_tki:auto_generated|clkctrl1" is driven by network:network_inst|phy_rx_clk_div2, but must be driven by a PLL clock output
-altclkctrl #(
-    .clock_type("AUTO"),
-    .number_of_clocks(4),
-    .width_clkselect(2)
-    ) ethrxint_clkmux_i
-(
-    .clkselect({speed_1gb_clksel, 1'b0}),
-    .ena(1'b1),
-    .inclk({1'b0, phy_rx_clk_div2, 1'b0, PHY_RX_CLOCK}),
-    .outclk(rx_clock)
-);
-`else
-assign rx_clock = speed_1gb_clksel ? PHY_RX_CLOCK : phy_rx_clk_div2;
-`endif
 
 //-----------------------------------------------------------------------------
 //                              debug output
 //-----------------------------------------------------------------------------
-assign speed_1gb = speed_1gb_i; //phy_speed[1];
+assign speed_1Gbit = phy_speed[1];
 assign network_status = {phy_connected,phy_speed[1],phy_speed[0], udp_rx_active, udp_rx_enable, rgmii_rx_active, rgmii_tx_active, mac_rx_active};
 
 

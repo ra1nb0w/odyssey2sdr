@@ -81,7 +81,7 @@ module High_Priority_CC
 				input udp_rx_active,
 				input [7:0] udp_rx_data,
 				input HW_timeout,
-				output reg run,
+			   output reg run,
 				output reg PC_PTT,
 				output reg CWX,
 				output reg Dot,
@@ -97,8 +97,8 @@ module High_Priority_CC
 				output reg  [7:0]Mercury_Attenuator,				
 				output reg Alex_data_ready,
 				output  HW_reset,
-				output reg [31:0]sequence_errors,
 				output reg  [7:0]DLE_outputs  // XVTR_enable & IO1 output
+				
 			);
 			
 parameter port = 16'd1027;	
@@ -108,8 +108,7 @@ localparam
 				IDLE = 1'd0,
 				PROCESS = 1'd1;
 			
-reg [31:0] sequence_number;
-reg [31:0] last_sequence_number;
+//reg [31:0] CC_sequence_number;
 reg [10:0] byte_number;
 reg state;
 
@@ -140,42 +139,33 @@ endgenerate
 
 always @(posedge clock)
 begin
-  if (!run)
-	sequence_errors <= 32'd0;
-
   if(HW_timeout)
 	begin
-	   run <= 1'b0;		// reset run if HW timeout
+	   run <= 1'b0; 							// reset run if HW timeout
 	   PC_PTT <= 1'b0;
 	end
 
-  else if (udp_rx_active && to_port == port)	// look for to_port = 1027
+  else if (udp_rx_active && to_port == port)				// look for to_port = 1027
     case (state)
 		IDLE:
 			begin
 				byte_number <= 11'd1;
 				Alex_data_ready <= 1'b0;
-				sequence_number[31:24] <= udp_rx_data;  //save MSB of sequence number
+				//CC_sequence_number <= {CC_sequence_number[31-8:0], udp_rx_data};  //save MSB of sequence number
 				state <= PROCESS;
 			end 
 
 		PROCESS:
 			begin
 				case (byte_number) 	//save balance of sequence number
-						1: begin 
-							sequence_number[23:16] <= udp_rx_data;
+				  1,2,3: begin
 							Alex_data_ready <= 1'b0;
 						//	HW_reset <= 1'b1;						
-						   end
-						2: 	sequence_number[15:8] <= udp_rx_data;
-						3: 	sequence_number[7:0] <= udp_rx_data;
+						//	CC_sequence_number <= {CC_sequence_number[31-8:0], udp_rx_data};
+							end
 						4: begin 
 							run <= udp_rx_data[0];
-							PC_PTT <= udp_rx_data[1]; //PTT0
-							// 2-4 = PTT1-PTT3
-							if (sequence_number != last_sequence_number + 1'b1)
-								sequence_errors <= sequence_errors + 1'b1;
-							last_sequence_number <= sequence_number;
+							PC_PTT <= udp_rx_data[1];
 						   end
 						5: begin
 							CWX  <= udp_rx_data[0];
@@ -196,11 +186,10 @@ begin
 						1403:	Mercury_Attenuator     <=  udp_rx_data;	
 						
 						// parse the Alex data bytes into temp_Alex_data
-						// NOTE: Tx filters data is on top 16 bits for ANAN-7000-8000
-						1430: temp_Alex_data [31:24]	<= udp_rx_data; // Rx1 filters high byte
-						1431: temp_Alex_data [23:16]	<= udp_rx_data; // Rx1 filters low byte
-						1432:	temp_Alex_data [47:40]  <= udp_rx_data; // Tx filters data high byte
-						1433:	temp_Alex_data [39:32]  <= udp_rx_data; // Tx filters data low byte
+						1430: temp_Alex_data [47:40]	<= udp_rx_data; // Rx1 filters high byte
+						1431: temp_Alex_data [39:32]	<= udp_rx_data; // Rx1 filters low byte
+						1432:	temp_Alex_data [31:24]  <= udp_rx_data; // Tx filters data high byte
+						1433:	temp_Alex_data [23:16]  <= udp_rx_data; // Tx filters data low byte
 						1434:	temp_Alex_data [15:8]   <= udp_rx_data; // Rx0 filters data high byte
 						1435:	temp_Alex_data [7:0]    <= udp_rx_data; // Rx0 filters data low byte	
 		

@@ -65,7 +65,7 @@ module ddio_out (
 				.sset (1'b0));
 	defparam
 		ALTDDIO_OUT_component.extend_oe_disable = "OFF",
-		ALTDDIO_OUT_component.intended_device_family = "Cyclone IV E",
+		ALTDDIO_OUT_component.intended_device_family = "Cyclone IV GX",
 		ALTDDIO_OUT_component.invert_output = "OFF",
 		ALTDDIO_OUT_component.lpm_hint = "UNUSED",
 		ALTDDIO_OUT_component.lpm_type = "altddio_out",
@@ -80,9 +80,9 @@ endmodule
 // CNX file retrieval info
 // ============================================================
 // Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
-// Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone IV E"
+// Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "Cyclone IV GX"
 // Retrieval info: CONSTANT: EXTEND_OE_DISABLE STRING "OFF"
-// Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone IV E"
+// Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "Cyclone IV GX"
 // Retrieval info: CONSTANT: INVERT_OUTPUT STRING "OFF"
 // Retrieval info: CONSTANT: LPM_HINT STRING "UNUSED"
 // Retrieval info: CONSTANT: LPM_TYPE STRING "altddio_out"
