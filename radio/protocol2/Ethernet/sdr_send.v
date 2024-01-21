@@ -32,6 +32,7 @@ module sdr_send(
 	input wideband,
 	input [47:0]local_mac,
 	input [7:0] code_version,
+	input [7:0] beta_version,
 	input discovery, 
 	input [7:0]Rx_data[0:NR-1] /* ramstyle = "logic" */,			// Rx data to send to PHY
 	input sp_data_ready,
@@ -47,8 +48,9 @@ module sdr_send(
 	input [31:0] sequence_number,		// sequence number to send when programming and requesting more data.	
    input [15:0]samples_per_frame[0:NR-1],	
 	input [15:0]tx_length[0:NR-1],		// length of the UDP packet, varies with number of sync or mux receivers.
-        input [15:0] checksum,
-	input [7:0] Wideband_packets_per_frame,  // 
+	input [15:0] checksum,
+	input [7:0] Wideband_packets_per_frame,
+		  
 	output reg udp_tx_request,
 	output [7:0] udp_tx_data,
 	output reg [15:0] udp_tx_length,
@@ -87,7 +89,7 @@ localparam
 	
 	
 localparam 
-	HEADER_LENGTH  = 16'd22,					// number of bytes in response  udp header
+	HEADER_LENGTH  = 16'd30,					// number of bytes in response  udp header
 	PC_LENGTH		= 16'd4,						// number of bytes in sequence number
 	RES_H_BIT    	= HEADER_LENGTH*8 -1,  	// response header bits
 	PC_H_BIT       = PC_LENGTH*8 -1,
@@ -125,25 +127,10 @@ reg [28:0] stuck_cnt = 29'd0;
 wire [7:0] number_Rx = NR;
 wire [31:0] clock_frequency = master_clock;
 
-//reg [25:0] epoch_min;
+//reg [25:0] epoch_min; multiply by 60 to get epoch seconds
 //datetime datetime_inst(.epoch_min (epoch_min));
 
 always @(posedge tx_clock) 
-`ifdef nostuck
-  begin
-  if ((state > IDLE) && !run) begin				// prevents code getting stuck when run not active
-      if (stuck_cnt < 29'd250000000)
-          stuck_cnt <= stuck_cnt + 29'b1;
-      else begin
-          state <= IDLE;
-          stuck_cnt <= 29'd0;
-      end
-  end
-  else
-      stuck_cnt <= 29'd0;
-`endif
-
-
   if (!run && state > SEND) state <= IDLE;
   else begin
   case (state)
@@ -152,7 +139,15 @@ always @(posedge tx_clock)
 				udp_tx_request <= 1'b0;
 				send_response <= 1'b0;
 				byte_no <= 16'd0; 
-				port_ID <= 8'd0;										// set base to 1024
+				port_ID <= 8'd0;	
+				sp_fifo_rdreq <= 1'b0;
+				mic_fifo_rdreq <= 1'b0;
+				udp_tx_length <= 16'd0;
+ 			   fifo_rdreq[0] <= 1'b0;
+            fifo_rdreq[1] <= 1'b0;
+            if (NR > 2) fifo_rdreq[2] <= 1'b0;
+            if (NR > 3) fifo_rdreq[3] <= 1'b0;
+				// set base to 1024
 				if (!send_more)  send_more_ACK  <= 1'b0;		// clear ACK when sdr_receiver has seen our ACK
 				if (!erase_done) erase_done_ACK <= 1'b0;		// clear ACK when ASMI_interface has seen our ACK
 				if (!discovery)  discovery_ACK  <= 1'b0;		// clear ACK when sdr_receiver has seen our ACK
@@ -160,17 +155,19 @@ always @(posedge tx_clock)
 				
 				// *** NOTE: can reply to Discovery if already running *****	
 				if (discovery) begin
-					response_tx_bits <= {32'd0, (8'd02 + {7'b0,run}), local_mac, board_type, protocol_version, code_version, 48'd0, number_Rx, 8'd1}; 	// sequence number set to zero for future use
+					//response_tx_bits <= {32'd0, (8'd02 + {7'b0,run}), local_mac, board_type, protocol_version, code_version, 48'd0, number_Rx, 8'd1}; 	// sequence number set to zero for future use
+					response_tx_bits <= {32'd0, (8'd02 + {7'b0,run}), local_mac, board_type, protocol_version, code_version, 48'd0, number_Rx, 8'd1,
+						8'd0, beta_version, 8'd0, 40'd0}; // we don't implement the extra code for get/change ethernet phase/timing
 					state <= response;			// **** change HEADER_LENGTH when making changes here ****
 				end 
 				
 				else if (erase_done) begin
-					response_tx_bits <= {32'd0, 8'd03, local_mac, code_version, board_type, 72'd0}; 	// sequence number set to zero for future use
+					response_tx_bits <= {32'd0, 8'd03, local_mac, code_version, board_type, 136'd0}; 	// sequence number set to zero for future use
 					state <= response;
 				end 
 				
 				else if (send_more) begin
-					response_tx_bits <= {sequence_number, 8'd04, local_mac, code_version, board_type, checksum, 56'd0}; 
+					response_tx_bits <= {sequence_number, 8'd04, local_mac, code_version, board_type, checksum, 120'd0}; 
 					state <= response;
 				end 
 						
@@ -181,9 +178,8 @@ always @(posedge tx_clock)
 				else if (run && wideband && sp_data_ready) state <= WIDEBAND;  // do for first WB packet
 				
 				else if (run)				
-				begin 				
-
-						if (port_index[7:0] >= NR[7:0]) begin									// // send wideband data only when all  DDC data has been sent 
+				begin
+						if (port_index == NR) begin									// // send wideband data only when all  DDC data has been sent 
 							port_index <= 8'd0;
 							if (wideband && send_wb_block)
 							begin 
@@ -195,7 +191,6 @@ always @(posedge tx_clock)
 							begin
 								udp_tx_length <= tx_length[port_index]; //PC_LENGTH + (samples_per_frame[k] * 16'd6) + 12;			
 								port_ID <= 8'd11 + port_index;									// set from_port to base + j i.e. 1035 + j
-								Rx_sequence_number[port_index] <= Rx_sequence_number[port_index] + 32'b1;
 								select <= port_index;
 								samples_frame <= samples_per_frame[port_index];
 								state <= RX_SEND;
@@ -206,11 +201,10 @@ always @(posedge tx_clock)
 					
 					
 				else  if (!run) begin 						// not running so reset all sequence numbers.
-					for (i = 0 ; i < NR; i++)
-					begin 
-						Rx_sequence_number[i] <= -32'd1;
-					end
-					
+						Rx_sequence_number[0] <= 32'd0;
+						Rx_sequence_number[1] <= 32'd0;
+						if (NR > 2) Rx_sequence_number[2] <= 32'd0;
+						if (NR > 3) Rx_sequence_number[3] <= 32'd0;			
    					mic_seq_number <= 32'd0;
 						CC_seq_number <= 32'd0;
 						spec_seq_number <= 32'd0;
@@ -343,8 +337,11 @@ always @(posedge tx_clock)
 				byte_no <= byte_no + 16'd1;
 			  end 
 		   end
-			else  state <= IDLE; 		// all data sent so return to start
-			end			
+			else begin
+				state <= IDLE; 		// all data sent so return to start
+				Rx_sequence_number[select] <= Rx_sequence_number[select] + 32'b1;
+			end
+		end		
 				
 			
 		MIC_SEND:
@@ -369,7 +366,7 @@ always @(posedge tx_clock)
 							mic_fifo_rdreq <= 1'b1;
 							end 						
 						16'd2: tx_data <= mic_seq_number[7:0];	
-  udp_tx_length - 16'd3: mic_fifo_rdreq <= 1'b0;
+						udp_tx_length - 16'd3: mic_fifo_rdreq <= 1'b0;
 					endcase
 					
 				if (byte_no > 16'd2) tx_data <= Mic_data;
@@ -384,15 +381,13 @@ always @(posedge tx_clock)
 						
 		response:  
 			begin 
-				udp_tx_length <= 16'd38 + HEADER_LENGTH;	// Total of 60 bytes (was 16'd50)
+				udp_tx_length <= 16'd30 + HEADER_LENGTH;	// Total of 60 bytes (was 16'd50)
 				response_shift_reg <= response_tx_bits;
 				udp_tx_request <= 1'b1;	
 				if (udp_tx_enable) begin
 					if (send_more)	 send_more_ACK  <= 1'b1;  	// only send ACKs when Tx is not busy
 					if (erase_done) erase_done_ACK <= 1'b1;
-					if (discovery)  begin 
-						discovery_ACK  <= 1'b1;	// acknowledge receipt of discovery reply request
-					end 
+					if (discovery)  discovery_ACK  <= 1'b1;	// acknowledge receipt of discovery reply request
 					send_response <= 1'b1;
 					state <= SEND;	
 				end

@@ -513,6 +513,19 @@
 2019    Apr 28 - (N1GP) Fixed a merge issue which caused the Antenna selection to not work
                          mistakenly merged some Orion changes in to High_Priority_CC.v
                          - Changed FW version number to v12.1
+
+2020    Jan 4 - (N1GP) Fixed DHCP issue where a dhcp transaction not bound for the local MAC would get passed up and interfere
+                         with ongoing network traffic. Passed dhcp_enable down to udp_recv.v so the request was only considered
+                         when enabled. Enforced that TR relay was disabled if PA_Enable was set to disable.
+                         Moved the LED clock to CLK_25MHZ, added 'set_clock_groups -exclusive -group' for various clocks.
+
+2021    Jul 8 - (N1GP) Added beta_version for better tracking of test releases (byte 23 of discovery, per protocol2 doc v3.8).
+                       Removed/fixed stuck mode in sdr_send.v, merged HL2 dhcp and icmp updates in.
+                       Experimenting with phase step adjustment of tx_pll PHY_TX_CLOCK. 8 RX slices are enabled.
+                         - Changed FW version number to v12.1
+
+2021    Aug 10 - (N1GP) Updated to Quartus 20.1. Removed for loops in sdr_send.v, seemed to fix a lot of SEQ errors.
+							 
 */
 
 /*
@@ -538,7 +551,6 @@
  *    set Mode: USB, Drive 100%, click TUNE with Drive power
  *    check the VNA port with an oscilloscope. The sin must be stable!
  *    The same check can be done with a spectral analyzer
- */
  */
 
 module Angelia(
@@ -687,12 +699,13 @@ parameter IF_TPD  = 2;
 
 localparam board_type = 8'h03;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
 parameter  Angelia_version = 8'd121;	// FPGA code version
-parameter  protocol_version = 8'd38;	// openHPSDR protocol version implemented
+parameter  beta_version = 8'd8; // Should be 0 for official release
+parameter  protocol_version = 8'd39;	// openHPSDR protocol version implemented
 
 //--------------------------------------------------------------
 // Odyssey 2: custom things
 //--------------------------------------------------------------
-parameter [63:0] fw_version = "12.11 P2";
+parameter [63:0] fw_version = "12.1.8P2";
 assign VNA_out = VNA;
 
 // Odyssey 2 : we share the Alex SPI with the USEROUT4-6
@@ -942,6 +955,7 @@ sdr_send #(board_type, NR, master_clock, protocol_version) sdr_send_inst(
 	.sp_fifo_rddata(sp_fifo_rddata),		// **** why the odd name - use spectrum_data ?
 	.local_mac(local_mac),
 	.code_version(Angelia_version),
+	.beta_version(beta_version),
 	.Rx_data(Rx_data),						// Rx I&Q data to send to PHY
 	.udp_tx_enable(udp_tx_enable),
 	.erase_done(erase_done | erase),    // send ACK when erase command received and when erase complete
@@ -1068,7 +1082,7 @@ cdc_sync #(1) cdc_phyready  (.siga(phy_ready), .rstb(C122_rst), .clkb(C122_clk),
 cdc_sync #(1) cdc_Rx_fifo_empty  (.siga(Rx_fifo_empty), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_Rx_fifo_empty));
 
 cdc_sync #(1) C122_run_sync  (.siga(run), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_run));
-cdc_sync #(16) C122_EnableRx0_7_sync  (.siga(EnableRx0_7), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_EnableRx0_7));
+cdc_sync #(8) C122_EnableRx0_7_sync  (.siga(EnableRx0_7), .rstb(C122_rst), .clkb(C122_clk), .sigb(C122_EnableRx0_7));
 
 Mux_clear Mux_clear_inst( .clock(C122_clk), .Mux(C122_SyncRx[0][1]), .phy_ready(C122_phy_ready), .convert_state(convert_state), .SampleRate(C122_SampleRate[0]),
 								  .fifo_clear(fifo_clear), .fifo_clear1(fifo_clear1), .fifo_write_enable(write_enable), .fifo_empty(C122_Rx_fifo_empty), .reset(!C122_run));	
@@ -1078,7 +1092,7 @@ Mux_clear Mux_clear_inst( .clock(C122_clk), .Mux(C122_SyncRx[0][1]), .phy_ready(
 							 .rdusedw(Rx_used[1]), .aclr (IF_rst | Rx_fifo_clr[1] | !C122_run | fifo_clear1));   // ***** added fifo_clear1
 
 		Rx_fifo_ctrl #(NR) Rx1_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[1]), .clock(C122_clk),   
-							.spd_rdy(strobe[1]), .fifo_full(Rx_fifo_full[1]), //.Rx_number(d),
+							.spd_rdy(strobe[1]), .fifo_full(Rx_fifo_full[1]), .SampleRate(C122_SampleRate[1]),
 							.wrenable(Rx_fifo_wreq[1]), .data_out(Rx_fifo_data[1]), .fifo_clear(Rx_fifo_clr[1]),
 							.Sync_data_in_I(rx_I[1]), .Sync_data_in_Q(rx_Q[1]), .Sync(0));
 													
@@ -1099,7 +1113,7 @@ for (d = 2 ; d < NR; d++)
 		// Do this by using C122_SyncRx(n) to select the required receiver I & Q data.
 
 		Rx_fifo_ctrl #(NR) Rx0_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[d]), .clock(C122_clk),   
-							.spd_rdy(strobe[d]), .fifo_full(Rx_fifo_full[d]), //.Rx_number(d),
+							.spd_rdy(strobe[d]), .fifo_full(Rx_fifo_full[d]),  .SampleRate(C122_SampleRate[d]),
 							.wrenable(Rx_fifo_wreq[d]), .data_out(Rx_fifo_data[d]), .fifo_clear(Rx_fifo_clr[d]),
 							.Sync_data_in_I(rx_I[d]), .Sync_data_in_Q(rx_Q[d]), .Sync(0));
 													
@@ -1319,7 +1333,7 @@ begin
 
         62:
         begin
-            if (CW_PTT && (sidetone_level != 0))
+            if (CW_PTT && sidetone)
             begin
                 if (break_in)
                 begin
@@ -1820,7 +1834,7 @@ High_Priority_CC #(1027, NR) High_Priority_CC_inst  // parameter is port number 
 assign FPGA_PTT = run && ((break_in && CW_PTT) || PC_PTT || debounce_PTT); // CW_PTT is used when internal CW is selected
 
 // clear TR relay and Open Collectors if run not set 
-wire [31:0]runsafe_Alex_data 		  = {Alex_data[31:28], run ? (FPGA_PTT | Alex_data[27]) : 1'b0, Alex_data[26:0]};
+wire [31:0]runsafe_Alex_data = {Alex_data[31:28], run ? ((PA_enable ? FPGA_PTT : 1'b0) | Alex_data[27]) : 1'b0, Alex_data[26:0]};
 
 Tx_specific_CC #(1026)Tx_specific_CC_inst //   // parameter is port number  ***** this data is in rx_clock domain *****
 			( 	
@@ -1997,7 +2011,7 @@ debounce de_DASH	(.clean_pb(debounce_DASH), .pb(!KEY_DASH), .clk(CMCLK));
 wire osc_10MHz;
 
 // Use a PLL to divide 122.88MHz clock to 10MHz							
-C122_PLL PLL_inst (.inclk0(C122_clk), .c0(osc_10MHz), .locked());
+C122_PLL PLL_inst (.inclk0(C122_clk), .c0(osc_10MHz), .locked(locked_10MHz));
 	
 //Apply to EXOR phase detector 
 assign FPGA_PLL = OSC_10MHZ ^ osc_10MHz;

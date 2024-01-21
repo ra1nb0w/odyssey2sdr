@@ -27,6 +27,7 @@ module udp_recv(
   input [7:0] data,
   input [31:0] to_ip,
   input broadcast,
+  input dhcp_enable,
   input [47:0] remote_mac,
   input [31:0] remote_ip,
 
@@ -52,7 +53,7 @@ reg [10:0] header_len, packet_len, byte_no;
 reg dhcp_data;
 reg [15:0] remote_port;
 
-assign active      = rx_enable & (state == ST_PAYLOAD) & !dhcp_data;
+assign active      = rx_enable & (state == ST_PAYLOAD);// & !dhcp_data;
 assign dhcp_active = rx_enable & (state == ST_PAYLOAD) & dhcp_data;
 
 always @(posedge clock)
@@ -82,7 +83,7 @@ always @(posedge clock)
 			 
 	           // verify DHCP, broadcast to port 1024  or the ip address its being sent to then save packet length				 
 				 5: begin 
-						if (to_port == 16'd68) dhcp_data <= 1'b1;				// check for DHCP data
+						if (to_port == 16'd68 & dhcp_enable) dhcp_data <= 1'b1;				// check for DHCP data
 						else if (broadcast) begin
 								if (to_port != 16'd1024) state <= ST_DONE;
 						end 

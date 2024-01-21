@@ -529,6 +529,7 @@ udp_recv udp_recv_inst(
 	.rx_enable(udp_rx_enable),
 	.data(rx_data),
 	.to_ip(to_ip),
+	.dhcp_enable(dhcp_enable),
    .local_ip(local_ip),
    .broadcast(broadcast),
 	.remote_mac(remote_mac),
@@ -620,6 +621,7 @@ dhcp dhcp_inst(
   .udp_tx_active(udp_tx_active), 
   .remote_mac(remote_mac_sync),				// MAC address of DHCP server
   .remote_ip(remote_ip_sync),				// IP address of DHCP server 
+  .local_ip(local_ip),
   .dhcp_seconds_timer(dhcp_seconds_timer),
 
   // tx_out

@@ -79,7 +79,7 @@ reg [7:0]previous_Sync;
 always @ (posedge clock)
 begin 
 
-if (reset) wrenable <= 0;	
+if (reset) wrenable <= 1'b0;	
 
 else begin 
 	case(state)
@@ -134,7 +134,7 @@ else begin
 	// base receiver 	data sent so stop sending to FIFO until we see if sync or mux data required.
 	7: begin 
 		 if (Sync == 0) begin
-				wrenable <= 0; 
+				wrenable <= 1'b0; 
 				state <= 13; 				
 		 end 
 		 else begin 
@@ -169,7 +169,7 @@ else begin
 		end
 		
 	13: 	begin 		
-			wrenable <= 0; 
+			wrenable <= 1'b0; 
 			if (!spd_rdy) state <= 0;	// wait for spd_rdy to drop then continue
 			end  
 		
