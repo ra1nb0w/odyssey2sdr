@@ -283,7 +283,7 @@ always @(posedge tx_clock)
 							sp_fifo_rdreq <= 1'b1;
 							end 						
 						16'd2: tx_data <= spec_seq_number[7:0];	
-  udp_tx_length - 16'd3: sp_fifo_rdreq <= 1'b0;
+						udp_tx_length - 16'd3: sp_fifo_rdreq <= 1'b0;
 					endcase
 					
 				if (byte_no > 16'd2) tx_data <= sp_fifo_rddata;
