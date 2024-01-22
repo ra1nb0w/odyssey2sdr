@@ -700,7 +700,7 @@ parameter IF_TPD  = 2;
 localparam board_type = 8'h03;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
 parameter  Angelia_version = 8'd121;	// FPGA code version
 parameter  beta_version = 8'd8; // Should be 0 for official release
-parameter  protocol_version = 8'd39;	// openHPSDR protocol version implemented
+parameter  protocol_version = 8'd38;	// openHPSDR protocol version implemented
 
 //--------------------------------------------------------------
 // Odyssey 2: custom things
