@@ -12,9 +12,11 @@ recompile:
 	quartus_sh --flow recompile $(PROJECT)
 
 clean:
+	quartus_sh --clean $(PROJECT)
 	rm -rf build
 
 cleanall:
+	quartus_sh --clean $(PROJECT)
 	rm -rf build db incremental_db greybox_tmp
 
 .PHONY: all recompile clean cleanall
