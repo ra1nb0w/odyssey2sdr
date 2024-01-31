@@ -700,7 +700,8 @@ parameter IF_TPD  = 2;
 localparam board_type = 8'h03;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
 parameter  Angelia_version = 8'd121;	// FPGA code version
 parameter  beta_version = 8'd8; // Should be 0 for official release
-parameter  protocol_version = 8'd38;	// openHPSDR protocol version implemented
+// we don't implement 100/1000M for now because is now usefull in my opinion
+parameter  protocol_version = 8'd39;	// openHPSDR protocol version implemented
 
 //--------------------------------------------------------------
 // Odyssey 2: custom things
@@ -1273,7 +1274,6 @@ wire Audio_full;
 wire Audio_empty;
 wire get_samples;
 wire [31:0]audio_data;
-wire Audio_seq_err;
 reg [12:0]Rx_Audio_Used;
 
 Rx_Audio_fifo Rx_Audio_fifo_inst(.wrclk (rx_clock),.rdreq (get_audio_samples),.rdclk (CBCLK),.wrreq(Rx_Audio_fifo_wrreq), 
@@ -1282,7 +1282,7 @@ Rx_Audio_fifo Rx_Audio_fifo_inst(.wrclk (rx_clock),.rdreq (get_audio_samples),.r
 // Manage Rx Audio data to feed to Audio FIFO  - parameter is port #
 byte_to_32bits #(1028) Audio_byte_to_32bits_inst
 			(.clock(rx_clock), .run(run), .udp_rx_active(udp_rx_active), .udp_rx_data(udp_rx_data), .to_port(to_port),
-			 .fifo_wrreq(Rx_Audio_fifo_wrreq), .data_out(audio_data), .sequence_error(Audio_seq_err), .full(Audio_full));
+			 .fifo_wrreq(Rx_Audio_fifo_wrreq), .data_out(audio_data), .sequence_errors(Audio_sequence_errors), .full(Audio_full));
 			
 // select sidetone when CW key active and sidetone_level is not zero else Rx audio.
 reg [31:0] Rx_audio;
@@ -1376,7 +1376,7 @@ Tx1_IQ_fifo Tx1_IQ_fifo_inst(.wrclk (rx_clock),.rdreq (req1),.rdclk (C122_clk),.
 // Manage Tx I&Q data to feed to Tx  - parameter is port #
 byte_to_48bits #(1029) IQ_byte_to_48bits_inst
 			(.clock(rx_clock), .run(run), .udp_rx_active(udp_rx_active), .udp_rx_data(udp_rx_data), .to_port(to_port),
-			 .fifo_wrreq(Tx1_fifo_wrreq), .data_out(Tx1_IQ_data), .full(1'b0), .sequence_error());					 
+			 .fifo_wrreq(Tx1_fifo_wrreq), .data_out(Tx1_IQ_data), .full(1'b0), .sequence_errors(DUC_sequence_errors));
 
 // Ensure I&Q data is zero if not transmitting
 wire [47:0] IQ_Tx_data = FPGA_PTT ? C122_IQ1_data : 48'b0; 													
@@ -1791,7 +1791,8 @@ High_Priority_CC #(1027, NR) High_Priority_CC_inst  // parameter is port number 
 			//	.User_Outputs(),
 			//	.Mercury_Attenuator(),	
 				.Alex_data_ready(Alex_data_ready),
-				.HW_reset(HW_reset2)
+				.HW_reset(HW_reset2),
+				.sequence_errors(HP_sequence_errors)
 			);
 
 // if break_in is selected then CW_PTT can activate the FPGA_PTT. 
@@ -1842,6 +1843,7 @@ Rx_specific_CC #(1025, NR) Rx_specific_CC_inst // parameter is port number
 				.to_port(to_port),
 				.udp_rx_active(udp_rx_active),
 				.udp_rx_data(udp_rx_data),
+				.run(run),
 				// outputs
 				.dither(dither),
 				.random(random),
@@ -1851,7 +1853,8 @@ Rx_specific_CC #(1025, NR) Rx_specific_CC_inst // parameter is port number
 				.EnableRx0_7(EnableRx0_7),
 				.Rx_data_ready(Rx_data_ready),
 				.Mux(Mux),
-				.HW_reset(HW_reset4)
+				.HW_reset(HW_reset4),
+				.sequence_errors(Rx_spec_sequence_errors)
 			);			
 			
 assign  RAND   = random[0] | random[1];        		//high turns random on
@@ -1888,7 +1891,17 @@ wire [15:0] REV_power     = FPGA_PTT ? {4'b0,AIN2} : 16'b0;
 wire [15:0] user_analog1  = {4'b0, AIN3}; 
 wire [15:0] user_analog2  = {4'b0, AIN4}; 
 wire locked_10MHz;
- 
+
+reg [31:0] HP_sequence_errors;
+reg [31:0] Audio_sequence_errors;
+reg [31:0] DUC_sequence_errors;
+reg [31:0] Rx_spec_sequence_errors;
+reg [31:0] ALL_sequence_errors;
+reg [31:0] ALL_sequence_errors_tx;
+
+assign ALL_sequence_errors = HP_sequence_errors + Audio_sequence_errors + DUC_sequence_errors + Rx_spec_sequence_errors;
+cdc_sync #(32)cdc_sync_ALL (.siga(ALL_sequence_errors), .rstb(1'b0), .clkb(tx_clock), .sigb(ALL_sequence_errors_tx));
+
 CC_encoder #(50, NR) CC_encoder_inst (				// 50mS update rate
 					//	inputs
 					.clock(tx_clock),					// tx_clock  125MHz
@@ -1909,6 +1922,7 @@ CC_encoder #(50, NR) CC_encoder_inst (				// 50mS update rate
 					.Debug_data(16'd0),
 					.pk_detect_ack(pk_detect_ack),			// from Angelia_ADC
 					.FPGA_PTT(FPGA_PTT),						// when set change update rate to 1mS
+					.sequence_errors(ALL_sequence_errors_tx),
 							
 					//	outputs
 					.CC_data (CC_data),

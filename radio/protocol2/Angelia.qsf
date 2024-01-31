@@ -272,6 +272,8 @@ set_global_assignment -name ADV_NETLIST_OPT_SYNTH_WYSIWYG_REMAP ON
 set_global_assignment -name MUX_RESTRUCTURE OFF
 set_global_assignment -name ROUTER_CLOCKING_TOPOLOGY_ANALYSIS ON
 
+set_global_assignment -name VERILOG_FILE Tx_specific_CC.v
+set_global_assignment -name VERILOG_FILE Rx_specific_CC.v
 set_global_assignment -name VERILOG_FILE ext_io_adc.v
 set_global_assignment -name VERILOG_FILE mcu.v
 set_global_assignment -name QIP_FILE Multiply2.qip
@@ -344,8 +346,6 @@ set_global_assignment -name VERILOG_FILE cdc_sync_strobe.v
 set_global_assignment -name VERILOG_FILE CC_encoder.v
 set_global_assignment -name QIP_FILE Ethernet/icmp_fifo.qip
 set_global_assignment -name VERILOG_FILE byte_to_48bits.v
-set_global_assignment -name VERILOG_FILE Tx_specific_C&C.v
-set_global_assignment -name VERILOG_FILE Rx_specific_C&C.v
 set_global_assignment -name VERILOG_FILE High_Priority_CC.v
 set_global_assignment -name VERILOG_FILE General_CC.v
 set_global_assignment -name QIP_FILE Polyphase_FIR/firram48.qip

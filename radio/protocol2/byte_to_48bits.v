@@ -56,26 +56,28 @@ module byte_to_48bits
 				input full,
 			   output reg fifo_wrreq,
 				output reg [47:0] data_out,
-				output reg sequence_error
+				output reg [31:0] sequence_errors
 			);
 
 parameter [15:0] port; 
 
 localparam IDLE = 1'd0,
 			  PROCESS = 1'd1;
-	
-			
-reg [31:0] temp_Audio_sequence_number = 0;
+
+reg [31:0] sequence_number = 0;
+reg [31:0] last_sequence_number = 0;
 reg [10:0] byte_number;
 reg [10:0] byte_counter;
 reg main =  0;
 
 always @(posedge clock) begin
+
+if (!run) sequence_errors <= 32'd0;
   
 case (main)
 	IDLE:	begin 
 				if (udp_rx_active && run && to_port == port) begin
-					temp_Audio_sequence_number[31:24] <= udp_rx_data;
+					sequence_number[31:24] <= udp_rx_data;
 					byte_counter <= 0;
 					byte_number <= 0;
 					main <= PROCESS;
@@ -87,15 +89,15 @@ case (main)
 			case (byte_number)
 
 					  0: begin 
-								temp_Audio_sequence_number[23:16] <= udp_rx_data;
+								sequence_number[23:16] <= udp_rx_data;
 								byte_number <= 1;
 						  end
 					  1: begin 
-								temp_Audio_sequence_number[15:8] <= udp_rx_data;
+								sequence_number[15:8] <= udp_rx_data;
 								byte_number <= 2;
 						  end
 					  2: begin 
-								temp_Audio_sequence_number[7:0] <= udp_rx_data;
+								sequence_number[7:0] <= udp_rx_data;
 								byte_number <= 3;
 						  end	
 					  3: begin
@@ -122,6 +124,9 @@ case (main)
 					  8: begin 
 								data_out[7:0] <= udp_rx_data;
 								if(byte_counter == 240) begin	// MUST get 1440 bytes = 240 x 48 bit I&Q samples.
+									if (sequence_number != last_sequence_number + 1'b1)
+										sequence_errors <= sequence_errors + 1'b1;
+									last_sequence_number <= sequence_number;
 									byte_counter <= 0;
 									byte_number <= 0;
 									if (!udp_rx_active)  		// only return to IDLE state when udp_rx_active has dropped
@@ -141,9 +146,6 @@ case (main)
 		end 
 	
 endcase  // main  
-  
- // if (byte_number == 11'd4) Audio_sequence_number <= temp_Audio_sequence_number;
- sequence_error <= 0;
   
 end 
 

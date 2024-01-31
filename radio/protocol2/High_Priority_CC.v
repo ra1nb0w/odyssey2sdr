@@ -97,8 +97,8 @@ module High_Priority_CC
 				output reg  [7:0]Mercury_Attenuator,				
 				output reg Alex_data_ready,
 				output  HW_reset,
-				output reg  [7:0]DLE_outputs  // XVTR_enable & IO1 output
-				
+				output reg  [7:0]DLE_outputs,  // XVTR_enable & IO1 output
+				output reg [31:0]sequence_errors
 			);
 			
 parameter port = 16'd1027;	
@@ -107,8 +107,10 @@ parameter NR;
 localparam 
 				IDLE = 1'd0,
 				PROCESS = 1'd1;
-			
-//reg [31:0] CC_sequence_number;
+
+reg [31:0] sequence_number;
+reg [31:0] last_sequence_number;
+
 reg [10:0] byte_number;
 reg state;
 
@@ -139,6 +141,7 @@ endgenerate
 
 always @(posedge clock)
 begin
+  if(!run) sequence_errors <= 32'd0;
   if(HW_timeout)
 	begin
 	   run <= 1'b0; 							// reset run if HW timeout
@@ -151,21 +154,26 @@ begin
 			begin
 				byte_number <= 11'd1;
 				Alex_data_ready <= 1'b0;
-				//CC_sequence_number <= {CC_sequence_number[31-8:0], udp_rx_data};  //save MSB of sequence number
+				sequence_number[31:24] <= udp_rx_data;  //save MSB of sequence number
 				state <= PROCESS;
 			end 
 
 		PROCESS:
 			begin
 				case (byte_number) 	//save balance of sequence number
-				  1,2,3: begin
+						1: begin
+							sequence_number[23:16] <= udp_rx_data;
 							Alex_data_ready <= 1'b0;
 						//	HW_reset <= 1'b1;						
-						//	CC_sequence_number <= {CC_sequence_number[31-8:0], udp_rx_data};
 							end
+						2: sequence_number[15:8] <= udp_rx_data;
+						3: sequence_number[7:0] <= udp_rx_data;
 						4: begin 
 							run <= udp_rx_data[0];
 							PC_PTT <= udp_rx_data[1];
+							if (sequence_number != last_sequence_number + 1'b1)
+								sequence_errors <= sequence_errors + 1'b1;
+							last_sequence_number <= sequence_number;
 						   end
 						5: begin
 							CWX  <= udp_rx_data[0];
