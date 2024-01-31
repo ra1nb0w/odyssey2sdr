@@ -1094,7 +1094,7 @@ Mux_clear Mux_clear_inst( .clock(C122_clk), .Mux(C122_SyncRx[0][1]), .phy_ready(
 							 .rdusedw(Rx_used[1]), .aclr (IF_rst | Rx_fifo_clr[1] | !C122_run | fifo_clear1));   // ***** added fifo_clear1
 
 		Rx_fifo_ctrl #(NR) Rx1_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[1]), .clock(C122_clk),   
-							.spd_rdy(strobe[1]), .fifo_full(Rx_fifo_full[1]), .SampleRate(C122_SampleRate[1]),
+							.spd_rdy(strobe[1]), .fifo_full(Rx_fifo_full[1]),
 							.wrenable(Rx_fifo_wreq[1]), .data_out(Rx_fifo_data[1]), .fifo_clear(Rx_fifo_clr[1]),
 							.Sync_data_in_I(rx_I[1]), .Sync_data_in_Q(rx_Q[1]), .Sync(0));
 													
@@ -1115,7 +1115,7 @@ for (d = 2 ; d < NR; d++)
 		// Do this by using C122_SyncRx(n) to select the required receiver I & Q data.
 
 		Rx_fifo_ctrl #(NR) Rx0_fifo_ctrl_inst( .reset(!C122_run || !C122_EnableRx0_7[d]), .clock(C122_clk),   
-							.spd_rdy(strobe[d]), .fifo_full(Rx_fifo_full[d]),  .SampleRate(C122_SampleRate[d]),
+							.spd_rdy(strobe[d]), .fifo_full(Rx_fifo_full[d]),
 							.wrenable(Rx_fifo_wreq[d]), .data_out(Rx_fifo_data[d]), .fifo_clear(Rx_fifo_clr[d]),
 							.Sync_data_in_I(rx_I[d]), .Sync_data_in_Q(rx_Q[d]), .Sync(0));
 													

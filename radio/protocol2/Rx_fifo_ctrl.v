@@ -51,7 +51,6 @@
 module Rx_fifo_ctrl(
 	input clock,
 	input reset,
-	input [15:0] SampleRate,
 	input [23:0] Sync_data_in_Q,
 	input [23:0] Sync_data_in_I,			// Synchronus Rx data from selected receiver 
 	input spd_rdy,
@@ -66,7 +65,6 @@ module Rx_fifo_ctrl(
 parameter NR;
 	
 reg [3:0]state;
-reg [15:0]prevSampleRate;
 	
 always @ (posedge clock)
 begin 
@@ -74,7 +72,7 @@ begin
 if (reset) begin
 	fifo_clear <= 1'b1;
 	wrenable <= 1'b0;
-	state <= 10;
+	state <= 0;
 end
 
 else begin 
@@ -86,13 +84,7 @@ else begin
 		end 
 	
 	1:	begin
-			if (prevSampleRate != SampleRate) begin
-				prevSampleRate <= SampleRate;
-				fifo_clear <= 1'b1;
-				wrenable <= 1'b0;
-				state <= 10;
-			end
-			else if (fifo_full) state <= 10; 		// clear fifo, will need to do this if code has been idle
+			if (fifo_full) state <= 10; // clear fifo, will need to do this if code has been idle
 			else if(spd_rdy) begin 													
 				wrenable <= 1'b1;
 				data_out <= Sync_data_in_I[23:16];
