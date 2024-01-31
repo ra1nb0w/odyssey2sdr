@@ -98,8 +98,20 @@ char bootloader_cmds[][3] = {
   "BOT"  /* 11 = boot the radio firmware */
 };
 
+/* Radio */
+#define RADIO_CMD_PORT 1024
+unsigned char radio_cmds[] = {
+  0x01, /* empty */
+  0x02, /* discovery */
+  0x03, /* set IP */
+  0x04, /* empty */
+  0x05, /* empty */
+  0x06  /* FPGA reset */
+};
+
 /* Socket */
 #define UDP_BUF_LEN 1024
+u_short udp_dport = BOOTLOADER_PORT;
 /* socket timeout in secconds */
 #define UDP_TIMEOUT_SEC 1
 #define UDP_TIMEOUT_USEC 0
@@ -131,7 +143,8 @@ struct argparser_t {
   bool set;
   bool program;
   bool stop;
-  bool reset;
+  bool b_reset;
+  bool r_reset;
   bool boot_slot;
   bool status;
   bool pa;
@@ -141,7 +154,8 @@ struct argparser_t {
   bool start_radio;
 };
 struct argparser_t argp = { false, false, false, false, false,
-  false, false, false, false, false, false, false };
+			    false, false, false, false, false,
+			    false, false, false };
 
 /**
  * @brief print the help
@@ -163,7 +177,8 @@ usage()
   printf("\t\t\t\trequire -f and -o optionally; use slot 1 as default\n");
   printf("\t-x\t\t\terase the slot without programming (require -o)\n");
   printf("\t-b\t\t\tstop the radio at the bootloader\n");
-  printf("\t-r\t\t\treset the device\n");
+  printf("\t-r\t\t\treset the bootloader\n");
+  printf("\t-q\t\t\treset the radio\n");
   printf("\t-z\t\t\tboot the radio firmware\n");
   printf("\t-s\t\t\tset which slot to boot (require -o)\n");
   printf("\t-y [0/1]\t\tdisable or enable the auto power-on functionality\n");
@@ -368,7 +383,7 @@ create_socket(char *dest_ip)
   else
     udp_servaddr.sin_family = AF_INET;
 
-  udp_servaddr.sin_port = htons(BOOTLOADER_PORT);
+  udp_servaddr.sin_port = htons(udp_dport);
 
   set_timeout(UDP_TIMEOUT_SEC, UDP_TIMEOUT_USEC);
 
@@ -494,21 +509,40 @@ check_device()
 }
 
 /**
- * @brief reset the FPGA
+ * @brief reset the FPGA from the bootloader
  *
  * @param print show strings to the user
  *
  * @return true if the command is sent without error
  */
 bool
-reset_device(bool print)
+reset_bootloader(bool print)
 {
   memset(msg, 0, sizeof(msg));
   memcpy(msg, bootloader_cmds[0], sizeof(bootloader_cmds[0]));
   bool r = send_msg(false, 0);
 
   if (print && r)
-    printf("Reset command sent\n");
+    printf("Reset command sent to the bootloader\n");
+  return(true);
+}
+
+/**
+ * @brief reset the FPGA from the radio
+ *
+ * @param print show strings to the user
+ *
+ * @return true if the command is sent without error
+ */
+bool
+reset_radio(bool print)
+{
+  memset(msg, 0, sizeof(msg));
+  memcpy(&msg[4], &radio_cmds[5], sizeof(radio_cmds[5]));
+  bool r = send_msg(false, 0);
+
+  if (print && r)
+    printf("Reset command sent to the radio\n");
   return(true);
 }
 
@@ -932,7 +966,7 @@ main(int argc, char **argv)
     usage();
 
   /* loop over all of the options */
-  while ((c = getopt(argc, argv, "htnpbrsaxzd:e:f:o:g:c:y:")) != -1)
+  while ((c = getopt(argc, argv, "htnpbrqsaxzd:e:f:o:g:c:y:")) != -1)
     {
       switch (c)
         {
@@ -949,8 +983,12 @@ main(int argc, char **argv)
           argp.stop = true;
           break;
         case 'r':
-          argp.reset = true;
+          argp.b_reset = true;
           break;
+	case 'q':
+	  argp.r_reset = true;
+	  udp_dport = RADIO_CMD_PORT;
+	  break;
         case 's':
           argp.boot_slot = true;
           break;
@@ -1049,24 +1087,35 @@ main(int argc, char **argv)
 
   create_socket(odyssey2.current_ip);
 
+  /* Reset the bootloader */
+  if (argp.b_reset)
+    {
+      check_device();
+      printf("We are resetting the bootloader %s\n", odyssey2.current_ip);
+      reset_bootloader(true);
+    }
+
+  /* Reset the radio */
+  if (argp.r_reset)
+    {
+      /* TODO: check if the radio is alive using discovery */
+      printf("We are resetting the radio %s\n", odyssey2.current_ip);
+      reset_radio(true);
+      /* unfortunately, we can not chain multiple commands since we are using
+	 different UDP dport */
+      goto EXIT;
+    }
+  
+  /* if we chain actions we need to wait a bit after reset */
+  if (argp.b_reset && (argp.stop || argp.test || argp.set || argp.program || argp.boot_slot || argp.status))
+    sleep(WAIT_AFTER_RESET);
+
   /* Stop the device at boot */
   if (argp.stop)
     {
       stop_at_bootloader(true);
     }
-
-  /* Reset the device */
-  if (argp.reset)
-    {
-      check_device();
-      printf("We are resetting device %s\n", odyssey2.current_ip);
-      reset_device(true);
-    }
-
-  /* if we chain actions we need to wait a bit after reset */
-  if (argp.reset && (argp.test || argp.set || argp.program || argp.boot_slot || argp.status))
-    sleep(WAIT_AFTER_RESET);
-
+  
   /* Test the device */
   if (argp.test)
     {
