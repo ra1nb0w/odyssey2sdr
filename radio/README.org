@@ -7,12 +7,12 @@
 - the FPGA communicates to MCU with UART
 - support Alex SPI protocol and TAPR/F6ITU boards
 - sync source code with upstream TAPR ANAN-100D firmware
+- reboot the radio from remote
 
 ** TO DO
 
 - implement IPv6 support
 - support auto-sensing on protocol 1 (connect to gigabit switch)
-- reboot the radio from remote
 - calculate VSWR and send it to MCU with command /0x70/
 
 ** Protocol 1 (protocol1 folder)
