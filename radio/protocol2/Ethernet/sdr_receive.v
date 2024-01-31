@@ -47,7 +47,8 @@ module sdr_receive(
 	output EPCS_FIFO_enable,				// set when we write to the EPCS fifo
 	output reg set_ip,						// set when new static IP address available 
 	output reg [31:0] assign_ip,			// static IP address to save in EEPROM.
-	output reg [31:0] sequence_number	// sequence number from PC when programming.
+	output reg [31:0] sequence_number,  // sequence number from PC when programming.
+	output reg nconfig						// permit to reset the FPGA from remote
 );
 
 
@@ -69,7 +70,8 @@ localparam
 	ST_TX				 = 12'd16,
 	ST_ERASE        = 12'd32,
 	ST_PROGRAM_FIFO = 12'd64,
-	ST_WAIT			 = 12'd128;
+	ST_WAIT			 = 12'd128,
+	ST_RESET        = 12'd256;
 
 
 // ****** NOTE: This state machine only runs when udp_rx_active ******	
@@ -97,8 +99,10 @@ begin
 								case (udp_rx_data)				// get command 
 									2: state <= ST_DISCOVERY;								// allow Discovery to this address or broadcast 
 									3: if (broadcast)  state <= ST_SETIP; 
-									4: if (!broadcast) state <= ST_ERASE;
-									5: if (!broadcast) state <= ST_PROGRAM_FIFO;
+									// disable to avoid issues with slot. You can program the radio only from the bootloader
+									//4: if (!broadcast) state <= ST_ERASE;
+									//5: if (!broadcast) state <= ST_PROGRAM_FIFO;
+									6: if (!broadcast) state <= ST_RESET;           // reset the FPGA; useful to enter into the bootloader
 									default: state <= ST_WAIT;								// command not for us so wait for this to end
 								endcase
 							end
@@ -151,7 +155,9 @@ begin
 			   endcase 		  
 				byte_cnt <= byte_cnt + 9'd1;
 			end
-	
+
+		ST_RESET: nconfig <= 1'b1;													// reset the FPGA immediatelty
+
 		// wait for the end of sending
 		ST_TX:  if (!sending_sync) state <= ST_IDLE;
 		

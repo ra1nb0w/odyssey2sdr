@@ -688,7 +688,7 @@ wire ATTN_CLK_2;
 assign ATTN_DATA = ATTN_LE ? ATTN_DATA_1 : ATTN_DATA_2;
 assign ATTN_CLK = ATTN_LE ? ATTN_CLK_1 : ATTN_CLK_2;
 
-assign NCONFIG = IP_write_done;
+assign NCONFIG = IP_write_done | CMD_reset;
 
 wire speed = 1'b1; // Ethernet speed; high for 1000T
 localparam NR = 4; 							// number of receivers to implement
@@ -887,6 +887,7 @@ wire [15:0]to_port;
 wire [31:0] PC_seq_number;				// sequence number sent by PC when programming
 wire discovery_ACK;
 wire discovery_ACK_sync;
+wire CMD_reset;
 
 
 sdr_receive sdr_receive_inst(
@@ -910,7 +911,8 @@ sdr_receive sdr_receive_inst(
 	.EPCS_FIFO_enable(),
 	.set_ip(set_ip),
 	.assign_ip(assign_ip),
-	.sequence_number(PC_seq_number)
+	.sequence_number(PC_seq_number),
+	.nconfig(CMD_reset)
 	);
 			        
 
