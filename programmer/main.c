@@ -49,7 +49,7 @@
 #endif
 
 #define MAJOR_VERSION "0"
-#define MINOR_VERSION "1"
+#define MINOR_VERSION "2"
 #define PATCH_LEVEL   "0"
 #define SOFTWARE_VERSION MAJOR_VERSION "." MINOR_VERSION "." PATCH_LEVEL
 #define SOFTWARE_NAME "Odyssey 2 Bootloader Programmer"
