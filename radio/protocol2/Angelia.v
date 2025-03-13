@@ -697,16 +697,20 @@ localparam master_clock = 122880000; 	// DSP  master clock in Hz.
 parameter M_TPD   = 4;
 parameter IF_TPD  = 2;
 
+`ifdef ORION7000
+localparam board_type = 8'h05;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
+`else
 localparam board_type = 8'h03;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
-parameter  Angelia_version = 8'd121;	// FPGA code version
-parameter  beta_version = 8'd8; // Should be 0 for official release
+`endif
+parameter  Angelia_version = 8'd121;	// FPGA code version !! change also fw_version for the display !!
+parameter  beta_version = 8'd9; // Should be 0 for official release
 // we don't implement 100/1000M for now because is now usefull in my opinion
 parameter  protocol_version = 8'd39;	// openHPSDR protocol version implemented
 
 //--------------------------------------------------------------
 // Odyssey 2: custom things
 //--------------------------------------------------------------
-parameter [63:0] fw_version = "12.1.8P2";
+parameter [63:0] fw_version = "12.1.9P2";
 assign VNA_out = VNA;
 
 // Odyssey 2 : we share the Alex SPI with the USEROUT4-6
@@ -721,7 +725,11 @@ assign SPI_SDO     = Apollo ? USEROUT4 : Alex_SPI_SDO;
 assign SPI_SCK     = Apollo ? USEROUT5 : Alex_SPI_SCK;
 assign SPI_RX_LOAD = Apollo ? USEROUT6 : Alex_RX_LOAD;
 // we use ANT2 to set TX load signal
+`ifdef ORION7000
+assign ANT2_RELAY  = Apollo ? Alex_data[41] : Alex_TX_LOAD;
+`else
 assign ANT2_RELAY  = Apollo ? Alex_data[25] : Alex_TX_LOAD;
+`endif
 
 // we use the main clock to pilot DAC
 assign _122MHz_out = C122_clk;
@@ -1674,7 +1682,7 @@ wire   [4:0] atten0_on_Tx;			// ADC0 attenuation value to use when Tx is active
 wire   [4:0] atten1_on_Tx;			// ADC1 attenuation value to use when Tx is active
 wire  [31:0] Rx_frequency[0:NR-1];	// Rx(n) receive frequency
 wire  [31:0] Tx0_frequency;		// Tx0 transmit frequency
-wire  [31:0] Alex_data;				// control data to Alex board
+wire  [47:0] Alex_data;				// control data to Alex board
 wire         run;						// set when run active 
 wire 		    PC_PTT;					// set when PTT from PC active
 wire 	 [7:0] dither;					// Dither for ADC0[0], ADC1[1]...etc
@@ -1800,8 +1808,12 @@ High_Priority_CC #(1027, NR) High_Priority_CC_inst  // parameter is port number 
 // inhibit T/R switching if IO4 TX INHIBIT is active (low)		
 assign FPGA_PTT = run && ((break_in && CW_PTT) || PC_PTT || debounce_PTT); // CW_PTT is used when internal CW is selected
 
-// clear TR relay and Open Collectors if run not set 
-wire [31:0]runsafe_Alex_data = {Alex_data[31:28], run ? ((PA_enable ? FPGA_PTT : 1'b0) | Alex_data[27]) : 1'b0, Alex_data[26:0]};
+// clear TR relay and Open Collectors if run not set
+`ifdef ORION7000
+wire [47:0]runsafe_Alex_data = {Alex_data[47:44], run && PA_enable && FPGA_PTT && Alex_data[43], Alex_data[42:0]};
+`else
+wire [47:0]runsafe_Alex_data = {Alex_data[47:28], run ? ((PA_enable ? FPGA_PTT : 1'b0) | Alex_data[27]) : 1'b0, Alex_data[26:0]};
+`endif
 
 Tx_specific_CC #(1026)Tx_specific_CC_inst //   // parameter is port number  ***** this data is in rx_clock domain *****
 			( 	
@@ -1870,10 +1882,8 @@ cdc_mcp #(8) Mux_inst
 	(.a_rst(C122_rst), .a_clk(rx_clock), .a_data(Mux), .a_data_rdy(Rx_data_ready), .b_rst(C122_rst), .b_clk(C122_clk), .b_data(C122_Mux)); 
 
 // move Alex data into CBCLK domain
-wire  [31:0] SPI_Alex_data;
-cdc_sync #(32) SPI_Alex (.siga(runsafe_Alex_data), .rstb(IF_rst), .clkb(CBCLK), .sigb(SPI_Alex_data));
- 
-
+wire  [47:0] SPI_Alex_data;
+cdc_sync #(48) SPI_Alex (.siga(runsafe_Alex_data), .rstb(IF_rst), .clkb(CBCLK), .sigb(SPI_Alex_data));
  
 
 //------------------------------------------------------------
