@@ -698,7 +698,7 @@ parameter M_TPD   = 4;
 parameter IF_TPD  = 2;
 
 `ifdef ORION7000
-localparam board_type = 8'h05;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
+localparam board_type = 8'h03;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion MKII/Anan7000
 `else
 localparam board_type = 8'h03;		  	// 00 for Metis, 01 for Hermes, 02 for Griffin, 03 for Angelia, and 05 for Orion
 `endif
@@ -725,11 +725,7 @@ assign SPI_SDO     = Apollo ? USEROUT4 : Alex_SPI_SDO;
 assign SPI_SCK     = Apollo ? USEROUT5 : Alex_SPI_SCK;
 assign SPI_RX_LOAD = Apollo ? USEROUT6 : Alex_RX_LOAD;
 // we use ANT2 to set TX load signal
-`ifdef ORION7000
-assign ANT2_RELAY  = Apollo ? Alex_data[41] : Alex_TX_LOAD;
-`else
 assign ANT2_RELAY  = Apollo ? Alex_data[25] : Alex_TX_LOAD;
-`endif
 
 // we use the main clock to pilot DAC
 assign _122MHz_out = C122_clk;
@@ -1809,11 +1805,7 @@ High_Priority_CC #(1027, NR) High_Priority_CC_inst  // parameter is port number 
 assign FPGA_PTT = run && ((break_in && CW_PTT) || PC_PTT || debounce_PTT); // CW_PTT is used when internal CW is selected
 
 // clear TR relay and Open Collectors if run not set
-`ifdef ORION7000
-wire [47:0]runsafe_Alex_data = {Alex_data[47:44], run && PA_enable && FPGA_PTT && Alex_data[43], Alex_data[42:0]};
-`else
 wire [47:0]runsafe_Alex_data = {Alex_data[47:28], run ? ((PA_enable ? FPGA_PTT : 1'b0) | Alex_data[27]) : 1'b0, Alex_data[26:0]};
-`endif
 
 Tx_specific_CC #(1026)Tx_specific_CC_inst //   // parameter is port number  ***** this data is in rx_clock domain *****
 			( 	

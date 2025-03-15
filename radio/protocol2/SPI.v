@@ -189,10 +189,10 @@ reg [47:0] previous_Alex_data;
 //reg loop_count; 		// used to send data word twice each time the data word changes
 
 `ifdef ORION7000
-// BIT34 is populated with PTT bit; this is neccesary for mentor.
+// BIT 34 is populated with PTT bit; this is neccesary for mentor.
 // The control board can also use the TXRX_RELAY signal to control the TXRX_STATUS signal;
 // in this way we don't need to modify the data sent to the SPI.
-wire [47:0] send_data = {Alex_data[47:35], Alex_data[43], Alex_data[33:0]};
+wire [47:0] send_data = { Alex_data[31:19], Alex_data[27], Alex_data[17:16], Alex_data[47:32], Alex_data[15:0] };
 `else
 // by default we use the Anan-100D or Fainitski SPI variant
 // if we are using DITHER use the David customized protocol otherwise the standard one
